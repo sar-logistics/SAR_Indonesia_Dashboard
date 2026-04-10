@@ -3,144 +3,497 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAR Indonesia – TEU Pivot Verification v2</title>
+<title>SAR Indonesia · Sales Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-  :root {
-    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
-    --border: #2e3347; --accent: #4f8ef7; --accent2: #34d399;
-    --purple: #a78bfa; --orange: #fb923c;
-    --text: #e8eaf0; --text-muted: #7a80a0;
-    --header-bg: #1e2235; --row-alt: #1d2030; --total-bg: #252a3d;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; padding: 24px; }
+/* ── RESET & BASE ─────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f7;
+  --sidebar-bg:#ffffff;
+  --card-bg:#ffffff;
+  --border:#e2e6f0;
+  --border-light:#eef0f6;
+  --text:#1a1f36;
+  --text-2:#4a5178;
+  --text-3:#8b92b0;
+  --blue:#2563eb;
+  --blue-light:#eff4ff;
+  --blue-mid:#dbeafe;
+  --green:#059669;
+  --green-light:#ecfdf5;
+  --red:#dc2626;
+  --red-light:#fef2f2;
+  --orange:#d97706;
+  --orange-light:#fffbeb;
+  --purple:#7c3aed;
+  --purple-light:#f5f3ff;
+  --teal:#0891b2;
+  --teal-light:#ecfeff;
+  --sidebar-w:220px;
+  --topbar-h:52px;
+  --font:'DM Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px}
 
-  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-  .title-block h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
-  .title-block p { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+/* ── LAYOUT ───────────────────────────────────────────────────────────── */
+.app{display:flex;height:100vh;overflow:hidden}
 
-  .status-badge { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-muted); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; transition: background 0.3s; }
-  .dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
-  .dot.ok { background: var(--accent2); }
-  .dot.error { background: #f87171; }
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+/* SIDEBAR */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--sidebar-bg);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+}
+.sidebar-logo{
+  padding:18px 20px 14px;
+  border-bottom:1px solid var(--border-light);
+  display:flex;align-items:center;gap:10px;
+}
+.sidebar-logo .logo-icon{
+  width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:14px;font-weight:700;flex-shrink:0;
+}
+.sidebar-logo .brand{font-weight:700;font-size:14px;line-height:1.2}
+.sidebar-logo .subbrand{font-size:11px;color:var(--text-3);font-weight:400}
 
-  .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end; }
-  .filter-group { display: flex; flex-direction: column; gap: 4px; }
-  .filter-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  select { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; padding: 7px 12px; outline: none; cursor: pointer; min-width: 160px; }
-  select:focus { border-color: var(--accent); }
-  .btn { background: var(--accent); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 8px 18px; transition: opacity 0.2s; }
-  .btn:hover { opacity: 0.85; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sidebar-section{padding:20px 12px 8px}
+.sidebar-section-label{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.7px;padding:0 8px;margin-bottom:6px}
 
-  .cards { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; min-width: 150px; }
-  .card .lbl { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .card .val { font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-  .card .sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;cursor:pointer;
+  font-size:13px;font-weight:500;color:var(--text-2);
+  transition:all .15s;margin-bottom:2px;
+}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--blue-light);color:var(--blue);font-weight:600}
+.nav-item .nav-icon{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
 
-  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
-  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.nav-item.locked{opacity:.5;cursor:not-allowed}
+.nav-item.locked:hover{background:transparent;color:var(--text-2)}
 
-  thead th { background: var(--header-bg); color: var(--text-muted); font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; padding: 10px 12px; white-space: nowrap; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; }
-  thead th.col-rep { text-align: left; position: sticky; left: 0; z-index: 3; background: var(--header-bg); min-width: 180px; }
-  thead th.col-lob { text-align: left; min-width: 110px; }
+.sidebar-footer{margin-top:auto;padding:16px 12px;border-top:1px solid var(--border-light)}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-  tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-  tbody tr:nth-child(even) td { background: var(--row-alt); }
-  tbody tr:nth-child(odd) td { background: var(--surface); }
-  tbody tr:hover td { background: var(--surface2) !important; }
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-  td.col-rep { text-align: left; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 12.5px; position: sticky; left: 0; z-index: 2; }
-  td.col-lob { text-align: left; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 600; }
-  tbody tr:nth-child(even) td.col-rep { background: var(--row-alt); }
-  tbody tr:nth-child(odd) td.col-rep { background: var(--surface); }
-  tbody tr:hover td.col-rep { background: var(--surface2) !important; }
+/* TOP BAR */
+.topbar{
+  height:var(--topbar-h);flex-shrink:0;
+  background:var(--card-bg);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;padding:0 20px;
+}
+.page-title{font-size:14px;font-weight:700;color:var(--text);margin-right:4px}
+.topbar-divider{width:1px;height:22px;background:var(--border);margin:0 4px}
 
-  .zero { color: var(--border) !important; }
-  .total-row td { background: var(--total-bg) !important; font-weight: 700; border-top: 2px solid var(--border); }
-  .total-row td.col-rep { background: var(--total-bg) !important; color: var(--text); }
-  .grand-row td { background: #182030 !important; font-weight: 700; font-size: 13px; border-top: 2px solid var(--accent); color: var(--accent) !important; }
-  .grand-row td.col-rep { background: #182030 !important; color: var(--text) !important; }
+/* Period toggles */
+.period-toggles{display:flex;background:var(--bg);border-radius:8px;padding:3px;gap:2px}
+.period-btn{
+  padding:5px 13px;border-radius:6px;border:none;cursor:pointer;
+  font-family:var(--font);font-size:12px;font-weight:500;color:var(--text-2);
+  background:transparent;transition:all .15s;white-space:nowrap;
+}
+.period-btn.active{background:#fff;color:var(--blue);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.period-btn:hover:not(.active){color:var(--text)}
 
-  .loader { text-align: center; padding: 60px; color: var(--text-muted); font-size: 14px; }
-  .error-box { background: #2a1a1a; border: 1px solid #5a2a2a; border-radius: 8px; padding: 16px 20px; color: #f87171; font-size: 13px; }
+/* Date range pickers */
+.date-range{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)}
+.date-range span{font-weight:500}
+.date-select{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:5px 10px;font-family:var(--font);font-size:12px;color:var(--text);
+  outline:none;cursor:pointer;
+}
+.date-select:focus{border-color:var(--blue)}
 
-  .debug-section { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .debug-section h3 { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
-  .debug-section pre { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent2); white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+/* Filter chips */
+.filter-group{display:flex;align-items:center;gap:6px;margin-left:auto}
+.filter-label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px}
+.filter-select{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:5px 10px;font-family:var(--font);font-size:12px;color:var(--text);
+  outline:none;cursor:pointer;min-width:110px;
+}
+.filter-select:focus{border-color:var(--blue)}
+
+.refresh-btn{
+  margin-left:8px;padding:6px 14px;border-radius:6px;border:1px solid var(--border);
+  background:#fff;font-family:var(--font);font-size:12px;font-weight:600;
+  color:var(--text-2);cursor:pointer;display:flex;align-items:center;gap:5px;
+  transition:all .15s;
+}
+.refresh-btn:hover{border-color:var(--blue);color:var(--blue)}
+.refresh-btn.loading .spin{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:20px}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+.kpi-card{
+  background:var(--card-bg);border-radius:var(--radius);
+  border:1px solid var(--border);padding:14px 16px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+.kpi-card.c-blue::before{background:var(--blue)}
+.kpi-card.c-green::before{background:var(--green)}
+.kpi-card.c-purple::before{background:var(--purple)}
+.kpi-card.c-orange::before{background:var(--orange)}
+.kpi-card.c-teal::before{background:var(--teal)}
+.kpi-card.c-red::before{background:var(--red)}
+
+.kpi-label{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:700;line-height:1;margin-bottom:4px;font-family:var(--mono)}
+.kpi-card.c-blue .kpi-value{color:var(--blue)}
+.kpi-card.c-green .kpi-value{color:var(--green)}
+.kpi-card.c-purple .kpi-value{color:var(--purple)}
+.kpi-card.c-orange .kpi-value{color:var(--orange)}
+.kpi-card.c-teal .kpi-value{color:var(--teal)}
+.kpi-card.c-red .kpi-value{color:var(--red)}
+.kpi-sub{font-size:10px;color:var(--text-3)}
+.kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:4px}
+.kpi-badge.up{background:var(--green-light);color:var(--green)}
+.kpi-badge.down{background:var(--red-light);color:var(--red)}
+
+/* TABLE SECTION */
+.table-section{background:var(--card-bg);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
+.table-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-light)}
+.table-header h2{font-size:13px;font-weight:700;color:var(--text)}
+.table-header p{font-size:11px;color:var(--text-3);margin-top:1px}
+.table-meta{font-size:11px;color:var(--text-3)}
+
+.table-wrap{overflow-x:auto;max-height:calc(100vh - 280px)}
+table{border-collapse:collapse;width:100%}
+
+/* Sticky headers */
+thead th{
+  background:#fafbfd;font-size:10px;font-weight:700;
+  color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;
+  padding:9px 12px;white-space:nowrap;text-align:right;
+  border-bottom:2px solid var(--border);
+  position:sticky;top:0;z-index:4;
+}
+thead th.col-rep{text-align:left;position:sticky;left:0;z-index:5;min-width:180px;background:#fafbfd}
+thead th.col-metric{text-align:left;position:sticky;left:180px;z-index:5;min-width:130px;background:#fafbfd;border-left:1px solid var(--border-light)}
+thead th.col-total{background:#fdf8ec;color:var(--orange);border-left:2px solid #fde68a}
+
+/* Body rows */
+tbody td{
+  padding:7px 12px;border-bottom:1px solid var(--border-light);
+  white-space:nowrap;text-align:right;font-size:12px;
+  font-family:var(--mono);color:var(--text-2);
+}
+tbody td.col-rep{
+  text-align:left;font-family:var(--font);font-weight:700;
+  font-size:13px;color:var(--text);
+  position:sticky;left:0;z-index:2;
+  background:inherit;
+  border-right:1px solid var(--border-light);
+}
+tbody td.col-metric{
+  text-align:left;font-family:var(--font);font-size:11.5px;
+  font-weight:500;color:var(--text-2);
+  position:sticky;left:180px;z-index:2;background:inherit;
+  border-left:1px solid var(--border-light);border-right:1px solid var(--border-light);
+  padding-left:14px;
+}
+tbody td.col-total{background:#fffbeb;font-weight:700;border-left:2px solid #fde68a}
+
+/* Row types */
+tr.row-grand{background:#f8f9ff}
+tr.row-grand td{border-bottom:2px solid var(--border)}
+tr.row-grand td.col-rep{color:var(--blue);font-size:13px}
+
+tr.row-rep-first td{border-top:2px solid var(--border)}
+tr.row-rep-last td{border-bottom:1px solid var(--border)}
+
+/* Metric-specific colors */
+td.m-teu{color:var(--blue)!important;font-weight:600}
+td.m-teu-fcl{color:#3b82f6!important}
+td.m-teu-tank{color:var(--purple)!important}
+td.m-tons{color:var(--orange)!important}
+td.m-rev{color:var(--text)!important}
+td.m-gp{color:var(--green)!important;font-weight:600}
+td.m-target{color:var(--blue)!important}
+td.m-variance.pos{color:var(--green)!important;font-weight:600}
+td.m-variance.neg{color:var(--red)!important;font-weight:600}
+td.zero{color:#d1d5db!important;font-weight:400}
+
+/* Rep avatar */
+.rep-cell{display:flex;align-items:center;gap:8px}
+.rep-avatar{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:#fff;
+}
+.rep-name{font-weight:700;font-size:12.5px}
+
+/* Metric indent */
+td.col-metric.sub{padding-left:22px;color:var(--text-3)!important;font-weight:400;font-style:italic;font-size:11px}
+
+/* Loading */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+.loading-text{font-size:13px;color:var(--text-2);font-weight:500}
+
+/* Empty state */
+.empty-state{padding:60px;text-align:center;color:var(--text-3)}
+.empty-state h3{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text-2)}
+
+/* Coming soon panels */
+.coming-soon{padding:80px 20px;text-align:center}
+.coming-soon-icon{font-size:40px;margin-bottom:12px}
+.coming-soon h3{font-size:18px;font-weight:700;color:var(--text-2);margin-bottom:6px}
+.coming-soon p{font-size:13px;color:var(--text-3)}
+
+/* Error */
+.error-bar{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 16px;color:var(--red);font-size:12px;margin-bottom:16px;display:none}
+
+/* Responsive */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .kpi-row{grid-template-columns:repeat(3,1fr)}
+}
 </style>
 </head>
 <body>
 
-<div class="top-bar">
-  <div class="title-block">
-    <h1>SAR Indonesia — TEU Pivot Verification</h1>
-    <p>Live · Google Sheets API · Shipment Detail · Col BF=Rep · CK=TEU · EI=Month · EU=LOB · FB=Mode</p>
-  </div>
-  <div class="status-badge">
-    <div class="dot loading" id="statusDot"></div>
-    <span id="statusText">Connecting…</span>
-  </div>
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Connecting to Google Sheets…</div>
 </div>
 
-<div class="controls">
-  <div class="filter-group">
-    <label>LOB / Mode</label>
-    <select id="lobFilter">
-      <option value="all">All LOBs</option>
-      <option value="Dry Freight">Dry Freight</option>
-      <option value="ISO Tank">ISO Tank</option>
-      <option value="Air">Air Freight</option>
-    </select>
-  </div>
-  <div class="filter-group">
-    <label>Sales Rep</label>
-    <select id="repFilter"><option value="all">All Reps</option></select>
-  </div>
-  <button class="btn" id="refreshBtn" onclick="loadData()">↺ Refresh</button>
-  <button class="btn" style="background:var(--surface);border:1px solid var(--border);color:var(--text-muted)" onclick="toggleDebug()">Debug</button>
-</div>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">SR</div>
+      <div>
+        <div class="brand">SAR Indonesia</div>
+        <div class="subbrand">FY 2025–26</div>
+      </div>
+    </div>
 
-<div class="cards">
-  <div class="card"><div class="lbl">Total TEU</div><div class="val" id="c-total" style="color:var(--accent)">—</div><div class="sub">All LOBs</div></div>
-  <div class="card"><div class="lbl">Dry Freight TEU</div><div class="val" id="c-dry" style="color:var(--accent)">—</div><div class="sub">Ocean FCL · Target 7,592.30</div></div>
-  <div class="card"><div class="lbl">ISO Tank TEU</div><div class="val" id="c-tank" style="color:var(--purple)">—</div><div class="sub">Tank · Target 699.00</div></div>
-  <div class="card"><div class="lbl">Air Tons</div><div class="val" id="c-air" style="color:var(--accent2)">—</div><div class="sub">Target 0.10</div></div>
-  <div class="card"><div class="lbl">Rows Loaded</div><div class="val" id="c-rows" style="color:var(--orange)">—</div><div class="sub">Shipment Detail</div></div>
-</div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Reports</div>
+      <div class="nav-item active" onclick="showPanel('sales')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Sales Performance
+      </div>
+      <div class="nav-item locked" onclick="showPanel('tradelane')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+        Tradelane Insights
+      </div>
+      <div class="nav-item locked" onclick="showPanel('ops')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Operation Pendency
+      </div>
+      <div class="nav-item locked" onclick="showPanel('finance')">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Finance Pendency
+      </div>
+    </div>
 
-<div id="tableContainer"><div class="loader">Loading data from Google Sheets…</div></div>
+    <div class="sidebar-footer">
+      <div class="live-badge"><div class="live-dot"></div>Live Data</div>
+      <div style="font-size:10px;color:var(--text-3);margin-top:4px" id="lastRefreshed">—</div>
+    </div>
+  </aside>
 
-<div class="debug-section" id="debugSection" style="display:none">
-  <h3>Debug — Raw LOB/Mode combinations found in sheet</h3>
-  <pre id="debugOutput"></pre>
+  <!-- MAIN -->
+  <main class="main">
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <span class="page-title" id="pageTitle">Sales Performance</span>
+      <div class="topbar-divider"></div>
+
+      <!-- Period toggles -->
+      <div class="period-toggles">
+        <button class="period-btn" onclick="setPeriod('weekly')">Weekly</button>
+        <button class="period-btn active" onclick="setPeriod('monthly')">Monthly</button>
+        <button class="period-btn" onclick="setPeriod('yearly')">Yearly</button>
+        <button class="period-btn" onclick="setPeriod('custom')">Custom</button>
+      </div>
+
+      <!-- Date range -->
+      <div class="date-range" id="dateRangeRow">
+        <span>FROM</span>
+        <select class="date-select" id="fromMonth" onchange="applyFilters()"></select>
+        <span>TO</span>
+        <select class="date-select" id="toMonth" onchange="applyFilters()"></select>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-group">
+        <span class="filter-label">LOB</span>
+        <select class="filter-select" id="lobFilter" onchange="applyFilters()">
+          <option value="all">All LOBs</option>
+          <option value="Dry Freight">Dry Freight</option>
+          <option value="ISO Tank">ISO Tank</option>
+          <option value="Air">Air Freight</option>
+        </select>
+        <span class="filter-label">Rep</span>
+        <select class="filter-select" id="repFilter" onchange="applyFilters()">
+          <option value="all">All Reps</option>
+        </select>
+        <button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+          <svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <div class="error-bar" id="errorBar"></div>
+
+      <!-- SALES PERFORMANCE PANEL -->
+      <div id="panel-sales">
+        <!-- KPI Cards -->
+        <div class="kpi-row">
+          <div class="kpi-card c-blue">
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value" id="kpi-rev">—</div>
+            <div class="kpi-sub">USD · Period Total</div>
+          </div>
+          <div class="kpi-card c-orange">
+            <div class="kpi-label">GP Target</div>
+            <div class="kpi-value" id="kpi-target">—</div>
+            <div class="kpi-sub" id="kpi-target-sub">Monthly avg</div>
+          </div>
+          <div class="kpi-card c-green">
+            <div class="kpi-label">Gross Profit</div>
+            <div class="kpi-value" id="kpi-gp">—</div>
+            <div class="kpi-sub">USD · Period Total</div>
+          </div>
+          <div class="kpi-card c-purple">
+            <div class="kpi-label">GP %</div>
+            <div class="kpi-value" id="kpi-gppct">—</div>
+            <div class="kpi-sub">of revenue · Target 9.43%</div>
+          </div>
+          <div class="kpi-card c-teal">
+            <div class="kpi-label">Total TEUs</div>
+            <div class="kpi-value" id="kpi-teu">—</div>
+            <div class="kpi-sub" id="kpi-teu-sub">FCL + ISO</div>
+          </div>
+          <div class="kpi-card c-red">
+            <div class="kpi-label">Tons (Air)</div>
+            <div class="kpi-value" id="kpi-tons">—</div>
+            <div class="kpi-sub">Chargeable wt</div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-section">
+          <div class="table-header">
+            <div>
+              <h2>Sales Rep Performance</h2>
+              <p id="tableSubtitle">Monthly · USD</p>
+            </div>
+            <div class="table-meta" id="tableMeta">—</div>
+          </div>
+          <div class="table-wrap">
+            <div id="tableContainer"><div class="empty-state"><h3>Loading data…</h3></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OTHER PANELS -->
+      <div id="panel-tradelane" style="display:none">
+        <div class="coming-soon"><div class="coming-soon-icon">🗺️</div><h3>Tradelane Insights</h3><p>Coming soon — Origin-destination analysis, lane performance & volume trends.</p></div>
+      </div>
+      <div id="panel-ops" style="display:none">
+        <div class="coming-soon"><div class="coming-soon-icon">⚙️</div><h3>Operation Pendency</h3><p>Coming soon — Pending shipments, documentation status & operational alerts.</p></div>
+      </div>
+      <div id="panel-finance" style="display:none">
+        <div class="coming-soon"><div class="coming-soon-icon">💰</div><h3>Finance Pendency</h3><p>Coming soon — Outstanding invoices, credit notes & financial reconciliation.</p></div>
+      </div>
+    </div>
+  </main>
 </div>
 
 <script>
-const API_KEY   = 'AIzaSyAwsLMNF1n5NYZhAsNb65IA1hPy-C0-b2k';
-const SHEET_ID  = '1H610k9P24-3iUXlrl-RhqrH-7Iy5zYoJ4IjsuKapg84';
-const SHEET_TAB = 'Shipment Detail';
+// ═══════════════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════════════
+const API_KEY  = 'AIzaSyAwsLMNF1n5NYZhAsNb65IA1hPy-C0-b2k';
+const SHEET_ID = '1H610k9P24-3iUXlrl-RhqrH-7Iy5zYoJ4IjsuKapg84';
 
-// ── VERIFIED COLUMN LETTERS (from CSV analysis) ──────────────────────────────
-// Col BF (idx 57) = Job Sales Rep
-// Col CK (idx 88) = TEU
-// Col EI (idx 138) = Recognition Month  (format: "January-2025")
-// Col EU (idx 150) = LOB                (values: "Ocean", "Air")
-// Col FB (idx 157) = Mode.1             (values: "Dry Freight", "ISO Tank", "Air")
-// Col FC (idx 158) = Tons               (Air only)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── SALES MAPPING (raw name → display name) ──────────────────────────
+// Source: Sales Mapping sheet "Mapping to be used" column (exact)
+// Pooja Nomination → Pooja Jain (updated per instruction)
+// Lukman Fauzan → Nomination Sales (not in mapping sheet)
+// Blank/null reps → Nomination Sales
+const REP_MAP = {
+  // Exact mappings from Sales Mapping sheet
+  'Dijita Nomination':       'Dijita Nagarkar',
+  'Aris':                    'Aris',
+  'Vinayak':                 'Vinayak Gaonkar',
+  'Kiran Humbre':            'Kiran Humbre',
+  'Jyoti Ranjane':           'Jyoti Ranjane',
+  'Sunil  K Prasad':         'Nomination Sales',
+  'Nomination Sales':        'Nomination Sales',
+  'Darshana Maghnani':       'Nomination Sales',
+  'Satyaprakash Haryani':    'Satyaprakash Haryani',
+  'Vinayak Vithal Gaonkar':  'Vinayak Gaonkar',
+  'Genesis Montes':          'Nomination Sales',
+  'Pooja Jain':              'Pooja Jain',        // mapping says Pooja Jain (not Nomination)
+  'Dijita Nagarkar':         'Dijita Nagarkar',
+  'Vinayak Gaikwad':         'Vinayak Gaonkar',
+  'Daissy Ariyani Permana':  'Daissy',
+  'Benoy Varghese':          'Benoy Varghese',
+  'Irna Dewi':               'Nomination Sales',
+  "Naufal Fa'iq":            'Nomination Sales',
+  'Manoj Pant':              'Nomination Sales',
+  'Geeta Dhuri':             'Geeta Dhuri',
+  'Yunitaf':                 'Nomination Sales',
+  'Mohammad Arshad':         'Nomination Sales',
+  'Prashant Poojari':        'Nomination Sales',
+  // Not in mapping sheet → Nomination Sales
+  'Lukman Fauzan':           'Nomination Sales',
+  'Pooja Nomination':        'Pooja Jain',         // updated: maps to Pooja Jain
+};
 
+// ── MONTHLY GP TARGETS PER REP (USD) ────────────────────────────────
+// Source: Sales Target sheet "Monthly Target 3x" column
+// Reps not in target sheet → $0 target
+const REP_TARGETS = {
+  'Satyaprakash Haryani': 22315,
+  'Benoy Varghese':       16075,
+  'Vinayak Gaonkar':      11358,
+  'Jyoti Ranjane':         7703,
+  'Aris':                  9825,
+  'Daissy':                3090,
+  'Kiran Humbre':         21425,
+  'Geeta Dhuri':           2401,
+  'Dijita Nagarkar':       4900,
+  // Not in target sheet → $0
+  'Nomination Sales':        0,
+  'Pooja Jain':              0,
+};
+
+// ── MONTHS ──────────────────────────────────────────────────────────
 const MONTH_ORDER = [
   'January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
   'July-2025','August-2025','September-2025','October-2025','November-2025','December-2025',
   'January-2026','February-2026','March-2026'
 ];
-
-const SHORT = {
+const MONTH_SHORT = {
   'January-2025':'Jan-25','February-2025':'Feb-25','March-2025':'Mar-25',
   'April-2025':'Apr-25','May-2025':'May-25','June-2025':'Jun-25',
   'July-2025':'Jul-25','August-2025':'Aug-25','September-2025':'Sep-25',
@@ -148,196 +501,483 @@ const SHORT = {
   'January-2026':'Jan-26','February-2026':'Feb-26','March-2026':'Mar-26'
 };
 
-const LOB_COLOR = { 'Dry Freight': '#4f8ef7', 'ISO Tank': '#a78bfa', 'Air': '#34d399' };
-
-let allData = [];
-
-function setStatus(state, msg) {
-  document.getElementById('statusDot').className = 'dot ' + state;
-  document.getElementById('statusText').textContent = msg;
+// ── AVATAR COLORS ────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  '#2563eb','#059669','#7c3aed','#d97706','#0891b2',
+  '#dc2626','#0d9488','#9333ea','#65a30d','#e11d48'
+];
+const repColorCache = {};
+let colorIdx = 0;
+function repColor(name) {
+  if (!repColorCache[name]) repColorCache[name] = AVATAR_COLORS[colorIdx++ % AVATAR_COLORS.length];
+  return repColorCache[name];
+}
+function initials(name) {
+  return name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
 }
 
-function fmt(n) {
-  if (n === 0 || n === null || n === undefined) return '—';
-  return Number.isInteger(n) ? n.toLocaleString() : parseFloat(n.toFixed(2)).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2});
+// ═══════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════
+let rawShipment = []; // {rep, month, teu, mode, tons, rev, gp}
+let rawGeneral  = []; // {rep, month, rev, gp}
+let currentPeriod = 'monthly';
+let currentPanel  = 'sales';
+
+// ═══════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  buildMonthSelectors();
+  loadData();
+});
+
+function buildMonthSelectors() {
+  const from = document.getElementById('fromMonth');
+  const to   = document.getElementById('toMonth');
+  MONTH_ORDER.forEach(m => {
+    from.innerHTML += `<option value="${m}">${MONTH_SHORT[m]}</option>`;
+    to.innerHTML   += `<option value="${m}">${MONTH_SHORT[m]}</option>`;
+  });
+  from.value = 'April-2025';
+  to.value   = 'March-2026';
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════════════════════════════
 async function loadData() {
-  setStatus('loading', 'Fetching data…');
-  document.getElementById('refreshBtn').disabled = true;
-  document.getElementById('tableContainer').innerHTML = '<div class="loader">Fetching columns from Google Sheets…</div>';
+  setLoading(true, 'Connecting to Google Sheets…');
+  document.getElementById('refreshBtn').classList.add('loading');
+  hideError();
 
   try {
-    // Batch fetch exactly the columns we need
-    const ranges = [
-      `${SHEET_TAB}!BF:BF`,  // Job Sales Rep
-      `${SHEET_TAB}!CK:CK`,  // TEU
-      `${SHEET_TAB}!EI:EI`,  // Recognition Month
-      `${SHEET_TAB}!EU:EU`,  // LOB (Ocean/Air)
-      `${SHEET_TAB}!FB:FB`,  // Mode.1 (Dry Freight/ISO Tank/Air)
-      `${SHEET_TAB}!FC:FC`,  // Tons (Air)
-    ].map(r => `ranges=${encodeURIComponent(r)}`).join('&');
+    setLoading(true, 'Fetching Shipment Detail…');
+    await fetchShipmentDetail();
 
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${ranges}&key=${API_KEY}`;
-    const res  = await fetch(url);
-    const json = await res.json();
+    setLoading(true, 'Fetching General Job Detail…');
+    await fetchGeneralDetail();
 
-    if (json.error) throw new Error(`API Error ${json.error.code}: ${json.error.message}`);
+    populateRepFilter();
+    document.getElementById('lastRefreshed').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    applyFilters();
+    setLoading(false);
 
-    const [repC, teuC, monthC, lobC, modeC, tonsC] = json.valueRanges.map(vr => vr.values || []);
-
-    const totalRows = Math.max(repC.length, teuC.length, monthC.length);
-    document.getElementById('c-rows').textContent = (totalRows - 1).toLocaleString();
-
-    // Debug — collect unique LOB+Mode combos
-    const combos = {};
-
-    allData = [];
-    for (let i = 1; i < totalRows; i++) {
-      const rep   = repC[i]   && repC[i][0]   ? repC[i][0].trim()   : '';
-      const month = monthC[i] && monthC[i][0] ? monthC[i][0].trim() : '';
-      if (!rep || !month) continue;
-
-      const teu  = parseFloat(teuC[i]  && teuC[i][0]  ? teuC[i][0]  : 0) || 0;
-      const lob  = lobC[i]  && lobC[i][0]  ? lobC[i][0].trim()  : '';
-      const mode = modeC[i] && modeC[i][0] ? modeC[i][0].trim() : '';
-      const tons = parseFloat(tonsC[i] && tonsC[i][0] ? tonsC[i][0] : 0) || 0;
-
-      // Track combos for debug
-      const key = `LOB="${lob}" | Mode="${mode}"`;
-      combos[key] = (combos[key] || 0) + 1;
-
-      allData.push({ rep, month, teu, lob, mode, tons });
-    }
-
-    // Debug output
-    document.getElementById('debugOutput').textContent =
-      Object.entries(combos).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${String(v).padStart(5)}x  ${k}`).join('\n');
-
-    // Summary cards
-    const dry  = allData.filter(d => d.mode === 'Dry Freight');
-    const tank = allData.filter(d => d.mode === 'ISO Tank');
-    const air  = allData.filter(d => d.mode === 'Air');
-    document.getElementById('c-total').textContent = fmt(allData.reduce((s,d)=>s+d.teu,0));
-    document.getElementById('c-dry').textContent   = fmt(dry.reduce((s,d)=>s+d.teu,0));
-    document.getElementById('c-tank').textContent  = fmt(tank.reduce((s,d)=>s+d.teu,0));
-    document.getElementById('c-air').textContent   = fmt(air.reduce((s,d)=>s+d.tons,0));
-
-    // Populate rep filter
-    const reps = [...new Set(allData.map(d=>d.rep))].sort();
-    const sel  = document.getElementById('repFilter');
-    sel.innerHTML = '<option value="all">All Reps</option>';
-    reps.forEach(r => { const o = document.createElement('option'); o.value = o.textContent = r; sel.appendChild(o); });
-
-    setStatus('ok', `Loaded ${allData.length.toLocaleString()} rows`);
-    renderTable();
-
-  } catch (err) {
-    setStatus('error', err.message);
-    document.getElementById('tableContainer').innerHTML = `<div class="error-box"><strong>Failed to load</strong><br><br>${err.message}</div>`;
+  } catch(err) {
+    setLoading(false);
+    showError('Failed to load data: ' + err.message + '. Check API key & sheet permissions.');
     console.error(err);
   }
-  document.getElementById('refreshBtn').disabled = false;
+  document.getElementById('refreshBtn').classList.remove('loading');
 }
 
-function renderTable() {
-  const lobFilter = document.getElementById('lobFilter').value;
-  const repFilter = document.getElementById('repFilter').value;
+async function fetchShipmentDetail() {
+  // Columns: BF=Rep, CK=TEU, EI=Month, EU=LOB, FB=Mode, FC=Tons, EJ=Revenue($), EN=GP($)
+  const ranges = ['BF','CK','EI','EU','FB','FC','EJ','EN']
+    .map(c => `ranges=${encodeURIComponent(`Shipment Detail!${c}:${c}`)}`).join('&');
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${ranges}&key=${API_KEY}`;
+  const res  = await fetch(url);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message);
 
-  // LOB filter maps to mode column
-  let filtered = allData;
-  if (lobFilter !== 'all')  filtered = filtered.filter(d => d.mode === lobFilter);
-  if (repFilter !== 'all')  filtered = filtered.filter(d => d.rep  === repFilter);
+  const [repC,teuC,monthC,lobC,modeC,tonsC,revC,gpC] = json.valueRanges.map(vr=>vr.values||[]);
+  const len = Math.max(repC.length,teuC.length,monthC.length);
 
-  const monthsPresent = MONTH_ORDER.filter(m => filtered.some(d => d.month === m));
+  rawShipment = [];
+  for (let i=1;i<len;i++) {
+    const rawRep = repC[i]&&repC[i][0] ? repC[i][0].trim() : '';
+    const month  = monthC[i]&&monthC[i][0] ? monthC[i][0].trim() : '';
+    if (!month) continue;
 
-  // Build pivot: rep → mode → month → teu (or tons for Air)
-  const pivot = {};
-  filtered.forEach(d => {
-    if (!pivot[d.rep]) pivot[d.rep] = {};
-    if (!pivot[d.rep][d.mode]) pivot[d.rep][d.mode] = {};
-    const val = d.mode === 'Air' ? d.tons : d.teu;
-    pivot[d.rep][d.mode][d.month] = (pivot[d.rep][d.mode][d.month] || 0) + val;
-  });
+    const rep  = REP_MAP[rawRep] || 'Nomination Sales';
+    const teu  = parseFloat(teuC[i]&&teuC[i][0]?teuC[i][0]:0)||0;
+    const mode = modeC[i]&&modeC[i][0]?modeC[i][0].trim():'';
+    const tons = parseFloat(tonsC[i]&&tonsC[i][0]?tonsC[i][0]:0)||0;
+    const rev  = cleanUSD(revC[i]&&revC[i][0]?revC[i][0]:'');
+    const gp   = cleanUSD(gpC[i]&&gpC[i][0]?gpC[i][0]:'');
 
-  const lobsToShow = lobFilter === 'all' ? ['Dry Freight','ISO Tank','Air'] : [lobFilter];
-  const reps = Object.keys(pivot).sort();
+    rawShipment.push({rep,month,teu,mode,tons,rev,gp});
+  }
+}
 
-  // Grand totals
-  const grandByMode  = {};
-  const grandByMonth = {};
-  monthsPresent.forEach(m => grandByMonth[m] = 0);
+async function fetchGeneralDetail() {
+  // Columns: I=SalesRepName, AD=Month, X=Revenue($), Z=GP($)
+  const ranges = ['I','AD','X','Z']
+    .map(c => `ranges=${encodeURIComponent(`General Job Detail!${c}:${c}`)}`).join('&');
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${ranges}&key=${API_KEY}`;
+  const res  = await fetch(url);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message);
 
-  let html = `<table><thead><tr>
-    <th class="col-rep">Sales Rep</th>
-    <th class="col-lob">LOB</th>
-    ${monthsPresent.map(m=>`<th>${SHORT[m]||m}</th>`).join('')}
-    <th style="color:var(--accent)">Total</th>
-  </tr></thead><tbody>`;
+  const [repC,monthC,revC,gpC] = json.valueRanges.map(vr=>vr.values||[]);
+  const len = Math.max(repC.length,monthC.length);
 
-  reps.forEach(rep => {
-    const repModes = lobsToShow.filter(l => pivot[rep][l] && Object.values(pivot[rep][l]).some(v=>v>0));
-    if (repModes.length === 0) return;
+  rawGeneral = [];
+  for (let i=1;i<len;i++) {
+    const rawRep = repC[i]&&repC[i][0]?repC[i][0].trim():'';
+    const month  = monthC[i]&&monthC[i][0]?monthC[i][0].trim():'';
+    if (!rawRep||!month) continue;
+    const rep = REP_MAP[rawRep]||rawRep;
+    const rev = cleanUSD(revC[i]&&revC[i][0]?revC[i][0]:'');
+    const gp  = cleanUSD(gpC[i]&&gpC[i][0]?gpC[i][0]:'');
+    rawGeneral.push({rep,month,rev,gp});
+  }
+}
 
-    repModes.forEach((mode, mi) => {
-      const modeData = pivot[rep][mode] || {};
-      let rowTotal = 0;
+function cleanUSD(v) {
+  return parseFloat(String(v).replace(/[\$,]/g,'').trim())||0;
+}
 
-      if (!grandByMode[mode]) { grandByMode[mode] = {}; monthsPresent.forEach(m => grandByMode[mode][m]=0); }
+// ═══════════════════════════════════════════════════════════════════════
+// FILTERS & RENDER
+// ═══════════════════════════════════════════════════════════════════════
+function populateRepFilter() {
+  const all = [...new Set([...rawShipment,...rawGeneral].map(d=>d.rep))].sort();
+  const sel = document.getElementById('repFilter');
+  sel.innerHTML = '<option value="all">All Reps</option>';
+  all.forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;sel.appendChild(o);});
+}
 
-      const cells = monthsPresent.map(m => {
-        const v = modeData[m] || 0;
-        rowTotal += v;
-        grandByMode[mode][m] += v;
-        grandByMonth[m] = (grandByMonth[m]||0) + v;
-        return `<td class="${v===0?'zero':''}">${v===0?'—':fmt(v)}</td>`;
-      }).join('');
+function applyFilters() {
+  const period  = currentPeriod;
+  const lobF    = document.getElementById('lobFilter').value;
+  const repF    = document.getElementById('repFilter').value;
+  const fromM   = document.getElementById('fromMonth').value;
+  const toM     = document.getElementById('toMonth').value;
 
-      html += `<tr>
-        ${mi===0 ? `<td class="col-rep" rowspan="${repModes.length}" style="border-right:1px solid var(--border)">${rep}</td>` : ''}
-        <td class="col-lob" style="color:${LOB_COLOR[mode]}">${mode}</td>
-        ${cells}
-        <td style="color:${LOB_COLOR[mode]};font-weight:700">${fmt(rowTotal)}</td>
-      </tr>`;
-    });
-  });
+  // Determine active months
+  let months = getActiveMondths(period, fromM, toM);
 
-  // Subtotal rows per mode
-  if (lobFilter === 'all') {
-    lobsToShow.forEach(mode => {
-      if (!grandByMode[mode]) return;
-      const mTotal = Object.values(grandByMode[mode]).reduce((a,b)=>a+b,0);
-      if (mTotal === 0) return;
-      html += `<tr class="total-row">
-        <td class="col-rep">▸ Total ${mode}</td>
-        <td class="col-lob" style="color:${LOB_COLOR[mode]}">${mode}</td>
-        ${monthsPresent.map(m=>`<td style="color:${LOB_COLOR[mode]}">${fmt(grandByMode[mode][m]||0)}</td>`).join('')}
-        <td style="color:${LOB_COLOR[mode]}">${fmt(mTotal)}</td>
-      </tr>`;
+  // Filter shipment data
+  let shipFiltered = rawShipment.filter(d => months.includes(d.month));
+  if (lobF !== 'all') shipFiltered = shipFiltered.filter(d => d.mode === lobF);
+  if (repF !== 'all') shipFiltered = shipFiltered.filter(d => d.rep === repF);
+
+  // Filter general data (no LOB filter — General is its own category)
+  let genFiltered = rawGeneral.filter(d => months.includes(d.month));
+  if (repF !== 'all') genFiltered = genFiltered.filter(d => d.rep === repF);
+
+  // Build pivot
+  const pivot = buildPivot(shipFiltered, genFiltered, months);
+
+  // KPI cards
+  updateKPIs(pivot, months);
+
+  // Table
+  renderTable(pivot, months, period, fromM, toM);
+}
+
+function getActiveMondths(period, fromM, toM) {
+  const fyMonths = MONTH_ORDER; // Jan-25 to Mar-26
+
+  if (period === 'monthly' || period === 'custom') {
+    const fi = MONTH_ORDER.indexOf(fromM);
+    const ti = MONTH_ORDER.indexOf(toM);
+    return fi>=0&&ti>=0 ? MONTH_ORDER.slice(fi,ti+1) : MONTH_ORDER;
+  }
+  if (period === 'yearly') {
+    // FY Apr-25 to Mar-26
+    return MONTH_ORDER.filter(m => {
+      const idx = MONTH_ORDER.indexOf(m);
+      return idx >= MONTH_ORDER.indexOf('April-2025') && idx <= MONTH_ORDER.indexOf('March-2026');
     });
   }
-
-  // Grand total
-  const grandAll = Object.values(grandByMonth).reduce((a,b)=>a+b,0);
-  html += `<tr class="grand-row">
-    <td class="col-rep">GRAND TOTAL</td>
-    <td class="col-lob">All LOBs</td>
-    ${monthsPresent.map(m=>`<td>${fmt(grandByMonth[m]||0)}</td>`).join('')}
-    <td>${fmt(grandAll)}</td>
-  </tr></tbody></table>`;
-
-  document.getElementById('tableContainer').innerHTML = `<div class="table-wrap">${html}</div>`;
+  if (period === 'weekly') {
+    // Show current week's month only — using last month as proxy
+    return ['March-2026'];
+  }
+  return MONTH_ORDER;
 }
 
-function toggleDebug() {
-  const s = document.getElementById('debugSection');
-  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+function buildPivot(ship, gen, months) {
+  // pivot[rep][month] = {teuDry, teuTank, tons, rev, gp}
+  const pivot = {};
+
+  const ensure = (rep, month) => {
+    if (!pivot[rep]) pivot[rep] = {};
+    if (!pivot[rep][month]) pivot[rep][month] = {teuDry:0,teuTank:0,tons:0,rev:0,gp:0};
+  };
+
+  ship.forEach(d => {
+    ensure(d.rep, d.month);
+    const cell = pivot[d.rep][d.month];
+    if (d.mode === 'Dry Freight') cell.teuDry += d.teu;
+    else if (d.mode === 'ISO Tank') cell.teuTank += d.teu;
+    cell.tons += d.tons;
+    cell.rev  += d.rev;
+    cell.gp   += d.gp;
+  });
+
+  gen.forEach(d => {
+    ensure(d.rep, d.month);
+    pivot[d.rep][d.month].rev += d.rev;
+    pivot[d.rep][d.month].gp  += d.gp;
+  });
+
+  return pivot;
 }
 
-document.getElementById('lobFilter').addEventListener('change', renderTable);
-document.getElementById('repFilter').addEventListener('change', renderTable);
+function updateKPIs(pivot, months) {
+  let totalRev=0, totalGP=0, totalTeuDry=0, totalTeuTank=0, totalTons=0;
+  const reps = Object.keys(pivot);
+  reps.forEach(rep => {
+    months.forEach(m => {
+      const c = pivot[rep][m];
+      if (!c) return;
+      totalRev     += c.rev;
+      totalGP      += c.gp;
+      totalTeuDry  += c.teuDry;
+      totalTeuTank += c.teuTank;
+      totalTons    += c.tons;
+    });
+  });
 
-loadData();
+  // Target = sum of all rep targets × number of months
+  const monthlyTotal = Object.values(REP_TARGETS).reduce((a,b)=>a+b,0);
+  const totalTarget  = monthlyTotal * months.length;
+  const gpPct = totalRev>0 ? totalGP/totalRev*100 : 0;
+
+  document.getElementById('kpi-rev').textContent     = fmtUSD(totalRev);
+  document.getElementById('kpi-target').textContent  = fmtUSD(totalTarget);
+  document.getElementById('kpi-target-sub').textContent = `Monthly avg $${fmtNum(monthlyTotal)}`;
+  document.getElementById('kpi-gp').textContent      = fmtUSD(totalGP);
+  document.getElementById('kpi-gppct').textContent   = gpPct.toFixed(1)+'%';
+  document.getElementById('kpi-teu').textContent     = fmtNum(totalTeuDry+totalTeuTank);
+  document.getElementById('kpi-teu-sub').textContent = `${fmtNum(totalTeuDry)} FCL · ${fmtNum(totalTeuTank)} Tank`;
+  document.getElementById('kpi-tons').textContent    = totalTons>0 ? totalTons.toFixed(2) : '—';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TABLE RENDER
+// ═══════════════════════════════════════════════════════════════════════
+const METRICS = [
+  {key:'teu',    label:'TEUs',           cls:'m-teu'},
+  {key:'teuDry', label:'  TEUs (FCL)',   cls:'m-teu-fcl sub'},
+  {key:'teuTank',label:'  TEUs (Tank)',  cls:'m-teu-tank sub'},
+  {key:'tons',   label:'Tons (Air)',     cls:'m-tons'},
+  {key:'rev',    label:'Revenue ($)',    cls:'m-rev'},
+  {key:'gp',     label:'GP ($)',         cls:'m-gp'},
+  {key:'target', label:'Target ($)',     cls:'m-target'},
+  {key:'var',    label:'Variance %',     cls:'m-variance'},
+];
+
+function renderTable(pivot, months, period, fromM, toM) {
+  const reps = Object.keys(pivot).sort();
+
+  // Grand total row data
+  const grandTotals = {};
+  months.forEach(m => grandTotals[m] = {teuDry:0,teuTank:0,tons:0,rev:0,gp:0});
+
+  reps.forEach(rep => {
+    months.forEach(m => {
+      const c = pivot[rep][m];
+      if (!c) return;
+      grandTotals[m].teuDry  += c.teuDry;
+      grandTotals[m].teuTank += c.teuTank;
+      grandTotals[m].tons    += c.tons;
+      grandTotals[m].rev     += c.rev;
+      grandTotals[m].gp      += c.gp;
+    });
+  });
+
+  // Period label
+  const periodLabel = period === 'yearly' ? 'FY 2025-26'
+    : period === 'weekly' ? 'Weekly'
+    : `${MONTH_SHORT[fromM]||fromM} – ${MONTH_SHORT[toM]||toM}`;
+
+  document.getElementById('tableSubtitle').textContent = `${period.charAt(0).toUpperCase()+period.slice(1)} · USD`;
+  document.getElementById('tableMeta').textContent     = periodLabel;
+
+  // Header
+  let html = `<table><thead><tr>
+    <th class="col-rep">Sales Rep</th>
+    <th class="col-metric">Metric</th>
+    <th class="col-total">FY Total</th>
+    ${months.map(m=>`<th>${MONTH_SHORT[m]||m}</th>`).join('')}
+  </tr></thead><tbody>`;
+
+  // ── GRAND TOTAL ROW ──────────────────────────────────────────────
+  const grandTotalTarget = Object.values(REP_TARGETS).reduce((a,b)=>a+b,0) * months.length;
+  html += buildRepRows('Grand Total', grandTotals, months, grandTotalTarget, true);
+
+  // ── INDIVIDUAL REP ROWS ──────────────────────────────────────────
+  reps.forEach(rep => {
+    const repMonthlyTarget = REP_TARGETS[rep] || 0;
+    const repData = {};
+    months.forEach(m => repData[m] = pivot[rep][m] || {teuDry:0,teuTank:0,tons:0,rev:0,gp:0});
+    html += buildRepRows(rep, repData, months, repMonthlyTarget * months.length, false);
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('tableContainer').innerHTML = html;
+}
+
+function buildRepRows(repName, monthData, months, totalTarget, isGrand) {
+  const rowClass = isGrand ? 'row-grand' : 'row-rep';
+
+  // Compute totals across months
+  let totTeuDry=0, totTeuTank=0, totTons=0, totRev=0, totGP=0;
+  months.forEach(m => {
+    const c = monthData[m]||{};
+    totTeuDry  += c.teuDry||0;
+    totTeuTank += c.teuTank||0;
+    totTons    += c.tons||0;
+    totRev     += c.rev||0;
+    totGP      += c.gp||0;
+  });
+  const totTEU  = totTeuDry + totTeuTank;
+  const totGPpct= totRev>0 ? totGP/totRev*100 : 0;
+  const totVar  = totalTarget>0 ? (totGP-totalTarget)/Math.abs(totalTarget)*100 : null;
+
+  let html = '';
+
+  METRICS.forEach((metric, mi) => {
+    const isFirst = mi === 0;
+    html += `<tr class="${rowClass}${isFirst?' row-rep-first':''}">`;
+
+    // Rep name cell (only first metric row)
+    if (isFirst) {
+      const rowspan = METRICS.length;
+      const avatarStyle = isGrand
+        ? `background:linear-gradient(135deg,#2563eb,#7c3aed)`
+        : `background:${repColor(repName)}`;
+      html += `<td class="col-rep" rowspan="${rowspan}" style="border-right:1px solid var(--border-light)">
+        <div class="rep-cell">
+          <div class="rep-avatar" style="${avatarStyle}">${isGrand?'GT':initials(repName)}</div>
+          <span class="rep-name">${repName}</span>
+        </div>
+      </td>`;
+    }
+
+    // Metric label
+    const isSub = metric.cls.includes('sub');
+    html += `<td class="col-metric${isSub?' sub':''}">${metric.label.trim()}</td>`;
+
+    // FY Total cell
+    const ftVal = getFTValue(metric, totTeuDry, totTeuTank, totTons, totRev, totGP, totalTarget, totVar);
+    html += `<td class="col-total ${metric.cls} ${ftVal.extraCls||''}">${ftVal.display}</td>`;
+
+    // Monthly cells
+    months.forEach(m => {
+      const c = monthData[m]||{teuDry:0,teuTank:0,tons:0,rev:0,gp:0};
+      const monthTarget = (REP_TARGETS[repName]||0);
+      const monthVar = monthTarget>0 ? (c.gp-monthTarget)/Math.abs(monthTarget)*100 : null;
+      const cell = getMetricCell(metric, c, monthTarget, monthVar);
+      html += `<td class="${metric.cls} ${cell.extraCls||''}">${cell.display}</td>`;
+    });
+
+    html += '</tr>';
+  });
+
+  return html;
+}
+
+function getFTValue(metric, teuDry, teuTank, tons, rev, gp, target, varPct) {
+  switch(metric.key) {
+    case 'teu':     return {display: fmtNum(teuDry+teuTank), extraCls:''};
+    case 'teuDry':  return {display: fmtNum(teuDry), extraCls:''};
+    case 'teuTank': return {display: fmtNum(teuTank), extraCls:''};
+    case 'tons':    return {display: tons>0?tons.toFixed(2):'—', extraCls:''};
+    case 'rev':     return {display: fmtUSD(rev), extraCls:''};
+    case 'gp':      return {display: fmtUSD(gp), extraCls:''};
+    case 'target':  return {display: target>0?fmtUSD(target):'—', extraCls:''};
+    case 'var':
+      if (varPct===null) return {display:'—',extraCls:''};
+      return {display:(varPct>=0?'+':'')+varPct.toFixed(1)+'%', extraCls:varPct>=0?'pos':'neg'};
+    default: return {display:'—',extraCls:''};
+  }
+}
+
+function getMetricCell(metric, c, monthTarget, monthVar) {
+  const teu = c.teuDry+c.teuTank;
+  switch(metric.key) {
+    case 'teu':     return {display: teu>0?fmtNum(teu):'—', extraCls: teu===0?'zero':''};
+    case 'teuDry':  return {display: c.teuDry>0?fmtNum(c.teuDry):'—', extraCls: c.teuDry===0?'zero':''};
+    case 'teuTank': return {display: c.teuTank>0?fmtNum(c.teuTank):'—', extraCls: c.teuTank===0?'zero':''};
+    case 'tons':    return {display: c.tons>0?c.tons.toFixed(2):'—', extraCls:''};
+    case 'rev':     return {display: c.rev!==0?fmtUSD(c.rev):'—', extraCls:''};
+    case 'gp':      return {display: c.gp!==0?fmtUSD(c.gp):'—', extraCls:''};
+    case 'target':  return {display: monthTarget>0?fmtUSD(monthTarget):'—', extraCls:''};
+    case 'var':
+      if (monthVar===null) return {display:'—',extraCls:''};
+      return {display:(monthVar>=0?'+':'')+monthVar.toFixed(1)+'%', extraCls:monthVar>=0?'pos':'neg'};
+    default: return {display:'—',extraCls:''};
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PERIOD TOGGLE
+// ═══════════════════════════════════════════════════════════════════════
+function setPeriod(period) {
+  currentPeriod = period;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const dateRow = document.getElementById('dateRangeRow');
+
+  if (period === 'yearly') {
+    dateRow.style.display = 'none';
+  } else if (period === 'weekly') {
+    dateRow.style.display = 'none';
+  } else {
+    dateRow.style.display = 'flex';
+    if (period === 'monthly') {
+      document.getElementById('fromMonth').value = 'April-2025';
+      document.getElementById('toMonth').value   = 'March-2026';
+    }
+  }
+
+  if (rawShipment.length > 0) applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PANEL NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════
+function showPanel(name) {
+  currentPanel = name;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  ['sales','tradelane','ops','finance'].forEach(p=>{
+    document.getElementById('panel-'+p).style.display = p===name?'block':'none';
+  });
+  const titles = {sales:'Sales Performance',tradelane:'Tradelane Insights',ops:'Operation Pendency',finance:'Finance Pendency'};
+  document.getElementById('pageTitle').textContent = titles[name]||name;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// FORMATTERS
+// ═══════════════════════════════════════════════════════════════════════
+function fmtUSD(n) {
+  if (n === 0) return '$0';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1000000) return sign + '$' + (abs/1000000).toFixed(2) + 'M';
+  if (abs >= 1000)    return sign + '$' + Math.round(abs).toLocaleString();
+  return sign + '$' + abs.toFixed(0);
+}
+
+function fmtNum(n) {
+  if (n === 0) return '0';
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? rounded.toLocaleString() : rounded.toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1});
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+function setLoading(show, msg) {
+  const ol = document.getElementById('loadingOverlay');
+  ol.style.display = show ? 'flex' : 'none';
+  if (msg) document.getElementById('loadingText').textContent = msg;
+}
+function showError(msg) {
+  const bar = document.getElementById('errorBar');
+  bar.textContent = '⚠ ' + msg;
+  bar.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('errorBar').style.display = 'none';
+}
 </script>
 </body>
 </html>
