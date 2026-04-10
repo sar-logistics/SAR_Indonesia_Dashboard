@@ -4,157 +4,156 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAR Indonesia · Sales Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f4f6fa;
-  --sidebar-bg:#ffffff;
-  --card:#ffffff;
-  --border:#e3e7f0;
-  --border-light:#edf0f7;
-  --text:#1c2136;
-  --text2:#4b536e;
-  --text3:#9299b3;
-  --blue:#2563eb;
-  --blue-bg:#eff4ff;
-  --green:#059669;
-  --green-bg:#ecfdf5;
-  --red:#dc2626;
-  --red-bg:#fef2f2;
-  --orange:#d97706;
-  --orange-bg:#fffbeb;
-  --purple:#7c3aed;
-  --teal:#0891b2;
-  --sw:220px;
-  --th:52px;
+  --bg:#f4f6fa; --sidebar:#fff; --card:#fff;
+  --border:#e3e7f0; --border-l:#edf0f7;
+  --text:#1c2136; --text2:#4b536e; --text3:#9299b3;
+  --blue:#2563eb; --blue-bg:#eff4ff;
+  --green:#059669; --red:#dc2626;
+  --orange:#d97706; --purple:#7c3aed; --teal:#0891b2;
+  --sw:220px; --tb1:48px; --tb2:44px;
   --font:'Plus Jakarta Sans',sans-serif;
   --mono:'JetBrains Mono',monospace;
-  --r:10px;
-  --sh:0 1px 3px rgba(0,0,0,.05),0 1px 2px rgba(0,0,0,.04);
+  --r:10px; --sh:0 1px 3px rgba(0,0,0,.05);
 }
 html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px}
 .app{display:flex;height:100vh;overflow:hidden}
 
-/* ── SIDEBAR ── */
-.sidebar{width:var(--sw);flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
-.sb-logo{padding:16px 18px 14px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:10px}
-.sb-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0}
-.sb-brand{font-weight:700;font-size:13.5px;line-height:1.25}
-.sb-sub{font-size:11px;color:var(--text3)}
-.sb-sec{padding:18px 10px 6px}
-.sb-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;padding:0 8px;margin-bottom:5px}
-.nav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text2);transition:all .13s;margin-bottom:1px;user-select:none}
+/* ── SIDEBAR ─────────────────────────────────────── */
+.sidebar{
+  width:var(--sw);flex-shrink:0;background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+  transition:width .2s,opacity .2s;
+}
+.sidebar.collapsed{width:0;opacity:0;overflow:hidden;border:none}
+.sb-logo{padding:14px 16px 12px;border-bottom:1px solid var(--border-l);display:flex;align-items:center;gap:9px;white-space:nowrap}
+.sb-icon{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0}
+.sb-brand{font-weight:700;font-size:13px;line-height:1.2}
+.sb-sub{font-size:10.5px;color:var(--text3)}
+.sb-sec{padding:16px 10px 6px}
+.sb-lbl{font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;padding:0 8px;margin-bottom:5px}
+.nav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text2);transition:all .13s;margin-bottom:1px;user-select:none;white-space:nowrap}
 .nav:hover{background:var(--bg);color:var(--text)}
 .nav.active{background:var(--blue-bg);color:var(--blue);font-weight:600}
-.nav.locked{opacity:.45;cursor:not-allowed}
-.nav.locked:hover{background:transparent;color:var(--text2)}
+.nav.locked{opacity:.4;cursor:not-allowed;pointer-events:none}
 .nav svg{width:16px;height:16px;flex-shrink:0}
-.sb-footer{margin-top:auto;padding:14px 12px;border-top:1px solid var(--border-light)}
+.sb-foot{margin-top:auto;padding:12px 12px;border-top:1px solid var(--border-l)}
 .live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600}
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.refresh-ts{font-size:10px;color:var(--text3);margin-top:3px}
+.rts{font-size:10px;color:var(--text3);margin-top:3px}
 
-/* ── MAIN ── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* ── MAIN ────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
-/* TOP BAR */
-.topbar{height:var(--th);flex-shrink:0;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 18px}
-.pg-title{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap}
-.tb-div{width:1px;height:20px;background:var(--border);margin:0 2px}
+/* TOP ROW 1 – brand + hamburger */
+.topbar1{
+  height:var(--tb1);flex-shrink:0;
+  background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;padding:0 16px;
+}
+.hamburger{background:none;border:none;cursor:pointer;padding:4px;color:var(--text2);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.hamburger:hover{background:var(--bg);color:var(--text)}
+.brand-inline{display:flex;align-items:center;gap:8px}
+.brand-inline .bi-icon{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0}
+.brand-inline .bi-name{font-weight:700;font-size:13.5px}
+.brand-inline .bi-sub{font-size:10.5px;color:var(--text3)}
+.fy-badge{margin-left:auto;background:var(--blue-bg);color:var(--blue);font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #bfdbfe}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green);font-weight:600;margin-left:8px}
+.live-badge-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+
+/* TOP ROW 2 – controls */
+.topbar2{
+  height:var(--tb2);flex-shrink:0;
+  background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;padding:0 16px;
+}
+.pg-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;margin-right:4px}
+.tb-div{width:1px;height:18px;background:var(--border);margin:0 2px;flex-shrink:0}
 
 /* Period toggles */
-.toggles{display:flex;background:var(--bg);border-radius:7px;padding:3px;gap:1px}
-.tog{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500;color:var(--text2);background:transparent;transition:all .13s;white-space:nowrap}
+.toggles{display:flex;background:var(--bg);border-radius:7px;padding:3px;gap:1px;flex-shrink:0}
+.tog{padding:4px 11px;border-radius:5px;border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500;color:var(--text2);background:transparent;transition:all .13s;white-space:nowrap}
 .tog.active{background:#fff;color:var(--blue);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .tog:hover:not(.active){color:var(--text)}
 
-/* Date pickers */
-.dr{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text3);font-weight:500}
-.dsel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;cursor:pointer}
+/* Date range */
+.dr{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text3);font-weight:600;flex-shrink:0}
+.dsel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer}
 .dsel:focus{border-color:var(--blue)}
 
-/* Filters */
+/* Filter chips */
 .fgrp{display:flex;align-items:center;gap:6px;margin-left:auto}
-.flbl{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}
-.fsel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;cursor:pointer;min-width:108px}
+.flbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.fsel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer;min-width:100px}
 .fsel:focus{border-color:var(--blue)}
-.rbtn{padding:6px 13px;border-radius:6px;border:1px solid var(--border);background:#fff;font-family:var(--font);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .13s;white-space:nowrap}
+.rbtn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:#fff;font-family:var(--font);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .13s;white-space:nowrap;flex-shrink:0}
 .rbtn:hover{border-color:var(--blue);color:var(--blue)}
-.rbtn svg{transition:transform .3s}
 .rbtn.spinning svg{animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* CONTENT */
-.content{flex:1;overflow-y:auto;padding:18px}
+/* ── CONTENT ─────────────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;min-height:0}
 
 /* KPI CARDS */
-.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:18px}
-.kpi{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:13px 15px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px;flex-shrink:0}
+.kpi{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:12px 14px;box-shadow:var(--sh);position:relative;overflow:hidden}
 .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
-.kpi.k-blue::after{background:var(--blue)}
-.kpi.k-orange::after{background:var(--orange)}
-.kpi.k-green::after{background:var(--green)}
-.kpi.k-purple::after{background:var(--purple)}
-.kpi.k-teal::after{background:var(--teal)}
-.kpi.k-red::after{background:var(--red)}
-.kpi-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.kpi-val{font-size:20px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:3px}
-.kpi.k-blue .kpi-val{color:var(--blue)}
-.kpi.k-orange .kpi-val{color:var(--orange)}
-.kpi.k-green .kpi-val{color:var(--green)}
-.kpi.k-purple .kpi-val{color:var(--purple)}
-.kpi.k-teal .kpi-val{color:var(--teal)}
-.kpi.k-red .kpi-val{color:var(--red)}
-.kpi-sub{font-size:10px;color:var(--text3);line-height:1.3}
+.kpi.kb::after{background:var(--blue)}  .kpi.ko::after{background:var(--orange)}
+.kpi.kg::after{background:var(--green)} .kpi.kp::after{background:var(--purple)}
+.kpi.kt::after{background:var(--teal)}  .kpi.kr::after{background:var(--red)}
+.kpi-lbl{font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.kpi-val{font-size:19px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:3px}
+.kpi.kb .kpi-val{color:var(--blue)}  .kpi.ko .kpi-val{color:var(--orange)}
+.kpi.kg .kpi-val{color:var(--green)} .kpi.kp .kpi-val{color:var(--purple)}
+.kpi.kt .kpi-val{color:var(--teal)}  .kpi.kr .kpi-val{color:var(--red)}
+.kpi-sub{font-size:9.5px;color:var(--text3);line-height:1.4}
 
-/* TABLE CARD */
-.tcard{background:var(--card);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--sh);overflow:hidden}
-.thead-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-light)}
-.thead-bar h2{font-size:13px;font-weight:700}
-.thead-bar p{font-size:11px;color:var(--text3);margin-top:1px}
+/* TABLE CARD – fills remaining height */
+.tcard{background:var(--card);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--sh);overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0}
+.thead-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-l);flex-shrink:0}
+.thead-bar h2{font-size:12.5px;font-weight:700} .thead-bar p{font-size:10.5px;color:var(--text3);margin-top:1px}
 .thead-meta{font-size:11px;color:var(--text3);font-weight:500}
 
-/* TABLE */
-.twrap{overflow-x:auto;max-height:calc(100vh - 270px)}
-table{border-collapse:collapse;width:100%;min-width:900px}
+/* TABLE SCROLL – fills remaining space */
+.twrap{overflow:auto;flex:1;min-height:0}
+table{border-collapse:collapse;width:100%;min-width:1000px}
 
-/* HEADER */
+/* HEADER – sticky */
 thead th{
-  background:#f8f9fc;font-size:10px;font-weight:700;color:var(--text3);
+  background:#f8f9fc;font-size:9.5px;font-weight:700;color:var(--text3);
   text-transform:uppercase;letter-spacing:.4px;
   padding:8px 10px;white-space:nowrap;text-align:right;
   border-bottom:2px solid var(--border);
   position:sticky;top:0;z-index:4;
 }
-thead th.h-rep{text-align:left;position:sticky;left:0;z-index:6;min-width:180px;background:#f8f9fc;border-right:2px solid var(--border)}
-thead th.h-metric{text-align:left;position:sticky;left:180px;z-index:5;min-width:128px;background:#f8f9fc;border-right:1px solid var(--border-light)}
+thead th.h-rep{text-align:left;position:sticky;left:0;z-index:6;min-width:175px;background:#f8f9fc;border-right:2px solid var(--border)}
+thead th.h-metric{text-align:left;position:sticky;left:175px;z-index:5;min-width:122px;background:#f8f9fc;border-right:1px solid var(--border-l)}
 thead th.h-total{background:#fdf8ec;color:var(--orange);border-left:2px solid #fde68a;font-weight:700}
 
 /* BODY */
-tbody td{padding:6px 10px;border-bottom:1px solid var(--border-light);white-space:nowrap;text-align:right;font-size:12px;font-family:var(--mono);color:var(--text2)}
-td.c-rep{text-align:left;font-family:var(--font);font-weight:700;font-size:12.5px;color:var(--text);position:sticky;left:0;z-index:2;border-right:2px solid var(--border)}
-td.c-metric{text-align:left;font-family:var(--font);font-size:11.5px;font-weight:500;color:var(--text2);position:sticky;left:180px;z-index:2;border-right:1px solid var(--border-light);padding-left:12px}
-td.c-metric.sub{padding-left:26px;font-size:11px;color:var(--text3);font-weight:400;font-style:italic}
+tbody td{padding:6px 10px;border-bottom:1px solid var(--border-l);white-space:nowrap;text-align:right;font-size:12px;font-family:var(--mono);color:var(--text2)}
+td.c-rep{text-align:left;font-family:var(--font);font-weight:700;font-size:12px;color:var(--text);position:sticky;left:0;z-index:2;border-right:2px solid var(--border)}
+td.c-metric{text-align:left;font-family:var(--font);font-size:11px;font-weight:500;color:var(--text2);position:sticky;left:175px;z-index:2;border-right:1px solid var(--border-l);padding-left:12px}
+td.c-metric.sub{padding-left:24px;font-size:10.5px;color:var(--text3);font-weight:400;font-style:italic}
 td.c-total{background:#fffbeb !important;font-weight:700;border-left:2px solid #fde68a}
 
-/* Row backgrounds - inherited properly for sticky */
+/* Row backgrounds */
 tr.r-grand td{background:#f0f4ff}
-tr.r-grand td.c-rep{background:#f0f4ff}
+tr.r-grand td.c-rep,tr.r-grand td.c-metric{background:#f0f4ff}
 tr.r-grand td.c-total{background:#fdf8ec !important}
-tr.r-grand td.c-metric{background:#f0f4ff}
-
-tr.r-rep td{background:#ffffff}
-tr.r-rep td.c-rep{background:#ffffff}
+tr.r-rep td{background:#fff}
+tr.r-rep td.c-rep,tr.r-rep td.c-metric{background:#fff}
 tr.r-rep td.c-total{background:#fffbeb !important}
-tr.r-rep td.c-metric{background:#ffffff}
-
 tr.r-rep:hover td{background:#f8f9fc !important}
-tr.r-rep:hover td.c-rep{background:#f8f9fc !important}
-tr.r-rep:hover td.c-metric{background:#f8f9fc !important}
-
-tr.r-sep td{background:#f8f9fc;padding:0;height:6px;border-bottom:2px solid var(--border)}
+tr.r-rep:hover td.c-rep,tr.r-rep:hover td.c-metric{background:#f8f9fc !important}
+tr.r-sep td{background:#f4f6fa;padding:0;height:5px;border-bottom:2px solid var(--border)}
+tr.r-sep td.c-rep,tr.r-sep td.c-metric{background:#f4f6fa}
+tr.grand-sep td{background:#dde2f0;padding:0;height:3px;border:none}
 
 /* Metric colors */
 td.m-teu{color:var(--blue)!important;font-weight:600}
@@ -166,46 +165,43 @@ td.m-gp{color:var(--green)!important;font-weight:600}
 td.m-target{color:var(--blue)!important}
 td.m-var.pos{color:var(--green)!important;font-weight:700}
 td.m-var.neg{color:var(--red)!important;font-weight:700}
-td.nil{color:#d1d5db!important;font-weight:400}
 
 /* Rep avatar */
-.ravcell{display:flex;align-items:center;gap:8px;padding:2px 0}
-.rav{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:#fff}
-.rname{font-weight:700;font-size:12.5px}
+.ravcell{display:flex;align-items:center;gap:7px;padding:2px 0}
+.rav{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
 
-/* TEU toggle arrow */
-.teu-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
-.teu-toggle .arr{font-size:9px;transition:transform .15s;display:inline-block;color:var(--blue)}
-.teu-toggle.open .arr{transform:rotate(90deg)}
+/* TEU toggle */
+.teubtn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;color:var(--blue);font-family:var(--font);font-size:11px;font-weight:600;padding:0}
+.teubtn .arr{font-size:9px;transition:transform .15s;display:inline-block}
+.teubtn.open .arr{transform:rotate(90deg)}
 
-/* Separator row between grand total and reps */
-.grand-sep td{background:#e3e7f0;padding:0;height:3px;border:none}
-
-/* Panels */
-.coming{padding:80px 20px;text-align:center}
-.coming-ico{font-size:36px;margin-bottom:12px}
-.coming h3{font-size:17px;font-weight:700;color:var(--text2);margin-bottom:6px}
-.coming p{font-size:12.5px;color:var(--text3)}
-
-/* Error */
-.ebar{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:9px 14px;color:var(--red);font-size:12px;margin-bottom:14px;display:none}
+/* Error bar */
+.ebar{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:9px 14px;color:var(--red);font-size:12px;margin-bottom:12px;display:none;flex-shrink:0}
 
 /* Loading overlay */
-.overlay{position:fixed;inset:0;background:rgba(255,255,255,.9);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .65s linear infinite}
-.overlay-txt{font-size:13px;font-weight:500;color:var(--text2)}
+.overlay{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .65s linear infinite}
+.ov-txt{font-size:13px;font-weight:500;color:var(--text2)}
+
+/* Coming soon */
+.coming{padding:80px;text-align:center}
+.coming h3{font-size:16px;font-weight:700;color:var(--text2);margin:12px 0 6px}
+.coming p{font-size:12px;color:var(--text3)}
+
+@media(max-width:800px){.kpis{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
 
 <div id="overlay" class="overlay">
   <div class="spinner"></div>
-  <div class="overlay-txt" id="ovtxt">Connecting to Google Sheets…</div>
+  <div class="ov-txt" id="ovtxt">Connecting to Google Sheets…</div>
 </div>
 
 <div class="app">
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
     <div class="sb-logo">
       <div class="sb-icon">SR</div>
       <div><div class="sb-brand">SAR Indonesia</div><div class="sb-sub">FY 2025–26</div></div>
@@ -229,16 +225,35 @@ td.nil{color:#d1d5db!important;font-weight:400}
         Finance Pendency
       </div>
     </div>
-    <div class="sb-footer">
+    <div class="sb-foot">
       <div class="live"><div class="live-dot"></div>Live Data</div>
-      <div class="refresh-ts" id="rts">—</div>
+      <div class="rts" id="rts">—</div>
     </div>
   </aside>
 
-  <!-- MAIN -->
+  <!-- ── MAIN ── -->
   <main class="main">
-    <!-- TOP BAR -->
-    <div class="topbar">
+
+    <!-- TOP ROW 1: brand + hamburger -->
+    <div class="topbar1">
+      <button class="hamburger" onclick="toggleSidebar()" title="Toggle sidebar">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+      <div class="brand-inline">
+        <div class="bi-icon">SR</div>
+        <div>
+          <div class="bi-name">SAR Indonesia</div>
+          <div class="bi-sub">Sales Dashboard</div>
+        </div>
+      </div>
+      <div class="fy-badge">FY 2025–26</div>
+      <div class="live-badge"><div class="live-badge-dot"></div>Live Data</div>
+    </div>
+
+    <!-- TOP ROW 2: page title + controls -->
+    <div class="topbar2">
       <span class="pg-title" id="pgTitle">Sales Performance</span>
       <div class="tb-div"></div>
 
@@ -269,29 +284,29 @@ td.nil{color:#d1d5db!important;font-weight:400}
           <option value="all">All Reps</option>
         </select>
         <button class="rbtn" id="rbtn" onclick="loadData()">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
           Refresh
         </button>
       </div>
     </div>
 
     <!-- CONTENT -->
-    <div class="content">
+    <div class="content" id="content">
       <div class="ebar" id="ebar"></div>
 
       <!-- SALES PANEL -->
-      <div id="p-sales">
+      <div id="p-sales" style="display:flex;flex-direction:column;flex:1;min-height:0;gap:14px">
         <div class="kpis">
-          <div class="kpi k-blue"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="k-rev">—</div><div class="kpi-sub">USD · Period</div></div>
-          <div class="kpi k-orange"><div class="kpi-lbl">GP Target</div><div class="kpi-val" id="k-tgt">—</div><div class="kpi-sub" id="k-tgt-sub">Monthly avg</div></div>
-          <div class="kpi k-green"><div class="kpi-lbl">Gross Profit</div><div class="kpi-val" id="k-gp">—</div><div class="kpi-sub">USD · Period</div></div>
-          <div class="kpi k-purple"><div class="kpi-lbl">GP %</div><div class="kpi-val" id="k-gppct">—</div><div class="kpi-sub">Target: 9.43%</div></div>
-          <div class="kpi k-teal"><div class="kpi-lbl">Total TEUs</div><div class="kpi-val" id="k-teu">—</div><div class="kpi-sub" id="k-teu-sub">FCL + ISO</div></div>
-          <div class="kpi k-red"><div class="kpi-lbl">Tons (Air)</div><div class="kpi-val" id="k-tons">—</div><div class="kpi-sub">Chargeable wt</div></div>
+          <div class="kpi kb"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="k-rev">—</div><div class="kpi-sub">USD · Period</div></div>
+          <div class="kpi ko"><div class="kpi-lbl">GP Target</div><div class="kpi-val" id="k-tgt">—</div><div class="kpi-sub" id="k-tgt-sub">Monthly avg</div></div>
+          <div class="kpi kg"><div class="kpi-lbl">Gross Profit</div><div class="kpi-val" id="k-gp">—</div><div class="kpi-sub">USD · Period</div></div>
+          <div class="kpi kp"><div class="kpi-lbl">GP %</div><div class="kpi-val" id="k-gppct">—</div><div class="kpi-sub">Target: 9.43%</div></div>
+          <div class="kpi kt"><div class="kpi-lbl">Total TEUs</div><div class="kpi-val" id="k-teu">—</div><div class="kpi-sub" id="k-teu-sub">FCL + ISO</div></div>
+          <div class="kpi kr"><div class="kpi-lbl">Tons (Air)</div><div class="kpi-val" id="k-tons">—</div><div class="kpi-sub">Chargeable wt</div></div>
         </div>
         <div class="tcard">
           <div class="thead-bar">
-            <div><h2>Sales Rep Performance</h2><p id="tbl-sub">Monthly · USD</p></div>
+            <div><h2>Sales Performance</h2><p id="tbl-sub">Monthly · USD</p></div>
             <div class="thead-meta" id="tbl-meta">—</div>
           </div>
           <div class="twrap" id="twrap">
@@ -300,9 +315,9 @@ td.nil{color:#d1d5db!important;font-weight:400}
         </div>
       </div>
 
-      <div id="p-tradelane" style="display:none"><div class="coming"><div class="coming-ico">🗺️</div><h3>Tradelane Insights</h3><p>Coming soon</p></div></div>
-      <div id="p-ops" style="display:none"><div class="coming"><div class="coming-ico">⚙️</div><h3>Operation Pendency</h3><p>Coming soon</p></div></div>
-      <div id="p-finance" style="display:none"><div class="coming"><div class="coming-ico">💰</div><h3>Finance Pendency</h3><p>Coming soon</p></div></div>
+      <div id="p-tradelane" style="display:none;flex:1"><div class="coming"><div style="font-size:36px">🗺️</div><h3>Tradelane Insights</h3><p>Coming soon</p></div></div>
+      <div id="p-ops" style="display:none;flex:1"><div class="coming"><div style="font-size:36px">⚙️</div><h3>Operation Pendency</h3><p>Coming soon</p></div></div>
+      <div id="p-finance" style="display:none;flex:1"><div class="coming"><div style="font-size:36px">💰</div><h3>Finance Pendency</h3><p>Coming soon</p></div></div>
     </div>
   </main>
 </div>
@@ -349,18 +364,18 @@ const MS = {
   'January-2026':'Jan-26','February-2026':'Feb-26','March-2026':'Mar-26'
 };
 
-// Avatar colors per rep
-const AV_COLORS = ['#2563eb','#059669','#7c3aed','#d97706','#0891b2','#dc2626','#0d9488','#9333ea','#65a30d','#e11d48','#0284c7'];
-const repClr = {};let ci=0;
-function rclr(n){if(!repClr[n])repClr[n]=AV_COLORS[ci++%AV_COLORS.length];return repClr[n];}
+const AV = ['#2563eb','#059669','#7c3aed','#d97706','#0891b2','#dc2626','#0d9488','#9333ea','#65a30d','#e11d48','#0284c7'];
+const rc={};let ci=0;
+function rclr(n){if(!rc[n])rc[n]=AV[ci++%AV.length];return rc[n];}
 function ini(n){return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();}
 
 // ═══════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════
-let DATA = {};  // rep → month → {teuFCL,teuTank,tons,rev,gp}
+let DATA = {};
 let period = 'monthly';
-let teuExpanded = {};  // repName → bool
+let teuExp = {};  // rep → bool (expanded)
+let sidebarOpen = true;
 
 // ═══════════════════════════════════════════════════════
 // INIT
@@ -371,31 +386,33 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function buildSelectors() {
-  const f = document.getElementById('fromM'), t = document.getElementById('toM');
-  MONTHS.forEach(m => {
-    f.innerHTML += `<option value="${m}">${MS[m]}</option>`;
-    t.innerHTML += `<option value="${m}">${MS[m]}</option>`;
+  const f=document.getElementById('fromM'), t=document.getElementById('toM');
+  MONTHS.forEach(m=>{
+    f.innerHTML+=`<option value="${m}">${MS[m]}</option>`;
+    t.innerHTML+=`<option value="${m}">${MS[m]}</option>`;
   });
-  f.value = 'April-2025'; t.value = 'March-2026';
-  // Populate rep filter
-  const rs = document.getElementById('repF');
-  Object.values(REP_MAP).filter((v,i,a)=>a.indexOf(v)===i).sort().forEach(r=>{
-    const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);
-  });
+  f.value='April-2025'; t.value='March-2026';
+  const rs=document.getElementById('repF');
+  const allReps=[...new Set(Object.values(REP_MAP))].sort();
+  allReps.forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
 }
 
 // ═══════════════════════════════════════════════════════
-// DATA LOADING (live from Google Sheets)
+// DATA LOADING  — RESET DATA ON EVERY LOAD (critical fix)
 // ═══════════════════════════════════════════════════════
 async function loadData() {
   setOv(true,'Fetching Shipment Detail…');
   document.getElementById('rbtn').classList.add('spinning');
   hideErr();
+
+  // ★ RESET DATA COMPLETELY before fetching
+  DATA = {};
+
   try {
     await fetchShipment();
     setOv(true,'Fetching General Job Detail…');
     await fetchGeneral();
-    document.getElementById('rts').textContent = 'Updated '+new Date().toLocaleTimeString();
+    document.getElementById('rts').textContent='Updated '+new Date().toLocaleTimeString();
     setOv(false);
     render();
   } catch(e) {
@@ -407,319 +424,265 @@ async function loadData() {
 }
 
 async function fetchShipment() {
-  const cols = ['BF','CK','EI','EU','FB','FC','EJ','EN'];
-  const url = batchUrl('Shipment Detail', cols);
-  const j = await apiFetch(url);
-  const [repC,teuC,monC,lobC,modeC,tonsC,revC,gpC] = j.valueRanges.map(v=>v.values||[]);
-  const len = Math.max(repC.length,monC.length);
-
-  // Reset shipment data
-  const tmp = {};
+  const cols=['BF','CK','EI','EU','FB','FC','EJ','EN'];
+  const url=batchUrl('Shipment Detail',cols);
+  const j=await apiFetch(url);
+  const [repC,teuC,monC,,modeC,tonsC,revC,gpC]=j.valueRanges.map(v=>v.values||[]);
+  const len=Math.max(repC.length,monC.length);
   for(let i=1;i<len;i++){
-    const rawRep = get(repC,i);
-    const mon    = get(monC,i);
+    const rawRep=g(repC,i), mon=g(monC,i);
     if(!mon) continue;
-    const rep  = REP_MAP[rawRep]||'Nomination Sales';
-    const mode = get(modeC,i);
-    const teu  = pf(get(teuC,i));
-    const tons = pf(get(tonsC,i));
-    const rev  = pusd(get(revC,i));
-    const gp   = pusd(get(gpC,i));
-    if(!tmp[rep]) tmp[rep]={};
-    if(!tmp[rep][mon]) tmp[rep][mon]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-    const c = tmp[rep][mon];
+    const rep=REP_MAP[rawRep]||'Nomination Sales';
+    const mode=g(modeC,i);
+    const teu=pf(g(teuC,i)), tons=pf(g(tonsC,i));
+    const rev=pu(g(revC,i)), gp=pu(g(gpC,i));
+    ensure(rep,mon);
+    const c=DATA[rep][mon];
     if(mode==='Dry Freight') c.teuFCL+=teu;
     else if(mode==='ISO Tank') c.teuTank+=teu;
     c.tons+=tons; c.rev+=rev; c.gp+=gp;
   }
-  // Merge into DATA
-  for(const rep in tmp) {
-    if(!DATA[rep]) DATA[rep]={};
-    for(const mon in tmp[rep]) {
-      if(!DATA[rep][mon]) DATA[rep][mon]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-      const s=tmp[rep][mon], d=DATA[rep][mon];
-      d.teuFCL+=s.teuFCL; d.teuTank+=s.teuTank; d.tons+=s.tons; d.rev+=s.rev; d.gp+=s.gp;
-    }
-  }
 }
 
 async function fetchGeneral() {
-  const cols = ['I','AD','X','Z'];
-  const url = batchUrl('General Job Detail', cols);
-  const j = await apiFetch(url);
-  const [repC,monC,revC,gpC] = j.valueRanges.map(v=>v.values||[]);
-  const len = Math.max(repC.length,monC.length);
+  const cols=['I','AD','X','Z'];
+  const url=batchUrl('General Job Detail',cols);
+  const j=await apiFetch(url);
+  const [repC,monC,revC,gpC]=j.valueRanges.map(v=>v.values||[]);
+  const len=Math.max(repC.length,monC.length);
   for(let i=1;i<len;i++){
-    const rawRep=get(repC,i), mon=get(monC,i);
+    const rawRep=g(repC,i), mon=g(monC,i);
     if(!rawRep||!mon) continue;
     const rep=REP_MAP[rawRep]||rawRep;
-    const rev=pusd(get(revC,i)), gp=pusd(get(gpC,i));
-    if(!DATA[rep]) DATA[rep]={};
-    if(!DATA[rep][mon]) DATA[rep][mon]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
+    const rev=pu(g(revC,i)), gp=pu(g(gpC,i));
+    ensure(rep,mon);
     DATA[rep][mon].rev+=rev; DATA[rep][mon].gp+=gp;
   }
 }
 
-function batchUrl(sheet, cols) {
-  const ranges = cols.map(c=>`ranges=${encodeURIComponent(`${sheet}!${c}:${c}`)}`).join('&');
-  return `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${ranges}&key=${API_KEY}`;
+function ensure(rep,mon){
+  if(!DATA[rep]) DATA[rep]={};
+  if(!DATA[rep][mon]) DATA[rep][mon]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
 }
-async function apiFetch(url) {
-  const r = await fetch(url);
-  const j = await r.json();
-  if(j.error) throw new Error(j.error.message);
-  return j;
+function batchUrl(sheet,cols){
+  return`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${cols.map(c=>`ranges=${encodeURIComponent(`${sheet}!${c}:${c}`)}`).join('&')}&key=${API_KEY}`;
 }
-function get(arr,i){return arr[i]&&arr[i][0]?arr[i][0].trim():'';}
+async function apiFetch(url){const r=await fetch(url);const j=await r.json();if(j.error)throw new Error(j.error.message);return j;}
+function g(a,i){return a[i]&&a[i][0]?a[i][0].trim():'';}
 function pf(s){return parseFloat(s)||0;}
-function pusd(s){return parseFloat(String(s).replace(/[\$,]/g,''))||0;}
+function pu(s){return parseFloat(String(s).replace(/[\$,]/g,''))||0;}
 
 // ═══════════════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════════════
-function render() {
-  const lob  = document.getElementById('lobF').value;
-  const repF = document.getElementById('repF').value;
-  const from = document.getElementById('fromM').value;
-  const to   = document.getElementById('toM').value;
-
-  const months = getMonths(from, to);
-  const data   = filterData(lob, repF, months);
-
-  updateKPIs(data, months);
-  renderTable(data, months, from, to);
+function render(){
+  const lob=document.getElementById('lobF').value;
+  const repF=document.getElementById('repF').value;
+  const from=document.getElementById('fromM').value;
+  const to=document.getElementById('toM').value;
+  const months=getMonths(from,to);
+  const data=applyFilters(lob,repF,months);
+  updateKPIs(data,months);
+  renderTable(data,months,from,to);
 }
 
-function getMonths(from, to) {
+function getMonths(from,to){
   if(period==='yearly') return MONTHS.filter(m=>{const i=MONTHS.indexOf(m);return i>=MONTHS.indexOf('April-2025')&&i<=MONTHS.indexOf('March-2026');});
   if(period==='weekly') return ['March-2026'];
-  const fi=MONTHS.indexOf(from), ti=MONTHS.indexOf(to);
-  return fi>=0&&ti>=0 ? MONTHS.slice(fi,ti+1) : MONTHS;
+  const fi=MONTHS.indexOf(from),ti=MONTHS.indexOf(to);
+  return fi>=0&&ti>=0?MONTHS.slice(fi,ti+1):MONTHS;
 }
 
-function filterData(lob, repF, months) {
-  // Returns {rep: {month: {teuFCL,teuTank,tons,rev,gp}}}
-  const out = {};
-  const reps = repF==='all' ? Object.keys(DATA) : [repF];
-  reps.forEach(rep => {
-    out[rep] = {};
-    months.forEach(m => {
-      const src = DATA[rep]&&DATA[rep][m] ? DATA[rep][m] : {teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-      // LOB filter
-      let teuFCL=src.teuFCL, teuTank=src.teuTank, tons=src.tons, rev=src.rev, gp=src.gp;
-      if(lob==='Dry Freight'){teuTank=0;tons=0;/* keep FCL only */}
+function applyFilters(lob,repF,months){
+  const out={};
+  const reps=repF==='all'?Object.keys(DATA):[repF];
+  reps.forEach(rep=>{
+    out[rep]={};
+    months.forEach(m=>{
+      const s=DATA[rep]&&DATA[rep][m]?DATA[rep][m]:{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
+      let {teuFCL,teuTank,tons,rev,gp}=s;
+      if(lob==='Dry Freight'){teuTank=0;tons=0;}
       else if(lob==='ISO Tank'){teuFCL=0;tons=0;}
       else if(lob==='Air'){teuFCL=0;teuTank=0;}
-      out[rep][m] = {teuFCL,teuTank,tons,rev,gp};
+      out[rep][m]={teuFCL,teuTank,tons,rev,gp};
     });
   });
   return out;
 }
 
-function updateKPIs(data, months) {
-  let rev=0,gp=0,teuF=0,teuT=0,tons=0;
+function updateKPIs(data,months){
+  let rev=0,gp=0,tf=0,tt=0,tons=0;
   Object.values(data).forEach(rd=>months.forEach(m=>{
-    const c=rd[m]||{}; rev+=c.rev||0; gp+=c.gp||0;
-    teuF+=c.teuFCL||0; teuT+=c.teuTank||0; tons+=c.tons||0;
+    const c=rd[m]||{};rev+=c.rev||0;gp+=c.gp||0;tf+=c.teuFCL||0;tt+=c.teuTank||0;tons+=c.tons||0;
   }));
-  const monthlyTgt = Object.values(REP_TARGETS).reduce((a,b)=>a+b,0);
-  const totalTgt   = monthlyTgt * months.length;
-  const gpPct      = rev>0?gp/rev*100:0;
-
-  setText('k-rev',  '$'+Math.round(rev).toLocaleString());
-  setText('k-tgt',  '$'+Math.round(totalTgt).toLocaleString());
-  setText('k-tgt-sub','Monthly avg $'+Math.round(monthlyTgt).toLocaleString());
-  setText('k-gp',   '$'+Math.round(gp).toLocaleString());
-  setText('k-gppct', gpPct.toFixed(1)+'%');
-  setText('k-teu',  fmt(teuF+teuT));
-  setText('k-teu-sub', fmt(teuF)+' FCL · '+fmt(teuT)+' Tank');
-  setText('k-tons', tons>0?tons.toFixed(2):'—');
+  const mTgt=Object.values(REP_TARGETS).reduce((a,b)=>a+b,0);
+  const tTgt=mTgt*months.length;
+  const gpPct=rev>0?gp/rev*100:0;
+  setText('k-rev','$'+Math.round(rev).toLocaleString());
+  setText('k-tgt','$'+Math.round(tTgt).toLocaleString());
+  setText('k-tgt-sub','Monthly avg $'+Math.round(mTgt).toLocaleString());
+  setText('k-gp','$'+Math.round(gp).toLocaleString());
+  setText('k-gppct',gpPct.toFixed(1)+'%');
+  setText('k-teu',fT(tf+tt));
+  setText('k-teu-sub',fT(tf)+' FCL · '+fT(tt)+' Tank');
+  setText('k-tons',tons>0?tons.toFixed(2):'—');
 }
 
 // ── TABLE ──────────────────────────────────────────────
-function renderTable(data, months, from, to) {
-  const repF = document.getElementById('repF').value;
-  const periodLbl = period==='yearly'?'FY 2025-26':period==='weekly'?'Weekly':`${MS[from]||from} – ${MS[to]||to}`;
-  setText('tbl-sub', period.charAt(0).toUpperCase()+period.slice(1)+' · USD');
-  setText('tbl-meta', periodLbl);
+const MROWS=[
+  {id:'teu',lbl:'TEUs',cls:'m-teu',sub:false,teu:true},
+  {id:'teuFCL',lbl:'TEUs (FCL)',cls:'m-fcl',sub:true},
+  {id:'teuTank',lbl:'TEUs (Tank)',cls:'m-tank',sub:true},
+  {id:'tons',lbl:'Tons (Air)',cls:'m-tons',sub:false},
+  {id:'rev',lbl:'Revenue ($)',cls:'m-rev',sub:false},
+  {id:'gp',lbl:'GP ($)',cls:'m-gp',sub:false},
+  {id:'target',lbl:'Target ($)',cls:'m-target',sub:false},
+  {id:'var',lbl:'Variance %',cls:'m-var',sub:false},
+];
 
-  const reps = Object.keys(data).sort();
+function renderTable(data,months,from,to){
+  const periodLbl=period==='yearly'?'FY 2025-26':period==='weekly'?'Weekly':`${MS[from]||from} – ${MS[to]||to}`;
+  setText('tbl-sub',period.charAt(0).toUpperCase()+period.slice(1)+' · USD');
+  setText('tbl-meta',periodLbl);
+  const reps=Object.keys(data).sort();
 
-  // Compute grand totals
-  const grand = {};
-  months.forEach(m=>grand[m]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
+  // Grand totals
+  const grand={};months.forEach(m=>grand[m]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
   reps.forEach(rep=>months.forEach(m=>{
-    const c=data[rep][m];
-    grand[m].teuFCL+=c.teuFCL; grand[m].teuTank+=c.teuTank;
-    grand[m].tons+=c.tons; grand[m].rev+=c.rev; grand[m].gp+=c.gp;
+    const c=data[rep][m];grand[m].teuFCL+=c.teuFCL;grand[m].teuTank+=c.teuTank;
+    grand[m].tons+=c.tons;grand[m].rev+=c.rev;grand[m].gp+=c.gp;
   }));
-  const grandTarget = Object.values(REP_TARGETS).reduce((a,b)=>a+b,0) * months.length;
+  const gTgt=Object.values(REP_TARGETS).reduce((a,b)=>a+b,0)*months.length;
 
-  let html = `<table><thead><tr>
+  let html=`<table><thead><tr>
     <th class="h-rep">Sales Rep</th>
     <th class="h-metric">Metric</th>
     <th class="h-total">FY Total</th>
     ${months.map(m=>`<th>${MS[m]||m}</th>`).join('')}
   </tr></thead><tbody>`;
 
-  // Grand total rows
-  html += repRows('Grand Total', grand, months, grandTarget, true);
-  html += `<tr class="grand-sep"><td colspan="${3+months.length}"></td></tr>`;
-
-  // Individual reps
-  reps.forEach(rep => {
-    const tgt = (REP_TARGETS[rep]||0) * months.length;
-    html += repRows(rep, data[rep], months, tgt, false);
-    html += `<tr class="r-sep"><td colspan="${3+months.length}"></td></tr>`;
+  html+=buildRows('Grand Total',grand,months,gTgt,true);
+  html+=`<tr class="grand-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;
+  reps.forEach(rep=>{
+    const tgt=(REP_TARGETS[rep]||0)*months.length;
+    html+=buildRows(rep,data[rep],months,tgt,false);
+    html+=`<tr class="r-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;
   });
-
-  html += '</tbody></table>';
-  document.getElementById('twrap').innerHTML = html;
+  html+='</tbody></table>';
+  document.getElementById('twrap').innerHTML=html;
 }
 
-const METRIC_ROWS = [
-  {id:'teu',    lbl:'▶ TEUs',       cls:'m-teu',    sub:false},
-  {id:'teuFCL', lbl:'TEUs (FCL)',   cls:'m-fcl',    sub:true},
-  {id:'teuTank',lbl:'TEUs (Tank)',  cls:'m-tank',   sub:true},
-  {id:'tons',   lbl:'Tons (Air)',   cls:'m-tons',   sub:false},
-  {id:'rev',    lbl:'Revenue ($)',  cls:'m-rev',    sub:false},
-  {id:'gp',     lbl:'GP ($)',       cls:'m-gp',     sub:false},
-  {id:'target', lbl:'Target ($)',   cls:'m-target', sub:false},
-  {id:'var',    lbl:'Variance %',   cls:'m-var',    sub:false},
-];
+function buildRows(repName,mData,months,totalTgt,isGrand){
+  const rid=repName.replace(/[^a-z0-9]/gi,'_');
+  const exp=teuExp[repName]!==false; // default expanded
+  const hasTgt=!isGrand&&(REP_TARGETS[repName]||0)>0;
 
-function repRows(repName, monthData, months, totalTarget, isGrand) {
-  const rid = repName.replace(/[^a-z0-9]/gi,'_');
-  const expanded = teuExpanded[repName] !== false; // default expanded
+  let totF=0,totT=0,totTons=0,totRev=0,totGP=0;
+  months.forEach(m=>{const c=mData[m]||{};totF+=c.teuFCL||0;totT+=c.teuTank||0;totTons+=c.tons||0;totRev+=c.rev||0;totGP+=c.gp||0;});
+  const totTEU=totF+totT;
+  const totVar=hasTgt&&totalTgt>0?(totGP-totalTgt)/Math.abs(totalTgt)*100:null;
 
-  // Compute totals
-  let totFCL=0,totTank=0,totTons=0,totRev=0,totGP=0;
-  months.forEach(m=>{const c=monthData[m]||{};totFCL+=c.teuFCL||0;totTank+=c.teuTank||0;totTons+=c.tons||0;totRev+=c.rev||0;totGP+=c.gp||0;});
-  const totTEU = totFCL+totTank;
-  const hasTgt = !isGrand && REP_TARGETS[repName]!==undefined && REP_TARGETS[repName]>0;
-  const totVar = hasTgt && totalTarget>0 ? (totGP-totalTarget)/Math.abs(totalTarget)*100 : null;
+  const rows=MROWS.filter(r=>!(r.sub&&!exp));
+  const rc=isGrand?'r-grand':'r-rep';
+  const avBg=isGrand?'background:linear-gradient(135deg,#2563eb,#7c3aed)':`background:${rclr(repName)}`;
 
-  const rc = isGrand ? 'r-grand' : 'r-rep';
-  const avatarBg = isGrand ? 'background:linear-gradient(135deg,#2563eb,#7c3aed)':`background:${rclr(repName)}`;
-  const initials = isGrand ? 'GT' : ini(repName);
-
-  let html = '';
-  const SHOW = METRIC_ROWS.filter(mr => !(mr.sub && !expanded));
-
-  SHOW.forEach((mr,mi) => {
-    const isTEUrow = mr.id==='teu';
-    const isSubrow = mr.sub;
-
-    html += `<tr class="${rc}" id="${isGrand?'g':'r'}_${rid}_${mr.id}">`;
-
-    // Rep name cell (only on first visible row)
+  let html='';
+  rows.forEach((mr,mi)=>{
+    html+=`<tr class="${rc}">`;
     if(mi===0){
-      html += `<td class="c-rep" rowspan="${SHOW.length}" style="vertical-align:top;padding-top:10px">
+      html+=`<td class="c-rep" rowspan="${rows.length}" style="vertical-align:top;padding-top:9px">
         <div class="ravcell">
-          <div class="rav" style="${avatarBg}">${initials}</div>
-          <span class="rname">${repName}</span>
-        </div>
-      </td>`;
+          <div class="rav" style="${avBg}">${isGrand?'GT':ini(repName)}</div>
+          <span style="font-weight:700;font-size:12px">${repName}</span>
+        </div></td>`;
     }
-
     // Metric label
-    let lbl = mr.lbl;
-    if(isTEUrow){
-      const arrDir = expanded ? '▼' : '▶';
-      lbl = `<span class="teu-toggle${expanded?' open':''}" onclick="toggleTEU('${repName}','${rid}')">${arrDir} TEUs</span>`;
+    let lbl=mr.lbl;
+    if(mr.teu){
+      const arrCls=exp?'teubtn open':'teubtn';
+      lbl=`<button class="${arrCls}" onclick="toggleTEU('${repName}')"><span class="arr">${exp?'▼':'▶'}</span> TEUs</button>`;
     }
-    html += `<td class="c-metric${isSubrow?' sub':''}">${lbl}</td>`;
+    html+=`<td class="c-metric${mr.sub?' sub':''}">${lbl}</td>`;
 
     // FY Total
-    const ftv = getVal(mr, totFCL, totTank, totTons, totRev, totGP, totalTarget, totVar, hasTgt);
-    html += `<td class="c-total ${mr.cls}${ftv.extra?` ${ftv.extra}`:''}">${ftv.v}</td>`;
+    const fv=calcVal(mr,totF,totT,totTons,totRev,totGP,totalTgt,totVar,hasTgt,isGrand);
+    html+=`<td class="c-total ${mr.cls}${fv.x?` ${fv.x}`:''}">${fv.v}</td>`;
 
     // Monthly cells
-    months.forEach(m => {
-      const c = monthData[m]||{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-      const mTgt = isGrand ? Object.values(REP_TARGETS).reduce((a,b)=>a+b,0) : (REP_TARGETS[repName]||0);
-      const mHasTgt = isGrand ? true : hasTgt;
-      const mVar = mHasTgt && mTgt>0 ? ((c.gp||0)-mTgt)/Math.abs(mTgt)*100 : null;
-      const mv = getMonthVal(mr, c, mTgt, mVar, mHasTgt);
-      html += `<td class="${mr.cls}${mv.extra?` ${mv.extra}`:''}">${mv.v}</td>`;
+    months.forEach(m=>{
+      const c=mData[m]||{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
+      const mTgtVal=isGrand?Object.values(REP_TARGETS).reduce((a,b)=>a+b,0):(REP_TARGETS[repName]||0);
+      const mHasTgt=isGrand?true:hasTgt;
+      const mVar=mHasTgt&&mTgtVal>0?((c.gp||0)-mTgtVal)/Math.abs(mTgtVal)*100:null;
+      const mv=calcMonthVal(mr,c,mTgtVal,mVar,mHasTgt);
+      html+=`<td class="${mr.cls}${mv.x?` ${mv.x}`:''}">${mv.v}</td>`;
     });
-
-    html += '</tr>';
+    html+='</tr>';
   });
-
   return html;
 }
 
-function toggleTEU(repName, rid) {
-  teuExpanded[repName] = !teuExpanded[repName];
-  render(); // re-render to reflect toggle
-}
+function toggleTEU(repName){teuExp[repName]=!teuExp[repName];render();}
 
-function getVal(mr, teuF, teuT, tons, rev, gp, tgt, varPct, hasTgt) {
+function calcVal(mr,f,t,tons,rev,gp,tgt,varPct,hasTgt,isGrand){
   switch(mr.id){
-    case 'teu':    return {v:fmtTeu(teuF+teuT)};
-    case 'teuFCL': return {v:fmtTeu(teuF)};
-    case 'teuTank':return {v:fmtTeu(teuT)};
-    case 'tons':   return {v:tons>0?tons.toFixed(2):'—'};
-    case 'rev':    return {v:'$'+Math.round(rev).toLocaleString()};
-    case 'gp':     return {v:'$'+Math.round(gp).toLocaleString()};
-    case 'target': return {v:'$'+Math.round(tgt).toLocaleString()};
-    case 'var':
-      if(varPct===null||!hasTgt) return {v:'—'};
-      return {v:(varPct>=0?'+':'')+varPct.toFixed(1)+'%', extra:varPct>=0?'pos':'neg'};
+    case'teu':    return{v:fT(f+t)};
+    case'teuFCL': return{v:fT(f)};
+    case'teuTank':return{v:fT(t)};
+    case'tons':   return{v:tons>0?tons.toFixed(2):'—'};
+    case'rev':    return{v:'$'+Math.round(rev).toLocaleString()};
+    case'gp':     return{v:'$'+Math.round(gp).toLocaleString()};
+    case'target': return{v:'$'+Math.round(tgt).toLocaleString()};
+    case'var':
+      if(varPct===null||(!hasTgt&&!isGrand))return{v:'—'};
+      return{v:(varPct>=0?'+':'')+varPct.toFixed(1)+'%',x:varPct>=0?'pos':'neg'};
+  }
+}
+function calcMonthVal(mr,c,mTgt,mVar,hasTgt){
+  const teu=(c.teuFCL||0)+(c.teuTank||0);
+  switch(mr.id){
+    case'teu':    return{v:teu>0?fT(teu):'—'};
+    case'teuFCL': return{v:(c.teuFCL||0)>0?fT(c.teuFCL):'—'};
+    case'teuTank':return{v:(c.teuTank||0)>0?fT(c.teuTank):'—'};
+    case'tons':   return{v:(c.tons||0)>0?c.tons.toFixed(2):'—'};
+    case'rev':    return{v:(c.rev||0)!==0?'$'+Math.round(c.rev||0).toLocaleString():'—'};
+    case'gp':     return{v:(c.gp||0)!==0?'$'+Math.round(c.gp||0).toLocaleString():'—'};
+    case'target': return{v:'$'+Math.round(mTgt).toLocaleString()};
+    case'var':
+      if(mVar===null||!hasTgt)return{v:'—'};
+      return{v:(mVar>=0?'+':'')+mVar.toFixed(1)+'%',x:mVar>=0?'pos':'neg'};
   }
 }
 
-function getMonthVal(mr, c, mTgt, mVar, hasTgt) {
-  const teu = (c.teuFCL||0)+(c.teuTank||0);
-  switch(mr.id){
-    case 'teu':    return {v:teu>0?fmtTeu(teu):'—'};
-    case 'teuFCL': return {v:(c.teuFCL||0)>0?fmtTeu(c.teuFCL):'—'};
-    case 'teuTank':return {v:(c.teuTank||0)>0?fmtTeu(c.teuTank):'—'};
-    case 'tons':   return {v:(c.tons||0)>0?(c.tons).toFixed(2):'—'};
-    case 'rev':    return {v:(c.rev||0)!==0?'$'+Math.round(c.rev||0).toLocaleString():'—'};
-    case 'gp':     return {v:(c.gp||0)!==0?'$'+Math.round(c.gp||0).toLocaleString():'—'};
-    case 'target': return {v:'$'+Math.round(mTgt).toLocaleString()};
-    case 'var':
-      if(mVar===null||!hasTgt) return {v:'—'};
-      return {v:(mVar>=0?'+':'')+mVar.toFixed(1)+'%', extra:mVar>=0?'pos':'neg'};
-  }
-}
-
-function fmtTeu(n){
-  if(!n||n===0) return '0';
-  const r=Math.round(n*10)/10;
-  return Number.isInteger(r)?r.toLocaleString():r.toFixed(1);
-}
-function fmt(n){
-  if(!n||n===0) return '0';
-  const r=Math.round(n*10)/10;
-  return Number.isInteger(r)?r.toLocaleString():r.toFixed(1);
-}
+function fT(n){if(!n||n===0)return'0';const r=Math.round(n*10)/10;return Number.isInteger(r)?r.toLocaleString():r.toFixed(1);}
 
 // ═══════════════════════════════════════════════════════
-// PERIOD TOGGLE
+// PERIOD / PANEL / SIDEBAR
 // ═══════════════════════════════════════════════════════
-function setPeriod(p, el) {
-  period = p;
+function setPeriod(p,el){
+  period=p;
   document.querySelectorAll('.tog').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
-  const drRow = document.getElementById('drRow');
-  drRow.style.display = (p==='yearly'||p==='weekly') ? 'none' : 'flex';
+  const dr=document.getElementById('drRow');
+  dr.style.display=(p==='yearly'||p==='weekly')?'none':'flex';
   if(p==='monthly'){document.getElementById('fromM').value='April-2025';document.getElementById('toM').value='March-2026';}
-  if(Object.keys(DATA).length>0) render();
+  if(Object.keys(DATA).length>0)render();
 }
 
-// ═══════════════════════════════════════════════════════
-// PANEL NAV
-// ═══════════════════════════════════════════════════════
-function showPanel(name, el) {
+function showPanel(name,el){
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
-  if(el) el.classList.add('active');
-  ['sales','tradelane','ops','finance'].forEach(p=>
-    document.getElementById('p-'+p).style.display=p===name?'block':'none');
+  if(el)el.classList.add('active');
+  ['sales','tradelane','ops','finance'].forEach(p=>{
+    const el=document.getElementById('p-'+p);
+    if(el)el.style.display=p===name?(p==='sales'?'flex':'block'):'none';
+  });
   const titles={sales:'Sales Performance',tradelane:'Tradelane Insights',ops:'Operation Pendency',finance:'Finance Pendency'};
-  setText('pgTitle', titles[name]||name);
+  setText('pgTitle',titles[name]||name);
+}
+
+function toggleSidebar(){
+  sidebarOpen=!sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen);
 }
 
 // ═══════════════════════════════════════════════════════
