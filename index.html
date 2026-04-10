@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAR Indonesia – TEU Pivot Verification v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+    --border: #2e3347; --accent: #4f8ef7; --accent2: #34d399;
+    --purple: #a78bfa; --orange: #fb923c;
+    --text: #e8eaf0; --text-muted: #7a80a0;
+    --header-bg: #1e2235; --row-alt: #1d2030; --total-bg: #252a3d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; padding: 24px; }
+
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .title-block h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .title-block p { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+  .status-badge { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; transition: background 0.3s; }
+  .dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
+  .dot.ok { background: var(--accent2); }
+  .dot.error { background: #f87171; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+
+  .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end; }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  select { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; padding: 7px 12px; outline: none; cursor: pointer; min-width: 160px; }
+  select:focus { border-color: var(--accent); }
+  .btn { background: var(--accent); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 8px 18px; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .cards { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; min-width: 150px; }
+  .card .lbl { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .card .val { font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .card .sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+
+  thead th { background: var(--header-bg); color: var(--text-muted); font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; padding: 10px 12px; white-space: nowrap; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; }
+  thead th.col-rep { text-align: left; position: sticky; left: 0; z-index: 3; background: var(--header-bg); min-width: 180px; }
+  thead th.col-lob { text-align: left; min-width: 110px; }
+
+  tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  tbody tr:nth-child(even) td { background: var(--row-alt); }
+  tbody tr:nth-child(odd) td { background: var(--surface); }
+  tbody tr:hover td { background: var(--surface2) !important; }
+
+  td.col-rep { text-align: left; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 12.5px; position: sticky; left: 0; z-index: 2; }
+  td.col-lob { text-align: left; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 600; }
+  tbody tr:nth-child(even) td.col-rep { background: var(--row-alt); }
+  tbody tr:nth-child(odd) td.col-rep { background: var(--surface); }
+  tbody tr:hover td.col-rep { background: var(--surface2) !important; }
+
+  .zero { color: var(--border) !important; }
+  .total-row td { background: var(--total-bg) !important; font-weight: 700; border-top: 2px solid var(--border); }
+  .total-row td.col-rep { background: var(--total-bg) !important; color: var(--text); }
+  .grand-row td { background: #182030 !important; font-weight: 700; font-size: 13px; border-top: 2px solid var(--accent); color: var(--accent) !important; }
+  .grand-row td.col-rep { background: #182030 !important; color: var(--text) !important; }
+
+  .loader { text-align: center; padding: 60px; color: var(--text-muted); font-size: 14px; }
+  .error-box { background: #2a1a1a; border: 1px solid #5a2a2a; border-radius: 8px; padding: 16px 20px; color: #f87171; font-size: 13px; }
+
+  .debug-section { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .debug-section h3 { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .debug-section pre { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent2); white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="title-block">
+    <h1>SAR Indonesia — TEU Pivot Verification</h1>
+    <p>Live · Google Sheets API · Shipment Detail · Col BF=Rep · CK=TEU · EI=Month · EU=LOB · FB=Mode</p>
+  </div>
+  <div class="status-badge">
+    <div class="dot loading" id="statusDot"></div>
+    <span id="statusText">Connecting…</span>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="filter-group">
+    <label>LOB / Mode</label>
+    <select id="lobFilter">
+      <option value="all">All LOBs</option>
+      <option value="Dry Freight">Dry Freight</option>
+      <option value="ISO Tank">ISO Tank</option>
+      <option value="Air">Air Freight</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Sales Rep</label>
+    <select id="repFilter"><option value="all">All Reps</option></select>
+  </div>
+  <button class="btn" id="refreshBtn" onclick="loadData()">↺ Refresh</button>
+  <button class="btn" style="background:var(--surface);border:1px solid var(--border);color:var(--text-muted)" onclick="toggleDebug()">Debug</button>
+</div>
+
+<div class="cards">
+  <div class="card"><div class="lbl">Total TEU</div><div class="val" id="c-total" style="color:var(--accent)">—</div><div class="sub">All LOBs</div></div>
+  <div class="card"><div class="lbl">Dry Freight TEU</div><div class="val" id="c-dry" style="color:var(--accent)">—</div><div class="sub">Ocean FCL · Target 7,592.30</div></div>
+  <div class="card"><div class="lbl">ISO Tank TEU</div><div class="val" id="c-tank" style="color:var(--purple)">—</div><div class="sub">Tank · Target 699.00</div></div>
+  <div class="card"><div class="lbl">Air Tons</div><div class="val" id="c-air" style="color:var(--accent2)">—</div><div class="sub">Target 0.10</div></div>
+  <div class="card"><div class="lbl">Rows Loaded</div><div class="val" id="c-rows" style="color:var(--orange)">—</div><div class="sub">Shipment Detail</div></div>
+</div>
+
+<div id="tableContainer"><div class="loader">Loading data from Google Sheets…</div></div>
+
+<div class="debug-section" id="debugSection" style="display:none">
+  <h3>Debug — Raw LOB/Mode combinations found in sheet</h3>
+  <pre id="debugOutput"></pre>
+</div>
+
+<script>
+const API_KEY   = 'AIzaSyAwsLMNF1n5NYZhAsNb65IA1hPy-C0-b2k';
+const SHEET_ID  = '1H610k9P24-3iUXlrl-RhqrH-7Iy5zYoJ4IjsuKapg84';
+const SHEET_TAB = 'Shipment Detail';
+
+// ── VERIFIED COLUMN LETTERS (from CSV analysis) ──────────────────────────────
+// Col BF (idx 57) = Job Sales Rep
+// Col CK (idx 88) = TEU
+// Col EI (idx 138) = Recognition Month  (format: "January-2025")
+// Col EU (idx 150) = LOB                (values: "Ocean", "Air")
+// Col FB (idx 157) = Mode.1             (values: "Dry Freight", "ISO Tank", "Air")
+// Col FC (idx 158) = Tons               (Air only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MONTH_ORDER = [
+  'January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
+  'July-2025','August-2025','September-2025','October-2025','November-2025','December-2025',
+  'January-2026','February-2026','March-2026'
+];
+
+const SHORT = {
+  'January-2025':'Jan-25','February-2025':'Feb-25','March-2025':'Mar-25',
+  'April-2025':'Apr-25','May-2025':'May-25','June-2025':'Jun-25',
+  'July-2025':'Jul-25','August-2025':'Aug-25','September-2025':'Sep-25',
+  'October-2025':'Oct-25','November-2025':'Nov-25','December-2025':'Dec-25',
+  'January-2026':'Jan-26','February-2026':'Feb-26','March-2026':'Mar-26'
+};
+
+const LOB_COLOR = { 'Dry Freight': '#4f8ef7', 'ISO Tank': '#a78bfa', 'Air': '#34d399' };
+
+let allData = [];
+
+function setStatus(state, msg) {
+  document.getElementById('statusDot').className = 'dot ' + state;
+  document.getElementById('statusText').textContent = msg;
+}
+
+function fmt(n) {
+  if (n === 0 || n === null || n === undefined) return '—';
+  return Number.isInteger(n) ? n.toLocaleString() : parseFloat(n.toFixed(2)).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2});
+}
+
+async function loadData() {
+  setStatus('loading', 'Fetching data…');
+  document.getElementById('refreshBtn').disabled = true;
+  document.getElementById('tableContainer').innerHTML = '<div class="loader">Fetching columns from Google Sheets…</div>';
+
+  try {
+    // Batch fetch exactly the columns we need
+    const ranges = [
+      `${SHEET_TAB}!BF:BF`,  // Job Sales Rep
+      `${SHEET_TAB}!CK:CK`,  // TEU
+      `${SHEET_TAB}!EI:EI`,  // Recognition Month
+      `${SHEET_TAB}!EU:EU`,  // LOB (Ocean/Air)
+      `${SHEET_TAB}!FB:FB`,  // Mode.1 (Dry Freight/ISO Tank/Air)
+      `${SHEET_TAB}!FC:FC`,  // Tons (Air)
+    ].map(r => `ranges=${encodeURIComponent(r)}`).join('&');
+
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${ranges}&key=${API_KEY}`;
+    const res  = await fetch(url);
+    const json = await res.json();
+
+    if (json.error) throw new Error(`API Error ${json.error.code}: ${json.error.message}`);
+
+    const [repC, teuC, monthC, lobC, modeC, tonsC] = json.valueRanges.map(vr => vr.values || []);
+
+    const totalRows = Math.max(repC.length, teuC.length, monthC.length);
+    document.getElementById('c-rows').textContent = (totalRows - 1).toLocaleString();
+
+    // Debug — collect unique LOB+Mode combos
+    const combos = {};
+
+    allData = [];
+    for (let i = 1; i < totalRows; i++) {
+      const rep   = repC[i]   && repC[i][0]   ? repC[i][0].trim()   : '';
+      const month = monthC[i] && monthC[i][0] ? monthC[i][0].trim() : '';
+      if (!rep || !month) continue;
+
+      const teu  = parseFloat(teuC[i]  && teuC[i][0]  ? teuC[i][0]  : 0) || 0;
+      const lob  = lobC[i]  && lobC[i][0]  ? lobC[i][0].trim()  : '';
+      const mode = modeC[i] && modeC[i][0] ? modeC[i][0].trim() : '';
+      const tons = parseFloat(tonsC[i] && tonsC[i][0] ? tonsC[i][0] : 0) || 0;
+
+      // Track combos for debug
+      const key = `LOB="${lob}" | Mode="${mode}"`;
+      combos[key] = (combos[key] || 0) + 1;
+
+      allData.push({ rep, month, teu, lob, mode, tons });
+    }
+
+    // Debug output
+    document.getElementById('debugOutput').textContent =
+      Object.entries(combos).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${String(v).padStart(5)}x  ${k}`).join('\n');
+
+    // Summary cards
+    const dry  = allData.filter(d => d.mode === 'Dry Freight');
+    const tank = allData.filter(d => d.mode === 'ISO Tank');
+    const air  = allData.filter(d => d.mode === 'Air');
+    document.getElementById('c-total').textContent = fmt(allData.reduce((s,d)=>s+d.teu,0));
+    document.getElementById('c-dry').textContent   = fmt(dry.reduce((s,d)=>s+d.teu,0));
+    document.getElementById('c-tank').textContent  = fmt(tank.reduce((s,d)=>s+d.teu,0));
+    document.getElementById('c-air').textContent   = fmt(air.reduce((s,d)=>s+d.tons,0));
+
+    // Populate rep filter
+    const reps = [...new Set(allData.map(d=>d.rep))].sort();
+    const sel  = document.getElementById('repFilter');
+    sel.innerHTML = '<option value="all">All Reps</option>';
+    reps.forEach(r => { const o = document.createElement('option'); o.value = o.textContent = r; sel.appendChild(o); });
+
+    setStatus('ok', `Loaded ${allData.length.toLocaleString()} rows`);
+    renderTable();
+
+  } catch (err) {
+    setStatus('error', err.message);
+    document.getElementById('tableContainer').innerHTML = `<div class="error-box"><strong>Failed to load</strong><br><br>${err.message}</div>`;
+    console.error(err);
+  }
+  document.getElementById('refreshBtn').disabled = false;
+}
+
+function renderTable() {
+  const lobFilter = document.getElementById('lobFilter').value;
+  const repFilter = document.getElementById('repFilter').value;
+
+  // LOB filter maps to mode column
+  let filtered = allData;
+  if (lobFilter !== 'all')  filtered = filtered.filter(d => d.mode === lobFilter);
+  if (repFilter !== 'all')  filtered = filtered.filter(d => d.rep  === repFilter);
+
+  const monthsPresent = MONTH_ORDER.filter(m => filtered.some(d => d.month === m));
+
+  // Build pivot: rep → mode → month → teu (or tons for Air)
+  const pivot = {};
+  filtered.forEach(d => {
+    if (!pivot[d.rep]) pivot[d.rep] = {};
+    if (!pivot[d.rep][d.mode]) pivot[d.rep][d.mode] = {};
+    const val = d.mode === 'Air' ? d.tons : d.teu;
+    pivot[d.rep][d.mode][d.month] = (pivot[d.rep][d.mode][d.month] || 0) + val;
+  });
+
+  const lobsToShow = lobFilter === 'all' ? ['Dry Freight','ISO Tank','Air'] : [lobFilter];
+  const reps = Object.keys(pivot).sort();
+
+  // Grand totals
+  const grandByMode  = {};
+  const grandByMonth = {};
+  monthsPresent.forEach(m => grandByMonth[m] = 0);
+
+  let html = `<table><thead><tr>
+    <th class="col-rep">Sales Rep</th>
+    <th class="col-lob">LOB</th>
+    ${monthsPresent.map(m=>`<th>${SHORT[m]||m}</th>`).join('')}
+    <th style="color:var(--accent)">Total</th>
+  </tr></thead><tbody>`;
+
+  reps.forEach(rep => {
+    const repModes = lobsToShow.filter(l => pivot[rep][l] && Object.values(pivot[rep][l]).some(v=>v>0));
+    if (repModes.length === 0) return;
+
+    repModes.forEach((mode, mi) => {
+      const modeData = pivot[rep][mode] || {};
+      let rowTotal = 0;
+
+      if (!grandByMode[mode]) { grandByMode[mode] = {}; monthsPresent.forEach(m => grandByMode[mode][m]=0); }
+
+      const cells = monthsPresent.map(m => {
+        const v = modeData[m] || 0;
+        rowTotal += v;
+        grandByMode[mode][m] += v;
+        grandByMonth[m] = (grandByMonth[m]||0) + v;
+        return `<td class="${v===0?'zero':''}">${v===0?'—':fmt(v)}</td>`;
+      }).join('');
+
+      html += `<tr>
+        ${mi===0 ? `<td class="col-rep" rowspan="${repModes.length}" style="border-right:1px solid var(--border)">${rep}</td>` : ''}
+        <td class="col-lob" style="color:${LOB_COLOR[mode]}">${mode}</td>
+        ${cells}
+        <td style="color:${LOB_COLOR[mode]};font-weight:700">${fmt(rowTotal)}</td>
+      </tr>`;
+    });
+  });
+
+  // Subtotal rows per mode
+  if (lobFilter === 'all') {
+    lobsToShow.forEach(mode => {
+      if (!grandByMode[mode]) return;
+      const mTotal = Object.values(grandByMode[mode]).reduce((a,b)=>a+b,0);
+      if (mTotal === 0) return;
+      html += `<tr class="total-row">
+        <td class="col-rep">▸ Total ${mode}</td>
+        <td class="col-lob" style="color:${LOB_COLOR[mode]}">${mode}</td>
+        ${monthsPresent.map(m=>`<td style="color:${LOB_COLOR[mode]}">${fmt(grandByMode[mode][m]||0)}</td>`).join('')}
+        <td style="color:${LOB_COLOR[mode]}">${fmt(mTotal)}</td>
+      </tr>`;
+    });
+  }
+
+  // Grand total
+  const grandAll = Object.values(grandByMonth).reduce((a,b)=>a+b,0);
+  html += `<tr class="grand-row">
+    <td class="col-rep">GRAND TOTAL</td>
+    <td class="col-lob">All LOBs</td>
+    ${monthsPresent.map(m=>`<td>${fmt(grandByMonth[m]||0)}</td>`).join('')}
+    <td>${fmt(grandAll)}</td>
+  </tr></tbody></table>`;
+
+  document.getElementById('tableContainer').innerHTML = `<div class="table-wrap">${html}</div>`;
+}
+
+function toggleDebug() {
+  const s = document.getElementById('debugSection');
+  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+}
+
+document.getElementById('lobFilter').addEventListener('change', renderTable);
+document.getElementById('repFilter').addEventListener('change', renderTable);
+
+loadData();
+</script>
+</body>
+</html>
