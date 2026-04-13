@@ -723,7 +723,7 @@ async function apiFetch(url){
   }
   // API key fallback
   const sep=url.includes('?')?'&':'?';
-  const r=await fetch(url+sep+'key=AIzaSyAwsLMNF1n5NYZhAsNb65IA1hPy-C0-b2k');
+  const r=await fetch(url+sep+'key=AIzaSyCQ4oi4_KoZdh1J1Xvenr-vXoF8YDgPF-8');
   const j=await r.json();
   if(j.error) throw new Error(j.error.message);
   return j;
