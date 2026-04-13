@@ -564,39 +564,35 @@ async function signInWithGoogle(){
 }
 
 async function loadUserProfile(user){
-  // Look up user by email in Firestore
-  const snap = await db.collection('users')
-    .where('Email','==',user.email)
-    .limit(1).get();
-
-  // Also try lowercase field name
-  let doc = snap.empty ? null : snap.docs[0];
+  // SECURITY: Only users whose email exists in Firestore get access.
+  // Try both capitalized and lowercase field names (handles both formats).
+  let doc = null;
+  try{
+    const snap1 = await db.collection('users').where('Email','==',user.email).limit(1).get();
+    if(!snap1.empty) doc = snap1.docs[0];
+  }catch(e){}
   if(!doc){
-    const snap2 = await db.collection('users')
-      .where('email','==',user.email)
-      .limit(1).get();
-    doc = snap2.empty ? null : snap2.docs[0];
+    try{
+      const snap2 = await db.collection('users').where('email','==',user.email).limit(1).get();
+      if(!snap2.empty) doc = snap2.docs[0];
+    }catch(e){}
   }
 
-  if(!doc){
-    showAccessDenied(user.email);
-    setOv(false);
-    return;
-  }
+  // Not in Firestore = no access, regardless of Google account
+  if(!doc){ showAccessDenied(user.email); setOv(false); return; }
 
   const data = doc.data();
+
+  // Inactive users = no access
   const active = data.Active ?? data.active ?? true;
-  if(!active){
-    showAccessDenied(user.email);
-    setOv(false);
-    return;
-  }
+  if(!active){ showAccessDenied(user.email); setOv(false); return; }
 
-  currentUser  = user;
-  currentRole  = (data.Role || data.role || 'viewer').toLowerCase();
-  allowedReps  = data.AllowedReps || data.allowedReps || [];
+  // Set user state
+  currentUser = user;
+  currentRole = (data.Role || data.role || 'viewer').toLowerCase();
+  allowedReps = data.AllowedReps || data.allowedReps || [];
 
-  // Update sidebar UI
+  // Sidebar user info
   const initials = user.displayName
     ? user.displayName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()
     : user.email[0].toUpperCase();
@@ -604,19 +600,19 @@ async function loadUserProfile(user){
   document.getElementById('sbName').textContent   = user.displayName || user.email;
   document.getElementById('sbRole').textContent   = currentRole.charAt(0).toUpperCase()+currentRole.slice(1);
 
-  // Show admin nav if admin
+  // Admin nav — only visible to admin
   if(currentRole==='admin'){
     document.getElementById('nav-admin').style.display='flex';
   }
 
-  // Lock rep filter based on role
+  // Lock rep filter to allowed reps
   lockRepFilter();
 
-  // Show app
+  // Show main app
   document.getElementById('mainApp').style.display='flex';
   setOv(false);
 
-  // Load data
+  // Build selectors then load live data
   buildSelectors();
   await loadData();
 }
@@ -715,21 +711,21 @@ function buildSelectors(){
 // SHEETS API — uses OAuth token if available, else API key fallback
 // ═══════════════════════════════════════════════
 async function apiFetch(url){
-  const headers={};
-  if(oauthToken) headers['Authorization']='Bearer '+oauthToken;
-  // If no OAuth token, append API key as fallback
-  const fetchUrl = oauthToken ? url : url+'&key=AIzaSyAwsLMNF1n5NYZhAsNb65IA1hPy-C0-b2k';
-  const r=await fetch(fetchUrl,{headers});
-  const j=await r.json();
-  if(j.error){
-    // Token may have expired — try refreshing
-    if(j.error.code===401 && auth.currentUser){
-      const result=await auth.currentUser.getIdToken(true);
-      // Re-fetch credential
-      throw new Error('Session expired. Please refresh the page.');
-    }
-    throw new Error(j.error.message);
+  // Try OAuth token first, fall back to API key
+  if(oauthToken){
+    try{
+      const r=await fetch(url,{headers:{'Authorization':'Bearer '+oauthToken}});
+      const j=await r.json();
+      if(!j.error) return j;
+      // Token expired or invalid — fall through to API key
+      console.warn('OAuth token failed, falling back to API key');
+    }catch(e){console.warn('OAuth fetch failed',e);}
   }
+  // API key fallback
+  const sep=url.includes('?')?'&':'?';
+  const r=await fetch(url+sep+'key=AIzaSyAwsLMNF1n5NYZhAsNb65IA1hPy-C0-b2k');
+  const j=await r.json();
+  if(j.error) throw new Error(j.error.message);
   return j;
 }
 function batchUrl(sheet,cols){
