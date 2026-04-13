@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAR Indonesia · Sales Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -14,15 +20,66 @@
   --blue:#2563eb;--blue-bg:#eff4ff;
   --green:#059669;--red:#dc2626;
   --orange:#d97706;--purple:#7c3aed;--teal:#0891b2;
-  --sw:218px;
+  --sw:220px;
   --font:'Plus Jakarta Sans',sans-serif;
   --mono:'JetBrains Mono',monospace;
   --r:9px;--sh:0 1px 3px rgba(0,0,0,.05);
 }
 html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px}
+
+/* ── LOGIN SCREEN ── */
+#loginScreen{
+  position:fixed;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#1e1b4b 50%,#312e81 100%);
+  display:flex;align-items:center;justify-content:center;z-index:9999;
+}
+.login-card{
+  background:#fff;border-radius:16px;padding:40px 44px;
+  width:100%;max-width:400px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.login-logo{
+  width:52px;height:52px;border-radius:12px;
+  background:linear-gradient(135deg,#1e40af,#4f46e5);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;
+}
+.login-card h1{font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px}
+.login-card p{font-size:12.5px;color:var(--text3);margin-bottom:28px}
+.google-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:11px 20px;border-radius:8px;
+  border:1.5px solid var(--border);background:#fff;
+  font-family:var(--font);font-size:13px;font-weight:600;color:var(--text);
+  cursor:pointer;transition:all .15s;
+}
+.google-btn:hover{background:#f8f9ff;border-color:#adb5e0;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.google-btn img{width:18px;height:18px}
+.login-err{margin-top:14px;font-size:12px;color:var(--red);display:none;background:#fef2f2;padding:8px 12px;border-radius:6px}
+.login-footer{margin-top:20px;font-size:11px;color:var(--text3)}
+
+/* ── ACCESS DENIED ── */
+#accessDenied{
+  position:fixed;inset:0;background:var(--bg);
+  display:none;align-items:center;justify-content:center;z-index:9998;
+  flex-direction:column;gap:16px;
+}
+.denied-card{background:#fff;border-radius:12px;padding:36px 40px;text-align:center;max-width:380px;box-shadow:var(--sh)}
+.denied-card h2{font-size:17px;font-weight:700;color:var(--red);margin:12px 0 6px}
+.denied-card p{font-size:12.5px;color:var(--text3);line-height:1.6}
+.denied-email{font-size:11.5px;color:var(--text2);background:var(--bg);padding:6px 12px;border-radius:6px;margin:10px 0;font-family:var(--mono)}
+.so-btn{margin-top:14px;padding:8px 20px;border-radius:7px;border:none;background:var(--red);color:#fff;font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer}
+
+/* ── LOADING OVERLAY ── */
+.overlay{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .65s linear infinite}
+.ov-txt{font-size:13px;font-weight:500;color:var(--text2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── APP ── */
 .app{display:flex;height:100vh;overflow:hidden}
 
-/* ── SIDEBAR ── */
+/* SIDEBAR */
 .sidebar{width:var(--sw);flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:width .2s,opacity .15s}
 .sidebar.collapsed{width:0;opacity:0;overflow:hidden;border:none}
 .sb-sec{padding:20px 10px 6px}
@@ -34,8 +91,16 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .nav svg{width:16px;height:16px;flex-shrink:0}
 .sb-foot{margin-top:auto;padding:12px;border-top:1px solid var(--border-l)}
 .rts{font-size:10px;color:var(--text3);margin-top:3px}
+/* User info in sidebar footer */
+.sb-user{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sb-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--border)}
+.sb-avatar-placeholder{width:28px;height:28px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;flex-shrink:0}
+.sb-uname{font-size:11.5px;font-weight:600;color:var(--text);line-height:1.2}
+.sb-urole{font-size:9.5px;color:var(--text3);text-transform:capitalize}
+.signout-btn{display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:#fff;font-family:var(--font);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .13s;width:100%}
+.signout-btn:hover{border-color:var(--red);color:var(--red)}
 
-/* ── MAIN ── */
+/* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
 /* TOP ROW 1 */
@@ -50,11 +115,9 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .fy-badge{background:var(--blue-bg);color:var(--blue);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:5px;border:1px solid #bfdbfe;white-space:nowrap}
 .live-pill{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--green);font-weight:600;background:#ecfdf5;border:1px solid #a7f3d0;padding:2px 8px;border-radius:5px}
 .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite;flex-shrink:0}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .rb-top{padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:#fff;font-family:var(--font);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .13s;white-space:nowrap}
 .rb-top:hover{border-color:var(--blue);color:var(--blue)}
 .rb-top.spinning svg{animation:spin .6s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
 
 /* TOP ROW 2 */
 .tb2{height:42px;flex-shrink:0;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;padding:0 14px;overflow-x:auto}
@@ -67,64 +130,53 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .dr{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);font-weight:600;flex-shrink:0}
 .dsel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer}
 .dsel:focus{border-color:var(--blue)}
-.fgrp{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.wk-inline{display:none;align-items:center;gap:5px;flex-shrink:0}
+.wk-inline.show{display:flex}
+.wk-lbl{font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.wk-date{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer;height:26px}
+.wk-date:focus{border-color:var(--blue)}
+.fy-inline{display:none;align-items:center;gap:5px;flex-shrink:0}
+.fy-inline.show{display:flex}
+.wk-n{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer}
 .flbl{font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
 .fsel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer;min-width:96px}
 .fsel:focus{border-color:var(--blue)}
 
-/* Week picker inline in tb2 */
-.wk-inline{display:none;align-items:center;gap:5px;flex-shrink:0}
-.wk-inline.show{display:flex}
-.wk-lbl{font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
-/* date input styled */
-.wk-date{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer;height:26px}
-.wk-date:focus{border-color:var(--blue)}
-/* show N weeks selector */
-.wk-n{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer}
-/* FY selector for yearly */
-.fy-inline{display:none;align-items:center;gap:5px;flex-shrink:0}
-.fy-inline.show{display:flex}
-.wk-range-lbl{font-size:10px;color:var(--blue);font-weight:600;white-space:nowrap;background:var(--blue-bg);padding:2px 7px;border-radius:4px}
-
-/* ── CONTENT ── */
+/* CONTENT */
 .content{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;min-height:0}
+.ebar{background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:8px 13px;color:var(--red);font-size:12px;margin-bottom:11px;display:none;flex-shrink:0}
 
-/* KPI CARDS — compact single row */
+/* KPI CARDS */
 .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:12px;flex-shrink:0}
 .kpi{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:10px 12px;box-shadow:var(--sh);position:relative;overflow:hidden}
 .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
-.kpi.kb::after{background:var(--blue)}  .kpi.ko::after{background:var(--orange)}
-.kpi.kg::after{background:var(--green)} .kpi.kp::after{background:var(--purple)}
-.kpi.kt::after{background:var(--teal)}  .kpi.kr::after{background:var(--red)}
+.kpi.kb::after{background:var(--blue)}.kpi.ko::after{background:var(--orange)}
+.kpi.kg::after{background:var(--green)}.kpi.kp::after{background:var(--purple)}
+.kpi.kt::after{background:var(--teal)}.kpi.kr::after{background:var(--red)}
 .kpi-lbl{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .kpi-val{font-size:17px;font-weight:700;font-family:var(--mono);line-height:1.1;margin-bottom:2px}
-.kpi.kb .kpi-val{color:var(--blue)}  .kpi.ko .kpi-val{color:var(--orange)}
-.kpi.kg .kpi-val{color:var(--green)} .kpi.kp .kpi-val{color:var(--purple)}
-.kpi.kt .kpi-val{color:var(--teal)}  .kpi.kr .kpi-val{color:var(--red)}
+.kpi.kb .kpi-val{color:var(--blue)}.kpi.ko .kpi-val{color:var(--orange)}
+.kpi.kg .kpi-val{color:var(--green)}.kpi.kp .kpi-val{color:var(--purple)}
+.kpi.kt .kpi-val{color:var(--teal)}.kpi.kr .kpi-val{color:var(--red)}
 .kpi-sub{font-size:9px;color:var(--text3);line-height:1.3}
 
-/* TABLE CARD */
+/* TABLE */
 .tcard{background:var(--card);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--sh);overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0}
 .thead-bar{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--border-l);flex-shrink:0}
 .thead-bar h2{font-size:12.5px;font-weight:700}
 .thead-meta{font-size:10.5px;color:var(--text3);font-weight:500}
 .twrap{overflow:auto;flex:1;min-height:0}
 table{border-collapse:collapse;width:100%;min-width:900px}
-
-/* FROZEN HEADER */
 thead th{background:#f8f9fc;font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding:7px 10px;white-space:nowrap;text-align:right;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:4}
 thead th.h-rep{text-align:left;position:sticky;left:0;z-index:6;min-width:170px;background:#f8f9fc;border-right:2px solid var(--border)}
 thead th.h-metric{text-align:left;position:sticky;left:170px;z-index:5;min-width:120px;background:#f8f9fc;border-right:1px solid var(--border-l)}
 thead th.h-total{background:#fdf8ec;color:var(--orange);border-left:2px solid #fde68a;font-weight:700}
-
-/* BODY */
 tbody td{padding:5px 10px;border-bottom:1px solid var(--border-l);border-right:1px solid #f0f2f8;white-space:nowrap;text-align:right;font-size:11.5px;font-family:var(--mono);color:var(--text2)}
+tbody td:last-child{border-right:none}
 td.c-rep{text-align:left;font-family:var(--font);font-weight:700;font-size:12px;color:var(--text);position:sticky;left:0;z-index:2;border-right:2px solid var(--border)}
 td.c-metric{text-align:left;font-family:var(--font);font-size:11px;font-weight:500;color:var(--text2);position:sticky;left:170px;z-index:2;border-right:1px solid var(--border-l);padding-left:11px}
 td.c-metric.sub{padding-left:22px;font-size:10.5px;color:var(--text3);font-weight:400;font-style:italic}
 td.c-total{background:#fffbeb !important;font-weight:700;border-left:2px solid #fde68a}
-
-/* Row bgs */
 tr.r-grand td{background:#f0f4ff}
 tr.r-grand td.c-rep,tr.r-grand td.c-metric{background:#f0f4ff}
 tr.r-grand td.c-total{background:#fdf8ec !important}
@@ -136,8 +188,6 @@ tr.r-rep:hover td.c-rep,tr.r-rep:hover td.c-metric{background:#f8f9fc !important
 tr.r-sep td{background:#f4f6fa;padding:0;height:4px;border-bottom:2px solid var(--border)}
 tr.r-sep td.c-rep,tr.r-sep td.c-metric{background:#f4f6fa}
 tr.grand-sep td{background:#dde2f0;padding:0;height:3px;border:none}
-
-/* Metric colors */
 td.m-teu{color:var(--blue)!important;font-weight:600}
 td.m-fcl{color:#3b82f6!important}
 td.m-tank{color:var(--purple)!important}
@@ -147,74 +197,159 @@ td.m-gp{color:var(--green)!important;font-weight:600}
 td.m-target{color:var(--blue)!important}
 td.m-var.pos{color:var(--green)!important;font-weight:700}
 td.m-var.neg{color:var(--red)!important;font-weight:700}
-td.nil{color:#d1d5db!important}
-tbody td:last-child{border-right:none}
-
-/* Rep avatar */
 .ravcell{display:flex;align-items:center;gap:7px;padding:1px 0}
 .rav{width:23px;height:23px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:#fff}
-/* TEU toggle */
 .teubtn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:3px;color:var(--blue);font-family:var(--font);font-size:11px;font-weight:600;padding:0}
 .teubtn .arr{font-size:8px;transition:transform .15s}
 .teubtn.open .arr{transform:rotate(90deg)}
 
-/* Error / overlay */
-.ebar{background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:8px 13px;color:var(--red);font-size:12px;margin-bottom:11px;display:none;flex-shrink:0}
-.overlay{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .65s linear infinite}
-.ov-txt{font-size:13px;font-weight:500;color:var(--text2)}
+/* COMING SOON */
 .coming{padding:80px;text-align:center}
 .coming h3{font-size:16px;font-weight:700;color:var(--text2);margin:12px 0 6px}
 .coming p{font-size:12px;color:var(--text3)}
+
+/* ── ADMIN PANEL ── */
+.admin-wrap{flex:1;overflow-y:auto;padding:4px 0}
+.admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.admin-header h2{font-size:15px;font-weight:700}
+.admin-header p{font-size:11.5px;color:var(--text3);margin-top:2px}
+.add-user-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;background:var(--blue);color:#fff;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.add-user-btn:hover{opacity:.85}
+.user-table{width:100%;border-collapse:collapse;background:var(--card);border-radius:var(--r);border:1px solid var(--border);overflow:hidden}
+.user-table th{background:#f8f9fc;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding:9px 14px;text-align:left;border-bottom:2px solid var(--border)}
+.user-table td{padding:10px 14px;border-bottom:1px solid var(--border-l);font-size:12.5px;vertical-align:middle}
+.user-table tr:last-child td{border-bottom:none}
+.user-table tr:hover td{background:#f8f9fc}
+.role-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.role-badge.admin{background:#eff4ff;color:var(--blue)}
+.role-badge.manager{background:#f0fdf4;color:var(--green)}
+.role-badge.viewer{background:#fafaf8;color:var(--text2)}
+.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600}
+.status-badge.active{color:var(--green)}
+.status-badge.inactive{color:var(--text3)}
+.status-dot{width:6px;height:6px;border-radius:50%}
+.status-badge.active .status-dot{background:var(--green)}
+.status-badge.inactive .status-dot{background:var(--text3)}
+.action-btn{padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:#fff;font-family:var(--font);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .13s;margin-right:4px}
+.action-btn:hover{border-color:var(--blue);color:var(--blue)}
+.action-btn.danger:hover{border-color:var(--red);color:var(--red)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:12px;padding:28px 32px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:4px}
+.modal p{font-size:12px;color:var(--text3);margin-bottom:20px}
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.form-row input,.form-row select{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:var(--font);font-size:12.5px;color:var(--text);outline:none;background:#fff}
+.form-row input:focus,.form-row select:focus{border-color:var(--blue)}
+.rep-checkboxes{display:grid;grid-template-columns:1fr 1fr;gap:5px;max-height:180px;overflow-y:auto;border:1.5px solid var(--border);border-radius:7px;padding:10px}
+.rep-check{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer}
+.rep-check input{cursor:pointer}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.btn-cancel{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:#fff;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer}
+.btn-save{padding:7px 18px;border-radius:7px;border:none;background:var(--blue);color:#fff;font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn-save:hover{opacity:.85}
+.admin-note{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:7px;padding:10px 14px;font-size:11.5px;color:var(--blue);margin-bottom:16px}
+
 @media(max-width:800px){.kpis{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
 
-<div id="overlay" class="overlay">
-  <div class="spinner"></div>
-  <div class="ov-txt" id="ovtxt">Connecting to Google Sheets…</div>
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1C7 22 7 20 9.5 20c2.4 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0021 14l-9-4-9 4c0 2.4.7 5 2.62 6"/><path d="M12 10V2"/><path d="M7 4h1a1 1 0 011 1v4"/><path d="M16 4h-1a1 1 0 00-1 1v4"/></svg>
+    </div>
+    <h1>SAR Indonesia</h1>
+    <p>Sales Performance Dashboard<br>Sign in with your SAR Google account to continue</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      Continue with Google
+    </button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-footer">Access restricted to authorised SAR users only</div>
+  </div>
 </div>
 
-<div class="app">
+<!-- ACCESS DENIED -->
+<div id="accessDenied" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9998;align-items:center;justify-content:center;flex-direction:column">
+  <div class="denied-card">
+    <div style="font-size:36px">🚫</div>
+    <h2>Access Denied</h2>
+    <p>Your account is not authorised to access this dashboard.</p>
+    <div class="denied-email" id="deniedEmail"></div>
+    <p style="font-size:11.5px;color:var(--text3)">Please contact your administrator to request access.</p>
+    <button class="so-btn" onclick="firebase.auth().signOut().then(()=>location.reload())">Sign Out & Try Again</button>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="overlay" class="overlay">
+  <div class="spinner"></div>
+  <div class="ov-txt" id="ovtxt">Signing in…</div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp" style="display:none">
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sb-sec">
       <div class="sb-lbl">Reports</div>
-      <div class="nav active" onclick="showPanel('sales',this)">
+      <div class="nav active" id="nav-sales" onclick="showPanel('sales',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
         Sales Performance
       </div>
-      <div class="nav locked">
+      <div class="nav locked" id="nav-tradelane">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064"/></svg>
         Tradelane Insights
       </div>
-      <div class="nav locked">
+      <div class="nav locked" id="nav-ops">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
         Operation Pendency
       </div>
-      <div class="nav locked">
+      <div class="nav locked" id="nav-finance">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         Finance Pendency
       </div>
+      <!-- Admin Panel — only shown to admin -->
+      <div class="nav" id="nav-admin" style="display:none" onclick="showPanel('admin',this)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Admin Panel
+      </div>
     </div>
     <div class="sb-foot">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green);font-weight:600"><div class="live-dot"></div>Live Data</div>
+      <div class="sb-user">
+        <div class="sb-avatar-placeholder" id="sbAvatar">?</div>
+        <div>
+          <div class="sb-uname" id="sbName">—</div>
+          <div class="sb-urole" id="sbRole">—</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600;margin-bottom:8px"><div class="live-dot"></div>Live Data</div>
       <div class="rts" id="rts">—</div>
+      <button class="signout-btn" onclick="doSignOut()" style="margin-top:8px">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Sign Out
+      </button>
     </div>
   </aside>
 
   <!-- MAIN -->
   <main class="main">
-
-    <!-- ROW 1: brand + live + refresh -->
+    <!-- ROW 1 -->
     <div class="tb1">
       <button class="hbtn" onclick="toggleSidebar()">
         <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
       </button>
       <div class="brand">
-        <div class="b-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1C7 22 7 20 9.5 20c2.4 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0021 14l-9-4-9 4c0 2.4.7 5 2.62 6"/><path d="M12 10V2"/><path d="M7 4h1a1 1 0 011 1v4"/><path d="M16 4h-1a1 1 0 00-1 1v4"/></svg></div>
+        <div class="b-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1C7 22 7 20 9.5 20c2.4 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0021 14l-9-4-9 4c0 2.4.7 5 2.62 6"/><path d="M12 10V2"/><path d="M7 4h1a1 1 0 011 1v4"/><path d="M16 4h-1a1 1 0 00-1 1v4"/></svg>
+        </div>
         <div><div class="b-name">SAR Indonesia</div><div class="b-sub">Sales Dashboard</div></div>
       </div>
       <div class="tb1-right">
@@ -227,7 +362,7 @@ tbody td:last-child{border-right:none}
       </div>
     </div>
 
-    <!-- ROW 2: toggles + filters -->
+    <!-- ROW 2 -->
     <div class="tb2">
       <div class="toggles">
         <button class="tog" onclick="setPeriod('weekly',this)">Weekly</button>
@@ -236,19 +371,16 @@ tbody td:last-child{border-right:none}
         <button class="tog" onclick="setPeriod('custom',this)">Custom</button>
       </div>
       <div class="tb-div"></div>
-      <!-- Monthly/Custom date range -->
       <div class="dr" id="drRow">
         <span>FROM</span>
         <select class="dsel" id="fromM" onchange="render()"></select>
         <span>TO</span>
         <select class="dsel" id="toM" onchange="render()"></select>
       </div>
-      <!-- Weekly inline date picker -->
       <div class="wk-inline" id="wkInline">
         <span class="wk-lbl">Week Ending</span>
-        <input type="date" class="wk-date" id="wkDatePick" onchange="onWkDateChange()">
+        <input type="date" class="wk-date" id="wkDatePick" onchange="render()">
       </div>
-      <!-- Yearly FY selector -->
       <div class="fy-inline" id="fyInline">
         <span class="wk-lbl">FY</span>
         <select class="wk-n" id="fySelect" onchange="render()" style="min-width:90px">
@@ -272,12 +404,11 @@ tbody td:last-child{border-right:none}
       </select>
     </div>
 
-
-
     <!-- CONTENT -->
     <div class="content">
       <div class="ebar" id="ebar"></div>
 
+      <!-- SALES -->
       <div id="p-sales" style="display:flex;flex-direction:column;flex:1;min-height:0;gap:12px">
         <div class="kpis">
           <div class="kpi kb"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="k-rev">—</div><div class="kpi-sub">USD · Period</div></div>
@@ -300,20 +431,226 @@ tbody td:last-child{border-right:none}
         </div>
       </div>
 
+      <!-- OTHER PANELS -->
       <div id="p-tradelane" style="display:none;flex:1"><div class="coming"><div style="font-size:36px">🗺️</div><h3>Tradelane Insights</h3><p>Coming soon</p></div></div>
       <div id="p-ops" style="display:none;flex:1"><div class="coming"><div style="font-size:36px">⚙️</div><h3>Operation Pendency</h3><p>Coming soon</p></div></div>
       <div id="p-finance" style="display:none;flex:1"><div class="coming"><div style="font-size:36px">💰</div><h3>Finance Pendency</h3><p>Coming soon</p></div></div>
+
+      <!-- ADMIN PANEL -->
+      <div id="p-admin" style="display:none;flex:1;flex-direction:column;min-height:0">
+        <div class="admin-header">
+          <div><h2>Admin Panel</h2><p>Manage user access and roles</p></div>
+          <button class="add-user-btn" onclick="openAddUser()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Add User
+          </button>
+        </div>
+        <div class="admin-note">
+          🔐 Only Admin users can see this panel. Changes take effect immediately — users will see updated access on their next login.
+        </div>
+        <div id="userTableWrap"><div style="padding:30px;text-align:center;color:var(--text3)">Loading users…</div></div>
+      </div>
     </div>
   </main>
 </div>
 
+<!-- ADD/EDIT USER MODAL -->
+<div class="modal-bg" id="userModal">
+  <div class="modal">
+    <h3 id="modalTitle">Add New User</h3>
+    <p id="modalDesc">Fill in the details to grant dashboard access</p>
+    <div class="form-row">
+      <label>Full Name</label>
+      <input type="text" id="mName" placeholder="e.g. John Smith">
+    </div>
+    <div class="form-row">
+      <label>Google Email</label>
+      <input type="email" id="mEmail" placeholder="name@sarlogisolutions.com">
+    </div>
+    <div class="form-row">
+      <label>Role</label>
+      <select id="mRole" onchange="toggleRepSelect()">
+        <option value="admin">Admin — full access</option>
+        <option value="manager" selected>Manager — specific reps</option>
+        <option value="viewer">Viewer — read only</option>
+      </select>
+    </div>
+    <div class="form-row" id="repSelectRow">
+      <label>Allowed Sales Reps <span style="font-weight:400;text-transform:none;color:var(--text3)">(leave blank = all reps)</span></label>
+      <div class="rep-checkboxes" id="repCheckboxes"></div>
+    </div>
+    <div class="form-row">
+      <label>Status</label>
+      <select id="mActive">
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveUser()">Save User</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
-// CONFIG
+// FIREBASE CONFIG
 // ═══════════════════════════════════════════════
-const API_KEY  = 'AIzaSyAwsLMNF1n5NYZhAsNb65IA1hPy-C0-b2k';
+const firebaseConfig = {
+  apiKey: "AIzaSyCQ4oi4_KoZdh1J1Xvenr-vXoF8YDgPF-8",
+  authDomain: "sar-indonesia-dashboard-11702.firebaseapp.com",
+  projectId: "sar-indonesia-dashboard-11702",
+  storageBucket: "sar-indonesia-dashboard-11702.firebasestorage.app",
+  messagingSenderId: "1051456312318",
+  appId: "1:1051456312318:web:efb7023e9f369c75d226af",
+  measurementId: "G-F92M0FEJQT"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ═══════════════════════════════════════════════
+// GOOGLE SHEETS CONFIG
+// ═══════════════════════════════════════════════
 const SHEET_ID = '1H610k9P24-3iUXlrl-RhqrH-7Iy5zYoJ4IjsuKapg84';
 
+// ═══════════════════════════════════════════════
+// USER STATE
+// ═══════════════════════════════════════════════
+let currentUser   = null;
+let currentRole   = null;
+let allowedReps   = [];   // empty = all reps
+let oauthToken    = null; // used for Sheets API calls
+
+// ═══════════════════════════════════════════════
+// AUTH FLOW
+// ═══════════════════════════════════════════════
+auth.onAuthStateChanged(async user => {
+  if(!user){
+    // Show login screen
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('overlay').style.display='none';
+    document.getElementById('mainApp').style.display='none';
+    return;
+  }
+  // User is signed in — verify in Firestore
+  setOv(true,'Verifying access…');
+  document.getElementById('loginScreen').style.display='none';
+  try{
+    await loadUserProfile(user);
+  }catch(e){
+    showAccessDenied(user.email);
+    setOv(false);
+  }
+});
+
+async function signInWithGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.addScope('https://www.googleapis.com/auth/spreadsheets.readonly');
+  provider.setCustomParameters({prompt:'select_account'});
+  try{
+    document.getElementById('loginErr').style.display='none';
+    const result = await auth.signInWithPopup(provider);
+    // Get OAuth token for Sheets API
+    oauthToken = result.credential.accessToken;
+  }catch(e){
+    const err = document.getElementById('loginErr');
+    err.textContent = e.code==='auth/popup-closed-by-user'
+      ? 'Sign-in cancelled. Please try again.'
+      : 'Sign-in failed: '+e.message;
+    err.style.display='block';
+  }
+}
+
+async function loadUserProfile(user){
+  // Look up user by email in Firestore
+  const snap = await db.collection('users')
+    .where('Email','==',user.email)
+    .limit(1).get();
+
+  // Also try lowercase field name
+  let doc = snap.empty ? null : snap.docs[0];
+  if(!doc){
+    const snap2 = await db.collection('users')
+      .where('email','==',user.email)
+      .limit(1).get();
+    doc = snap2.empty ? null : snap2.docs[0];
+  }
+
+  if(!doc){
+    showAccessDenied(user.email);
+    setOv(false);
+    return;
+  }
+
+  const data = doc.data();
+  const active = data.Active ?? data.active ?? true;
+  if(!active){
+    showAccessDenied(user.email);
+    setOv(false);
+    return;
+  }
+
+  currentUser  = user;
+  currentRole  = (data.Role || data.role || 'viewer').toLowerCase();
+  allowedReps  = data.AllowedReps || data.allowedReps || [];
+
+  // Update sidebar UI
+  const initials = user.displayName
+    ? user.displayName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()
+    : user.email[0].toUpperCase();
+  document.getElementById('sbAvatar').textContent = initials;
+  document.getElementById('sbName').textContent   = user.displayName || user.email;
+  document.getElementById('sbRole').textContent   = currentRole.charAt(0).toUpperCase()+currentRole.slice(1);
+
+  // Show admin nav if admin
+  if(currentRole==='admin'){
+    document.getElementById('nav-admin').style.display='flex';
+  }
+
+  // Lock rep filter based on role
+  lockRepFilter();
+
+  // Show app
+  document.getElementById('mainApp').style.display='flex';
+  setOv(false);
+
+  // Load data
+  buildSelectors();
+  await loadData();
+}
+
+function showAccessDenied(email){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('deniedEmail').textContent=email;
+  const ad=document.getElementById('accessDenied');
+  ad.style.display='flex';
+}
+
+function doSignOut(){
+  auth.signOut().then(()=>{
+    currentUser=null;currentRole=null;allowedReps=[];oauthToken=null;
+    DATA={};GDATA={};WKDATA={};WKINFO={};
+    location.reload();
+  });
+}
+
+function lockRepFilter(){
+  const sel = document.getElementById('repF');
+  if(allowedReps.length===0) return; // admin/manager sees all
+  // Remove options not in allowedReps
+  Array.from(sel.options).forEach(o=>{
+    if(o.value!=='all' && !allowedReps.includes(o.value)){
+      o.remove();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// DATA CONFIG
+// ═══════════════════════════════════════════════
 const REP_MAP = {
   'Dijita Nomination':'Dijita Nagarkar','Aris':'Aris','Vinayak':'Vinayak Gaonkar',
   'Kiran Humbre':'Kiran Humbre','Jyoti Ranjane':'Jyoti Ranjane',
@@ -328,29 +665,26 @@ const REP_MAP = {
   'Mohammad Arshad':'Nomination Sales','Prashant Poojari':'Nomination Sales',
   'Lukman Fauzan':'Nomination Sales','Pooja Nomination':'Pooja Jain',
 };
-
 const REP_TARGETS = {
   'Satyaprakash Haryani':22315,'Benoy Varghese':16075,'Vinayak Gaonkar':11358,
   'Jyoti Ranjane':7703,'Aris':9825,'Daissy':3090,'Kiran Humbre':21425,
   'Geeta Dhuri':2401,'Dijita Nagarkar':4900,'Nomination Sales':0,'Pooja Jain':0,
 };
-// Weekly target = monthly ÷ 4.33
 const REP_WEEKLY_TARGETS = Object.fromEntries(
-  Object.entries(REP_TARGETS).map(([k,v])=>[k, Math.round(v/4.33)])
+  Object.entries(REP_TARGETS).map(([k,v])=>[k,Math.round(v/4.33)])
 );
+const ALL_REPS = ['Aris','Benoy Varghese','Daissy','Dijita Nagarkar','Geeta Dhuri',
+  'Jyoti Ranjane','Kiran Humbre','Nomination Sales','Pooja Jain',
+  'Satyaprakash Haryani','Vinayak Gaonkar'];
 
-const MONTHS = [
-  'January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
+const MONTHS=['January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
   'July-2025','August-2025','September-2025','October-2025','November-2025','December-2025',
-  'January-2026','February-2026','March-2026'
-];
-const MS = {
-  'January-2025':'Jan-25','February-2025':'Feb-25','March-2025':'Mar-25',
+  'January-2026','February-2026','March-2026'];
+const MS={'January-2025':'Jan-25','February-2025':'Feb-25','March-2025':'Mar-25',
   'April-2025':'Apr-25','May-2025':'May-25','June-2025':'Jun-25',
   'July-2025':'Jul-25','August-2025':'Aug-25','September-2025':'Sep-25',
   'October-2025':'Oct-25','November-2025':'Nov-25','December-2025':'Dec-25',
-  'January-2026':'Jan-26','February-2026':'Feb-26','March-2026':'Mar-26'
-};
+  'January-2026':'Jan-26','February-2026':'Feb-26','March-2026':'Mar-26'};
 
 const AV=['#2563eb','#059669','#7c3aed','#d97706','#0891b2','#dc2626','#0d9488','#9333ea','#65a30d','#e11d48','#0284c7'];
 const rc={};let ci=0;
@@ -360,29 +694,50 @@ function ini(n){return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').to
 // ═══════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════
-let DATA   = {};   // rep → month → {teuFCL,teuTank,tons,rev,gp} (Shipment Detail only)
-let GDATA  = {};   // rep → month → {rev,gp} (General Job Detail — shown only when LOB=General)
-let WKDATA = {};   // rep → 'YYYY-WW' → {teuFCL,teuTank,tons,rev,gp}
-let WKINFO = {};   // 'YYYY-WW' → {label,start,end,sortKey}
-let period = 'monthly';
-let teuExp = {};
-let sidebarOpen = true;
+let DATA={},GDATA={},WKDATA={},WKINFO={};
+let period='monthly',teuExp={},sidebarOpen=true;
 
 // ═══════════════════════════════════════════════
-// INIT
+// SELECTORS
 // ═══════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded',()=>{buildSelectors();loadData();});
-
 function buildSelectors(){
   const f=document.getElementById('fromM'),t=document.getElementById('toM');
+  if(f.options.length>0) return; // already built
   MONTHS.forEach(m=>{f.innerHTML+=`<option value="${m}">${MS[m]}</option>`;t.innerHTML+=`<option value="${m}">${MS[m]}</option>`;});
   f.value='April-2025';t.value='March-2026';
+  // Rep filter
   const rs=document.getElementById('repF');
-  [...new Set(Object.values(REP_MAP))].sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
+  const reps=allowedReps.length>0?allowedReps:ALL_REPS;
+  reps.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
 }
 
 // ═══════════════════════════════════════════════
-// LOAD DATA  — reset completely each time
+// SHEETS API — uses OAuth token if available, else API key fallback
+// ═══════════════════════════════════════════════
+async function apiFetch(url){
+  const headers={};
+  if(oauthToken) headers['Authorization']='Bearer '+oauthToken;
+  // If no OAuth token, append API key as fallback
+  const fetchUrl = oauthToken ? url : url+'&key=AIzaSyAwsLMNF1n5NYZhAsNb65IA1hPy-C0-b2k';
+  const r=await fetch(fetchUrl,{headers});
+  const j=await r.json();
+  if(j.error){
+    // Token may have expired — try refreshing
+    if(j.error.code===401 && auth.currentUser){
+      const result=await auth.currentUser.getIdToken(true);
+      // Re-fetch credential
+      throw new Error('Session expired. Please refresh the page.');
+    }
+    throw new Error(j.error.message);
+  }
+  return j;
+}
+function batchUrl(sheet,cols){
+  return`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${cols.map(c=>`ranges=${encodeURIComponent(`${sheet}!${c}:${c}`)}`).join('&')}`;
+}
+
+// ═══════════════════════════════════════════════
+// LOAD DATA
 // ═══════════════════════════════════════════════
 async function loadData(){
   setOv(true,'Fetching Shipment Detail…');
@@ -402,12 +757,10 @@ async function loadData(){
 }
 
 async function fetchShipment(){
-  // BF=Rep, CK=TEU, EI=Month, FB=Mode, FC=Tons, EJ=Rev$, EN=GP$, EH=RecDate, FE=WeekNo
   const cols=['BF','CK','EI','FB','FC','EJ','EN','EH','FE'];
   const j=await apiFetch(batchUrl('Shipment Detail',cols));
   const [repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC]=j.valueRanges.map(v=>v.values||[]);
   const len=Math.max(repC.length,monC.length);
-
   for(let i=1;i<len;i++){
     const rawRep=g(repC,i),mon=g(monC,i);
     if(!mon) continue;
@@ -415,24 +768,19 @@ async function fetchShipment(){
     const mode=g(modeC,i);
     const teu=pf(g(teuC,i)),tons=pf(g(tonsC,i));
     const rev=pu(g(revC,i)),gp=pu(g(gpC,i));
-
-    // Monthly data
     ensure(DATA,rep,mon);
     const cm=DATA[rep][mon];
-    if(mode==='Dry Freight') cm.teuFCL+=teu;
-    else if(mode==='ISO Tank') cm.teuTank+=teu;
+    if(mode==='Dry Freight')cm.teuFCL+=teu;
+    else if(mode==='ISO Tank')cm.teuTank+=teu;
     cm.tons+=tons;cm.rev+=rev;cm.gp+=gp;
-
-    // Weekly data — parse week key from date + week number
-    const rawDate=g(dateC,i);
-    const rawWk=g(wkC,i);
+    const rawDate=g(dateC,i),rawWk=g(wkC,i);
     if(rawDate&&rawWk){
       const wkKey=makeWeekKey(rawDate,rawWk,mon);
       if(wkKey){
         ensure(WKDATA,rep,wkKey);
         const cw=WKDATA[rep][wkKey];
-        if(mode==='Dry Freight') cw.teuFCL+=teu;
-        else if(mode==='ISO Tank') cw.teuTank+=teu;
+        if(mode==='Dry Freight')cw.teuFCL+=teu;
+        else if(mode==='ISO Tank')cw.teuTank+=teu;
         cw.tons+=tons;cw.rev+=rev;cw.gp+=gp;
       }
     }
@@ -440,7 +788,6 @@ async function fetchShipment(){
 }
 
 async function fetchGeneral(){
-  // Store in GDATA separately — only merged when LOB = "General"
   const cols=['I','AD','X','Z'];
   const j=await apiFetch(batchUrl('General Job Detail',cols));
   const [repC,monC,revC,gpC]=j.valueRanges.map(v=>v.values||[]);
@@ -455,88 +802,41 @@ async function fetchGeneral(){
   }
 }
 
-// ═══════════════════════════════════════════════
-// WEEK KEY LOGIC
-// Week numbers in data are ISO calendar weeks (1–52)
-// We build a key = "YYYY-WW" and store date range info
-// ═══════════════════════════════════════════════
+// Week key helpers
 function makeWeekKey(rawDate,rawWk,mon){
-  // rawDate like "DEP 15-Feb-26" or "ARV 10-Jan-25"
-  // rawWk like "Week - 7"
   const wkNum=parseInt(rawWk.replace(/\D/g,''));
-  if(!wkNum) return null;
-
-  // Parse year from month string
+  if(!wkNum)return null;
   const yearMatch=mon.match(/(\d{4})/);
-  if(!yearMatch) return null;
+  if(!yearMatch)return null;
   let year=parseInt(yearMatch[1]);
-
-  // Week 1 in December means it belongs to next year (ISO edge case)
-  if(mon.includes('December')&&wkNum===1) year++;
-
+  if(mon.includes('December')&&wkNum===1)year++;
   const key=`${year}-${String(wkNum).padStart(2,'0')}`;
-
-  // Build WKINFO if not already done
   if(!WKINFO[key]){
-    // Compute week start (Monday) and end (Sunday) from ISO week
     const d=isoWeekToDate(year,wkNum);
-    const start=fmtDate(d.start);
-    const end=fmtDate(d.end);
-    const shortStart=shortFmt(d.start);
-    const shortEnd=shortFmt(d.end);
-    WKINFO[key]={
-      label:`Week ${wkNum} (${shortStart} – ${shortEnd})`,
-      start,end,sortKey:year*100+wkNum,
-      startDate:d.start, endDate:d.end
-    };
+    WKINFO[key]={label:`Week ${wkNum} (${shortFmt(d.start)} – ${shortFmt(d.end)})`,start:fmtDate(d.start),end:fmtDate(d.end),sortKey:year*100+wkNum,startDate:d.start,endDate:d.end};
   }
   return key;
 }
-
 function isoWeekToDate(year,week){
-  // ISO week 1 = week containing the first Thursday of the year
-  // Monday of ISO week 1
-  const jan4=new Date(year,0,4); // Jan 4 is always in week 1
-  const dayOfWeek=jan4.getDay()||7; // Mon=1 … Sun=7
-  const monday=new Date(jan4);
-  monday.setDate(jan4.getDate()-dayOfWeek+1+(week-1)*7);
-  const sunday=new Date(monday);
-  sunday.setDate(monday.getDate()+6);
+  const jan4=new Date(year,0,4);
+  const dow=jan4.getDay()||7;
+  const monday=new Date(jan4);monday.setDate(jan4.getDate()-dow+1+(week-1)*7);
+  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
   return{start:monday,end:sunday};
 }
+function fmtDate(d){return d.toISOString().split('T')[0];}
+function shortFmt(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});}
 
-function fmtDate(d){
-  return d.toISOString().split('T')[0];
-}
-function shortFmt(d){
-  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}).replace(/ /g,' ');
-}
-
-// ═══════════════════════════════════════════════
-// WEEK END SELECTOR
-// Shows last 5 weeks relative to selected end date
-// ═══════════════════════════════════════════════
 function buildWeekEndSelector(){
-  // Set default date picker to most recent week-ending in data
   const allWks=Object.keys(WKINFO).sort((a,b)=>WKINFO[b].sortKey-WKINFO[a].sortKey);
-  if(allWks.length>0){
-    const dp=document.getElementById('wkDatePick');
-    if(!dp.value) dp.value=WKINFO[allWks[0]].end;
-  }
+  const dp=document.getElementById('wkDatePick');
+  if(!dp.value&&allWks.length>0)dp.value=WKINFO[allWks[0]].end;
 }
-
-function onWkDateChange(){
-  render();
-}
-
 function getLast5Weeks(){
   const dp=document.getElementById('wkDatePick');
   let endDate=dp&&dp.value?new Date(dp.value):new Date();
-  // Always show 5 weeks
-  const eligible=Object.keys(WKINFO)
-    .filter(k=>new Date(WKINFO[k].end)<=endDate)
-    .sort((a,b)=>WKINFO[b].sortKey-WKINFO[a].sortKey);
-  return eligible.slice(0,5).reverse(); // oldest first, always 5
+  const eligible=Object.keys(WKINFO).filter(k=>new Date(WKINFO[k].end)<=endDate).sort((a,b)=>WKINFO[b].sortKey-WKINFO[a].sortKey);
+  return eligible.slice(0,5).reverse();
 }
 
 // ═══════════════════════════════════════════════
@@ -545,14 +845,12 @@ function getLast5Weeks(){
 function render(){
   const lob=document.getElementById('lobF').value;
   const repF=document.getElementById('repF').value;
-
   if(period==='weekly'){
     const weeks=getLast5Weeks();
     const data=applyWeekFilters(lob,repF,weeks);
     updateKPIsWeekly(data,weeks);
     renderTableWeekly(data,weeks);
-    updateWeekLabel();
-  } else {
+  }else{
     const from=document.getElementById('fromM').value;
     const to=document.getElementById('toM').value;
     const months=getMonths(from,to);
@@ -562,22 +860,14 @@ function render(){
   }
 }
 
-function updateWeekLabel(){
-  // No range label displayed anymore
-}
-
 function getMonths(from,to){
   if(period==='yearly'){
-    // Parse FY like "2025-26" → April-2025 to March-2026
     const fy=document.getElementById('fySelect')?document.getElementById('fySelect').value:'2025-26';
     const parts=fy.split('-');
     const startYear='20'+parts[0].slice(-2);
     const endYear='20'+parts[1];
-    const startM='April-'+startYear;
-    const endM='March-'+endYear;
-    const si=MONTHS.indexOf(startM),ei=MONTHS.indexOf(endM);
-    if(si>=0&&ei>=0) return MONTHS.slice(si,ei+1);
-    // fallback
+    const si=MONTHS.indexOf('April-'+startYear),ei=MONTHS.indexOf('March-'+endYear);
+    if(si>=0&&ei>=0)return MONTHS.slice(si,ei+1);
     return MONTHS.filter(m=>{const i=MONTHS.indexOf(m);return i>=MONTHS.indexOf('April-2025')&&i<=MONTHS.indexOf('March-2026');});
   }
   const fi=MONTHS.indexOf(from),ti=MONTHS.indexOf(to);
@@ -587,28 +877,19 @@ function getMonths(from,to){
 function applyFilters(lob,repF,months){
   const out={};
   if(lob==='General'){
-    // General LOB: only show GDATA (General Job Detail sheet), no TEUs
     const reps=repF==='all'?[...new Set([...Object.keys(DATA),...Object.keys(GDATA)])]:[repF];
-    reps.forEach(rep=>{
-      out[rep]={};
-      months.forEach(m=>{
-        const g=GDATA[rep]&&GDATA[rep][m]?GDATA[rep][m]:{rev:0,gp:0};
-        out[rep][m]={teuFCL:0,teuTank:0,tons:0,rev:g.rev,gp:g.gp};
-      });
-    });
+    reps.forEach(rep=>{out[rep]={};months.forEach(m=>{const gd=GDATA[rep]&&GDATA[rep][m]?GDATA[rep][m]:{rev:0,gp:0};out[rep][m]={teuFCL:0,teuTank:0,tons:0,rev:gd.rev,gp:gd.gp};});});
     return out;
   }
-  // All other LOBs: use Shipment Detail only (no General data)
   const reps=repF==='all'?Object.keys(DATA):[repF];
   reps.forEach(rep=>{
     out[rep]={};
     months.forEach(m=>{
       const s=DATA[rep]&&DATA[rep][m]?DATA[rep][m]:{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
       let{teuFCL,teuTank,tons,rev,gp}=s;
-      if(lob==='Dry Freight'){teuTank=0;tons=0;// keep only FCL rev/gp proportionally — use full since row-level already filtered
-      }else if(lob==='ISO Tank'){teuFCL=0;tons=0;
-      }else if(lob==='Air'){teuFCL=0;teuTank=0;}
-      // "all" includes Dry+Tank+Air from shipment — excludes General
+      if(lob==='Dry Freight'){teuTank=0;tons=0;}
+      else if(lob==='ISO Tank'){teuFCL=0;tons=0;}
+      else if(lob==='Air'){teuFCL=0;teuTank=0;}
       out[rep][m]={teuFCL,teuTank,tons,rev,gp};
     });
   });
@@ -618,10 +899,7 @@ function applyFilters(lob,repF,months){
 function applyWeekFilters(lob,repF,weeks){
   const out={};
   if(lob==='General'){
-    // General has no weekly data from Shipment Detail — return zeros
-    Object.keys(DATA).forEach(rep=>{
-      out[rep]={};weeks.forEach(wk=>{out[rep][wk]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};});
-    });
+    Object.keys(DATA).forEach(rep=>{out[rep]={};weeks.forEach(wk=>{out[rep][wk]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};});});
     return out;
   }
   (repF==='all'?Object.keys(WKDATA):[repF]).forEach(rep=>{
@@ -638,7 +916,6 @@ function applyWeekFilters(lob,repF,weeks){
   return out;
 }
 
-// ── KPI UPDATES ──
 function updateKPIs(data,months){
   let rev=0,gp=0,tf=0,tt=0,tons=0;
   Object.values(data).forEach(rd=>months.forEach(m=>{const c=rd[m]||{};rev+=c.rev||0;gp+=c.gp||0;tf+=c.teuFCL||0;tt+=c.teuTank||0;tons+=c.tons||0;}));
@@ -652,7 +929,6 @@ function updateKPIs(data,months){
   setText('k-teu-sub',fT(tf)+' FCL · '+fT(tt)+' Tank');
   setText('k-tons',tons>0?tons.toFixed(2):'—');
 }
-
 function updateKPIsWeekly(data,weeks){
   let rev=0,gp=0,tf=0,tt=0,tons=0;
   Object.values(data).forEach(rd=>weeks.forEach(wk=>{const c=rd[wk]||{};rev+=c.rev||0;gp+=c.gp||0;tf+=c.teuFCL||0;tt+=c.teuTank||0;tons+=c.tons||0;}));
@@ -667,7 +943,7 @@ function updateKPIsWeekly(data,weeks){
   setText('k-tons',tons>0?tons.toFixed(2):'—');
 }
 
-// ── MONTHLY TABLE ──
+// ── TABLE ──
 const MROWS=[
   {id:'teu',lbl:'TEUs',cls:'m-teu',sub:false,teu:true},
   {id:'teuFCL',lbl:'TEUs (FCL)',cls:'m-fcl',sub:true},
@@ -681,57 +957,36 @@ const MROWS=[
 
 function renderTable(data,months,from,to){
   const lbl=period==='yearly'?'FY 2025-26':`${MS[from]||from} – ${MS[to]||to}`;
-  const pLabel={'monthly':'Monthly','yearly':'Yearly','custom':'Custom','weekly':'Weekly'}[period]||period;
-  setText('tbl-sub',pLabel+' · USD');
-  setText('tbl-meta',lbl);
+  const pLabel={'monthly':'Monthly','yearly':'Yearly','custom':'Custom'}[period]||period;
+  setText('tbl-sub',pLabel+' · USD');setText('tbl-meta',lbl);
   const reps=Object.keys(data).sort();
   const grand={};months.forEach(m=>grand[m]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
   reps.forEach(rep=>months.forEach(m=>{const c=data[rep][m];grand[m].teuFCL+=c.teuFCL;grand[m].teuTank+=c.teuTank;grand[m].tons+=c.tons;grand[m].rev+=c.rev;grand[m].gp+=c.gp;}));
   const gTgt=Object.values(REP_TARGETS).reduce((a,b)=>a+b,0)*months.length;
-
-  let html=`<table><thead><tr>
-    <th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th>
-    <th class="h-total">FY Total</th>
-    ${months.map(m=>`<th>${MS[m]||m}</th>`).join('')}
-  </tr></thead><tbody>`;
+  let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">FY Total</th>${months.map(m=>`<th>${MS[m]||m}</th>`).join('')}</tr></thead><tbody>`;
   html+=buildRows(grand,months,'Grand Total',gTgt,true,false);
   html+=`<tr class="grand-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;
-  reps.forEach(rep=>{
-    html+=buildRows(data[rep],months,rep,(REP_TARGETS[rep]||0)*months.length,false,false);
-    html+=`<tr class="r-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;
-  });
+  reps.forEach(rep=>{html+=buildRows(data[rep],months,rep,(REP_TARGETS[rep]||0)*months.length,false,false);html+=`<tr class="r-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;});
   html+='</tbody></table>';
   document.getElementById('twrap').innerHTML=html;
 }
 
-// ── WEEKLY TABLE ──
 function renderTableWeekly(data,weeks){
-  setText('tbl-sub','Weekly · USD');  // already set
-  if(weeks.length===0){document.getElementById('twrap').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">No week data available</div>';return;}
-  const wEnd=weeks[weeks.length-1];
-  setText('tbl-meta',`Last 5 weeks ending ${WKINFO[wEnd]?.end||wEnd}`);
-
+  setText('tbl-sub','Weekly · USD');
+  if(!weeks.length){document.getElementById('twrap').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">No week data available for selected date</div>';return;}
+  setText('tbl-meta',`Last 5 weeks ending ${WKINFO[weeks[weeks.length-1]]?.end||''}`);
   const reps=Object.keys(data).sort();
   const grand={};weeks.forEach(wk=>grand[wk]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
   reps.forEach(rep=>weeks.forEach(wk=>{const c=data[rep][wk]||{};grand[wk].teuFCL+=(c.teuFCL||0);grand[wk].teuTank+=(c.teuTank||0);grand[wk].tons+=(c.tons||0);grand[wk].rev+=(c.rev||0);grand[wk].gp+=(c.gp||0);}));
-  const wkTgt=Object.values(REP_WEEKLY_TARGETS).reduce((a,b)=>a+b,0)*weeks.length;
-
-  let html=`<table><thead><tr>
-    <th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th>
-    <th class="h-total">5-Wk Total</th>
-    ${weeks.map(wk=>`<th style="min-width:130px">${WKINFO[wk]?.label||wk}</th>`).join('')}
-  </tr></thead><tbody>`;
-  html+=buildRows(grand,weeks,'Grand Total',wkTgt,true,true);
+  const wTgt=Object.values(REP_WEEKLY_TARGETS).reduce((a,b)=>a+b,0)*weeks.length;
+  let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">5-Wk Total</th>${weeks.map(wk=>`<th style="min-width:130px">${WKINFO[wk]?.label||wk}</th>`).join('')}</tr></thead><tbody>`;
+  html+=buildRows(grand,weeks,'Grand Total',wTgt,true,true);
   html+=`<tr class="grand-sep">${'<td></td>'.repeat(3+weeks.length)}</tr>`;
-  reps.forEach(rep=>{
-    html+=buildRows(data[rep],weeks,rep,(REP_WEEKLY_TARGETS[rep]||0)*weeks.length,false,true);
-    html+=`<tr class="r-sep">${'<td></td>'.repeat(3+weeks.length)}</tr>`;
-  });
+  reps.forEach(rep=>{html+=buildRows(data[rep],weeks,rep,(REP_WEEKLY_TARGETS[rep]||0)*weeks.length,false,true);html+=`<tr class="r-sep">${'<td></td>'.repeat(3+weeks.length)}</tr>`;});
   html+='</tbody></table>';
   document.getElementById('twrap').innerHTML=html;
 }
 
-// ── SHARED ROW BUILDER ──
 function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly){
   const exp=teuExp[repName]!==false;
   const hasTgt=!isGrand&&(isWeekly?REP_WEEKLY_TARGETS[repName]:REP_TARGETS[repName])>0;
@@ -739,32 +994,21 @@ function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly){
   keys.forEach(k=>{const c=mData[k]||{};totF+=c.teuFCL||0;totT+=c.teuTank||0;totTons+=c.tons||0;totRev+=c.rev||0;totGP+=c.gp||0;});
   const totVar=hasTgt&&totalTgt>0?(totGP-totalTgt)/Math.abs(totalTgt)*100:null;
   const rows=MROWS.filter(r=>!(r.sub&&!exp));
-  const rc=isGrand?'r-grand':'r-rep';
+  const rc2=isGrand?'r-grand':'r-rep';
   const avBg=isGrand?'background:linear-gradient(135deg,#2563eb,#7c3aed)':`background:${rclr(repName)}`;
-
   let html='';
   rows.forEach((mr,mi)=>{
-    html+=`<tr class="${rc}">`;
-    if(mi===0){
-      html+=`<td class="c-rep" rowspan="${rows.length}" style="vertical-align:top;padding-top:8px">
-        <div class="ravcell"><div class="rav" style="${avBg}">${isGrand?'GT':ini(repName)}</div>
-        <span style="font-weight:700;font-size:12px">${repName}</span></div></td>`;
-    }
+    html+=`<tr class="${rc2}">`;
+    if(mi===0){html+=`<td class="c-rep" rowspan="${rows.length}" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="${avBg}">${isGrand?'GT':ini(repName)}</div><span style="font-weight:700;font-size:12px">${repName}</span></div></td>`;}
     let lbl=mr.lbl;
-    if(mr.teu) lbl=`<button class="teubtn${exp?' open':''}" onclick="toggleTEU('${repName}')"><span class="arr">${exp?'▼':'▶'}</span> TEUs</button>`;
+    if(mr.teu)lbl=`<button class="teubtn${exp?' open':''}" onclick="toggleTEU('${repName}')"><span class="arr">${exp?'▼':'▶'}</span> TEUs</button>`;
     html+=`<td class="c-metric${mr.sub?' sub':''}">${lbl}</td>`;
-
-    // Total col
     const periodTgt=isWeekly?Object.values(REP_WEEKLY_TARGETS).reduce((a,b)=>a+b,0)*keys.length:totalTgt;
     const fv=cVal(mr,totF,totT,totTons,totRev,totGP,isGrand?periodTgt:totalTgt,totVar,hasTgt,isGrand);
     html+=`<td class="c-total ${mr.cls}${fv.x?` ${fv.x}`:''}">${fv.v}</td>`;
-
-    // Period cells
     keys.forEach(k=>{
       const c=mData[k]||{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-      const perTgt=isWeekly
-        ?(isGrand?Object.values(REP_WEEKLY_TARGETS).reduce((a,b)=>a+b,0):(REP_WEEKLY_TARGETS[repName]||0))
-        :(isGrand?Object.values(REP_TARGETS).reduce((a,b)=>a+b,0):(REP_TARGETS[repName]||0));
+      const perTgt=isWeekly?(isGrand?Object.values(REP_WEEKLY_TARGETS).reduce((a,b)=>a+b,0):(REP_WEEKLY_TARGETS[repName]||0)):(isGrand?Object.values(REP_TARGETS).reduce((a,b)=>a+b,0):(REP_TARGETS[repName]||0));
       const mHasTgt=isGrand?true:hasTgt;
       const mVar=mHasTgt&&perTgt>0?((c.gp||0)-perTgt)/Math.abs(perTgt)*100:null;
       const mv=cMonthVal(mr,c,perTgt,mVar,mHasTgt);
@@ -776,37 +1020,28 @@ function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly){
 }
 
 function toggleTEU(r){teuExp[r]=!teuExp[r];render();}
-
 function cVal(mr,f,t,tons,rev,gp,tgt,varPct,hasTgt,isGrand){
   switch(mr.id){
-    case'teu':    return{v:fT(f+t)};
-    case'teuFCL': return{v:fT(f)};
-    case'teuTank':return{v:fT(t)};
-    case'tons':   return{v:tons>0?tons.toFixed(2):'—'};
-    case'rev':    return{v:'$'+Math.round(rev).toLocaleString()};
-    case'gp':     return{v:'$'+Math.round(gp).toLocaleString()};
-    case'target': return{v:'$'+Math.round(tgt).toLocaleString()};
-    case'var':
-      if(varPct===null||(!hasTgt&&!isGrand))return{v:'—'};
-      return{v:(varPct>=0?'+':'')+varPct.toFixed(1)+'%',x:varPct>=0?'pos':'neg'};
+    case'teu':return{v:fT(f+t)};case'teuFCL':return{v:fT(f)};case'teuTank':return{v:fT(t)};
+    case'tons':return{v:tons>0?tons.toFixed(2):'—'};
+    case'rev':return{v:'$'+Math.round(rev).toLocaleString()};
+    case'gp':return{v:'$'+Math.round(gp).toLocaleString()};
+    case'target':return{v:'$'+Math.round(tgt).toLocaleString()};
+    case'var':if(varPct===null||(!hasTgt&&!isGrand))return{v:'—'};return{v:(varPct>=0?'+':'')+varPct.toFixed(1)+'%',x:varPct>=0?'pos':'neg'};
   }
 }
 function cMonthVal(mr,c,perTgt,mVar,hasTgt){
   const teu=(c.teuFCL||0)+(c.teuTank||0);
   switch(mr.id){
-    case'teu':    return{v:teu>0?fT(teu):'—'};
-    case'teuFCL': return{v:(c.teuFCL||0)>0?fT(c.teuFCL):'—'};
+    case'teu':return{v:teu>0?fT(teu):'—'};case'teuFCL':return{v:(c.teuFCL||0)>0?fT(c.teuFCL):'—'};
     case'teuTank':return{v:(c.teuTank||0)>0?fT(c.teuTank):'—'};
-    case'tons':   return{v:(c.tons||0)>0?c.tons.toFixed(2):'—'};
-    case'rev':    return{v:(c.rev||0)!==0?'$'+Math.round(c.rev||0).toLocaleString():'—'};
-    case'gp':     return{v:(c.gp||0)!==0?'$'+Math.round(c.gp||0).toLocaleString():'—'};
-    case'target': return{v:'$'+Math.round(perTgt).toLocaleString()};
-    case'var':
-      if(mVar===null||!hasTgt)return{v:'—'};
-      return{v:(mVar>=0?'+':'')+mVar.toFixed(1)+'%',x:mVar>=0?'pos':'neg'};
+    case'tons':return{v:(c.tons||0)>0?c.tons.toFixed(2):'—'};
+    case'rev':return{v:(c.rev||0)!==0?'$'+Math.round(c.rev||0).toLocaleString():'—'};
+    case'gp':return{v:(c.gp||0)!==0?'$'+Math.round(c.gp||0).toLocaleString():'—'};
+    case'target':return{v:'$'+Math.round(perTgt).toLocaleString()};
+    case'var':if(mVar===null||!hasTgt)return{v:'—'};return{v:(mVar>=0?'+':'')+mVar.toFixed(1)+'%',x:mVar>=0?'pos':'neg'};
   }
 }
-
 function fT(n){if(!n||n===0)return'0';const r=Math.round(n*10)/10;return Number.isInteger(r)?r.toLocaleString():r.toFixed(1);}
 
 // ═══════════════════════════════════════════════
@@ -819,56 +1054,145 @@ function setPeriod(p,el){
   const drRow=document.getElementById('drRow');
   const wkInline=document.getElementById('wkInline');
   const fyInline=document.getElementById('fyInline');
-  const div1=document.querySelector('.tb-div:last-of-type');
-
-  drRow.style.display='none';
-  wkInline.classList.remove('show');
-  fyInline.classList.remove('show');
-
+  drRow.style.display='none';wkInline.classList.remove('show');fyInline.classList.remove('show');
   if(p==='weekly'){
     wkInline.classList.add('show');
-    // Set default date to today if empty
     const dp=document.getElementById('wkDatePick');
-    if(!dp.value){
-      const today=new Date();
-      // Set to nearest Saturday (week ending)
-      const day=today.getDay(); // 0=Sun
-      const daysToSat=day===6?0:(6-day);
-      const sat=new Date(today); sat.setDate(today.getDate()+daysToSat);
-      dp.value=sat.toISOString().split('T')[0];
-    }
-  } else if(p==='yearly'){
-    fyInline.classList.add('show');
-  } else {
-    drRow.style.display='flex';
-    if(p==='monthly'){
-      document.getElementById('fromM').value='April-2025';
-      document.getElementById('toM').value='March-2026';
-    }
-  }
+    if(!dp.value){const today=new Date();const day=today.getDay();const daysToSat=day===6?0:(6-day);const sat=new Date(today);sat.setDate(today.getDate()+daysToSat);dp.value=sat.toISOString().split('T')[0];}
+  }else if(p==='yearly'){fyInline.classList.add('show');}
+  else{drRow.style.display='flex';if(p==='monthly'){document.getElementById('fromM').value='April-2025';document.getElementById('toM').value='March-2026';}}
   if(Object.keys(DATA).length>0||Object.keys(WKDATA).length>0)render();
 }
 
 function showPanel(name,el){
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
-  ['sales','tradelane','ops','finance'].forEach(p=>{
+  ['sales','tradelane','ops','finance','admin'].forEach(p=>{
     const e=document.getElementById('p-'+p);
-    if(e)e.style.display=p===name?(p==='sales'?'flex':'block'):'none';
+    if(e)e.style.display=p===name?( p==='sales'?'flex':p==='admin'?'flex':'block'):'none';
   });
+  if(name==='admin')loadAdminUsers();
 }
 
-function toggleSidebar(){
-  sidebarOpen=!sidebarOpen;
-  document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen);
+function toggleSidebar(){sidebarOpen=!sidebarOpen;document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen);}
+
+// ═══════════════════════════════════════════════
+// ADMIN PANEL — USER MANAGEMENT
+// ═══════════════════════════════════════════════
+let editingDocId = null;
+
+async function loadAdminUsers(){
+  const wrap=document.getElementById('userTableWrap');
+  wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Loading users…</div>';
+  try{
+    const snap=await db.collection('users').get();
+    if(snap.empty){wrap.innerHTML='<div style="padding:20px;color:var(--text3)">No users found.</div>';return;}
+    let html=`<table class="user-table">
+      <thead><tr>
+        <th>Name</th><th>Email</th><th>Role</th>
+        <th>Allowed Reps</th><th>Status</th><th>Actions</th>
+      </tr></thead><tbody>`;
+    snap.forEach(doc=>{
+      const d=doc.data();
+      const name=d.Name||d.name||'—';
+      const email=d.Email||d.email||'—';
+      const role=(d.Role||d.role||'viewer').toLowerCase();
+      const active=d.Active??d.active??true;
+      const reps=(d.AllowedReps||d.allowedReps||[]);
+      const repStr=reps.length===0?'<span style="color:var(--text3);font-size:11px">All reps</span>':reps.map(r=>`<span style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10.5px;margin:1px;display:inline-block">${r}</span>`).join('');
+      html+=`<tr>
+        <td style="font-weight:600">${name}</td>
+        <td style="font-family:var(--mono);font-size:11.5px">${email}</td>
+        <td><span class="role-badge ${role}">${role}</span></td>
+        <td>${repStr}</td>
+        <td><span class="status-badge ${active?'active':'inactive'}"><span class="status-dot"></span>${active?'Active':'Inactive'}</span></td>
+        <td>
+          <button class="action-btn" onclick="openEditUser('${doc.id}')">Edit</button>
+          <button class="action-btn danger" onclick="deleteUser('${doc.id}','${name}')">Remove</button>
+        </td>
+      </tr>`;
+    });
+    html+='</tbody></table>';
+    wrap.innerHTML=html;
+  }catch(e){wrap.innerHTML=`<div style="padding:20px;color:var(--red)">Error loading users: ${e.message}</div>`;}
 }
+
+function openAddUser(){
+  editingDocId=null;
+  document.getElementById('modalTitle').textContent='Add New User';
+  document.getElementById('modalDesc').textContent='Fill in the details to grant dashboard access';
+  document.getElementById('mName').value='';
+  document.getElementById('mEmail').value='';
+  document.getElementById('mRole').value='manager';
+  document.getElementById('mActive').value='true';
+  buildRepCheckboxes([]);
+  toggleRepSelect();
+  document.getElementById('userModal').classList.add('show');
+}
+
+async function openEditUser(docId){
+  editingDocId=docId;
+  const doc=await db.collection('users').doc(docId).get();
+  const d=doc.data();
+  document.getElementById('modalTitle').textContent='Edit User';
+  document.getElementById('modalDesc').textContent='Update access settings for this user';
+  document.getElementById('mName').value=d.Name||d.name||'';
+  document.getElementById('mEmail').value=d.Email||d.email||'';
+  document.getElementById('mRole').value=(d.Role||d.role||'viewer').toLowerCase();
+  document.getElementById('mActive').value=String(d.Active??d.active??true);
+  buildRepCheckboxes(d.AllowedReps||d.allowedReps||[]);
+  toggleRepSelect();
+  document.getElementById('userModal').classList.add('show');
+}
+
+function buildRepCheckboxes(selected){
+  const box=document.getElementById('repCheckboxes');
+  box.innerHTML=ALL_REPS.map(r=>`
+    <label class="rep-check">
+      <input type="checkbox" value="${r}" ${selected.includes(r)?'checked':''}>
+      ${r}
+    </label>`).join('');
+}
+
+function toggleRepSelect(){
+  const role=document.getElementById('mRole').value;
+  document.getElementById('repSelectRow').style.display=role==='admin'?'none':'block';
+}
+
+async function saveUser(){
+  const name=document.getElementById('mName').value.trim();
+  const email=document.getElementById('mEmail').value.trim().toLowerCase();
+  const role=document.getElementById('mRole').value;
+  const active=document.getElementById('mActive').value==='true';
+  if(!name||!email){alert('Please fill in Name and Email');return;}
+  const checkboxes=document.querySelectorAll('#repCheckboxes input:checked');
+  const allowedRepsArr=Array.from(checkboxes).map(c=>c.value);
+  const userData={Name:name,Email:email,Role:role,AllowedReps:role==='admin'?[]:allowedRepsArr,Active:active};
+  try{
+    if(editingDocId){
+      await db.collection('users').doc(editingDocId).update(userData);
+    }else{
+      await db.collection('users').add(userData);
+    }
+    closeModal();
+    loadAdminUsers();
+  }catch(e){alert('Error saving user: '+e.message);}
+}
+
+async function deleteUser(docId,name){
+  if(!confirm(`Remove ${name} from the dashboard?\nThis will revoke their access immediately.`))return;
+  try{
+    await db.collection('users').doc(docId).delete();
+    loadAdminUsers();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+function closeModal(){document.getElementById('userModal').classList.remove('show');}
 
 // ═══════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════
 function ensure(obj,rep,key){if(!obj[rep])obj[rep]={};if(!obj[rep][key])obj[rep][key]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};}
-function batchUrl(sheet,cols){return`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${cols.map(c=>`ranges=${encodeURIComponent(`${sheet}!${c}:${c}`)}`).join('&')}&key=${API_KEY}`;}
-async function apiFetch(url){const r=await fetch(url);const j=await r.json();if(j.error)throw new Error(j.error.message);return j;}
 function g(a,i){return a[i]&&a[i][0]?a[i][0].trim():'';}
 function pf(s){return parseFloat(s)||0;}
 function pu(s){return parseFloat(String(s).replace(/[\$,]/g,''))||0;}
