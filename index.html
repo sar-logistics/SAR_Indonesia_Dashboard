@@ -724,7 +724,8 @@ async function apiFetch(url){
   return j;
 }
 function batchUrl(sheet,cols){
-  return`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${cols.map(c=>`ranges=${encodeURIComponent(`${sheet}!${c}:${c}`)}`).join('&')}`;
+  // UNFORMATTED_VALUE returns raw numbers (290.531...) not display strings ('$291')
+  return`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${cols.map(c=>`ranges=${encodeURIComponent(`${sheet}!${c}:${c}`)}`).join('&')}&valueRenderOption=UNFORMATTED_VALUE`;
 }
 
 // ═══════════════════════════════════════════════
