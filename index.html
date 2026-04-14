@@ -25,19 +25,17 @@ const MONTHS_ORDER = [
 ];
 
 function initTL(){
-  // Build month selectors if not done
-  const f=document.getElementById('tlFromM'), t=document.getElementById('tlToM');
-  if(f && f.options.length===0){
-    MONTHS_ORDER.forEach(m=>{
-      f.innerHTML+=`<option value="${m}">${MS[m]}</option>`;
-      t.innerHTML+=`<option value="${m}">${MS[m]}</option>`;
-    });
-    f.value='April-2025'; t.value='March-2026';
-  }
+  // Use main topbar FROM/TO selectors — no own selectors
   if(!tlInited && Object.keys(DATA).length>0){
-    buildTLData();
+    aggregateTLData();
     tlInited=true;
   }
+  // Wire up view and cargo toggle buttons via event listeners
+  document.getElementById('tl-view-pivot').onclick=function(){ setTLView('pivot',this); };
+  document.getElementById('tl-view-monthly').onclick=function(){ setTLView('monthly',this); };
+  document.getElementById('tl-cargo-all').onclick=function(){ setTLCargo('all',this); };
+  document.getElementById('tl-cargo-fh').onclick=function(){ setTLCargo('Freehand',this); };
+  document.getElementById('tl-cargo-nom').onclick=function(){ setTLCargo('Nomination Sales',this); };
   renderTL();
 }
 
@@ -69,14 +67,14 @@ function aggregateTLData(){
 function setTLView(v, el){
   tlView=v;
   document.querySelectorAll('#tl-view-pivot,#tl-view-monthly').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
+  if(el) el.classList.add('active');
   renderTL();
 }
 
 function setTLCargo(v, el){
   tlCargo=v;
   document.querySelectorAll('#tl-cargo-all,#tl-cargo-fh,#tl-cargo-nom').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
+  if(el) el.classList.add('active');
   renderTL();
 }
 
@@ -84,8 +82,9 @@ function renderTL(){
   if(!tlInited && Object.keys(DATA).length>0){ aggregateTLData(); tlInited=true; }
   if(TL_RAW.length===0){ document.getElementById('tl-twrap').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">Loading tradelane data…</div>'; return; }
 
-  const from=document.getElementById('tlFromM')?.value||'April-2025';
-  const to  =document.getElementById('tlToM')?.value||'March-2026';
+  // Use the main topbar FROM/TO selectors (same ones Sales Performance uses)
+  const from=document.getElementById('fromM')?.value||'April-2025';
+  const to  =document.getElementById('toM')?.value||'March-2026';
   const fi=MONTHS_ORDER.indexOf(from), ti=MONTHS_ORDER.indexOf(to);
   const months=fi>=0&&ti>=0?MONTHS_ORDER.slice(fi,ti+1):MONTHS_ORDER;
 
@@ -740,26 +739,9 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <!-- OTHER PANELS -->
       <!-- TRADELANE PANEL -->
       <div id="p-tradelane" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
-        <!-- TL OWN FILTERS ROW -->
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0">
-          <!-- Period: Monthly only active, others locked -->
-          <div class="toggles">
-            <button class="tog locked-tog" title="Not available in Tradelane view">Weekly</button>
-            <button class="tog active" id="tl-tog-monthly">Monthly</button>
-            <button class="tog locked-tog" title="Not available in Tradelane view">Yearly</button>
-            <button class="tog locked-tog" title="Not available in Tradelane view">Custom</button>
-          </div>
-          <div class="tb-div"></div>
-          <div class="dr">
-            <span>FROM</span>
-            <select class="dsel" id="tlFromM" onchange="renderTL()"></select>
-            <span>TO</span>
-            <select class="dsel" id="tlToM" onchange="renderTL()"></select>
-          </div>
-        </div>
 
         <!-- TL KPI CARDS -->
-        <div class="kpis" id="tl-kpis">
+        <div class="kpis">
           <div class="kpi kb"><div class="kpi-lbl">Total Shipments</div><div class="kpi-val" id="tl-k-shp">—</div><div class="kpi-sub">Jobs count</div></div>
           <div class="kpi kt"><div class="kpi-lbl">Total TEUs</div><div class="kpi-val" id="tl-k-teu">—</div><div class="kpi-sub">FCL + ISO</div></div>
           <div class="kpi ko"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="tl-k-rev">—</div><div class="kpi-sub">USD · Period</div></div>
@@ -767,21 +749,18 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           <div class="kpi kp"><div class="kpi-lbl">GP %</div><div class="kpi-val" id="tl-k-gppct">—</div><div class="kpi-sub">of revenue</div></div>
         </div>
 
-        <!-- TL VIEW TOGGLE + CARGO FILTER -->
+        <!-- TL VIEW TOGGLE + CARGO FILTER (below KPI cards) -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="toggles">
-              <button class="tog active" id="tl-view-pivot" onclick="setTLView('pivot',this)">Pivot</button>
-              <button class="tog" id="tl-view-monthly" onclick="setTLView('monthly',this)">Monthly</button>
-            </div>
+          <div class="toggles">
+            <button class="tog active" id="tl-view-pivot">Pivot</button>
+            <button class="tog" id="tl-view-monthly">Monthly</button>
           </div>
-          <!-- Cargo filter: placed after view toggle -->
           <div style="display:flex;align-items:center;gap:6px">
             <span class="flbl">Cargo</span>
             <div class="toggles">
-              <button class="tog active" id="tl-cargo-all" onclick="setTLCargo('all',this)">All</button>
-              <button class="tog" id="tl-cargo-fh" onclick="setTLCargo('Freehand',this)">Freehand</button>
-              <button class="tog" id="tl-cargo-nom" onclick="setTLCargo('Nomination Sales',this)">Nomination</button>
+              <button class="tog active" id="tl-cargo-all">All</button>
+              <button class="tog" id="tl-cargo-fh">Freehand</button>
+              <button class="tog" id="tl-cargo-nom">Nomination</button>
             </div>
           </div>
         </div>
@@ -1248,6 +1227,9 @@ function getLast5Weeks(){
 // RENDER
 // ═══════════════════════════════════════════════
 function render(){
+  // If tradelane panel is visible, also re-render it
+  const tlPanel=document.getElementById('p-tradelane');
+  if(tlPanel && tlPanel.style.display!=='none' && tlInited) renderTL();
   const lob=document.getElementById('lobF').value;
   const repF=document.getElementById('repF').value;
   if(period==='weekly'){
@@ -1477,7 +1459,28 @@ function showPanel(name,el){
     if(e)e.style.display=p===name?( p==='sales'?'flex':p==='admin'?'flex':'block'):'none';
   });
   if(name==='admin') loadAdminUsers();
-  if(name==='tradelane') initTL();
+  if(name==='tradelane'){
+    // Lock topbar to Monthly only for Tradelane — disable other toggles
+    document.querySelectorAll('.tog').forEach(b=>{
+      if(['Weekly','Yearly','Custom'].includes(b.textContent.trim())){
+        b.classList.add('locked-tog');
+      }
+    });
+    // Ensure Monthly is active
+    document.querySelectorAll('.tog').forEach(b=>{
+      if(b.textContent.trim()==='Monthly') b.classList.add('active');
+    });
+    // Show FROM/TO row
+    document.getElementById('drRow').style.display='flex';
+    initTL();
+  } else {
+    // Restore all toggles when leaving Tradelane
+    document.querySelectorAll('.tog').forEach(b=>{
+      if(['Weekly','Yearly','Custom'].includes(b.textContent.trim())){
+        b.classList.remove('locked-tog');
+      }
+    });
+  }
 }
 
 function toggleSidebar(){sidebarOpen=!sidebarOpen;document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen);}
