@@ -1223,10 +1223,10 @@ function closeModal(){document.getElementById('userModal').classList.remove('sho
 // HELPERS
 // ═══════════════════════════════════════════════
 function ensure(obj,rep,key){if(!obj[rep])obj[rep]={};if(!obj[rep][key])obj[rep][key]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};}
-function g(a,i){return a[i]&&a[i][0]?a[i][0].trim():'';}
+function g(a,i){if(!a[i]||a[i][0]===undefined||a[i][0]===null||a[i][0]==='')return '';const v=a[i][0];return typeof v==='string'?v.trim():v;}
 function pf(s){return parseFloat(s)||0;}
-function pu(s){return parseFloat(String(s).replace(/[\$,]/g,''))||0;}
-function pusd(s){return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
+function pu(s){if(typeof s==='number') return s;return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
+function pusd(s){if(typeof s==='number') return s;return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
 function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
 function setOv(show,msg){document.getElementById('overlay').style.display=show?'flex':'none';if(msg)document.getElementById('ovtxt').textContent=msg;}
 function showErr(msg){const e=document.getElementById('ebar');e.textContent='⚠ '+msg;e.style.display='block';}
