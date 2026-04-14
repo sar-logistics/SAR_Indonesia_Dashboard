@@ -732,6 +732,16 @@ function ini(n){return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').to
 let DATA={},GDATA={},WKDATA={},WKINFO={};
 let period='monthly',teuExp={},sidebarOpen=true;
 
+// ── PER-DASHBOARD FILTER MEMORY ──────────────────────────────
+// Each panel remembers its own: lob, rep, period, fromM, toM
+var panelFilters = {
+  sales:     {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
+  tradelane: {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
+  ops:       {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
+  finance:   {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
+};
+var currentPanel = 'sales';
+
 // ═══════════════════════════════════════════════
 // SELECTORS
 // ═══════════════════════════════════════════════
@@ -1156,64 +1166,88 @@ function setPeriod(p,el){
 function showPanel(name,el){
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
+
+  // ── SAVE current panel's filter state before leaving ────────────
+  saveCurrentPanelFilters();
+
+  // ── SWITCH panel display ─────────────────────────────────────────
   ['sales','tradelane','ops','finance','admin'].forEach(p=>{
     const e=document.getElementById('p-'+p);
     if(e)e.style.display=p===name?'flex':'none';
   });
 
-  // ── RESET ALL TOPBAR FILTERS on every panel switch ──────────────
-  // Each dashboard gets a clean slate — no cross-contamination
-  resetTopbarFilters(name);
+  currentPanel = name;
+
+  // ── RESTORE saved filter state for the new panel ─────────────────
+  restorePanelFilters(name);
 
   if(name==='admin')  loadAdminUsers();
   if(name==='tradelane') setTimeout(function(){ if(typeof initTL==='function') initTL(); }, 50);
   if(name==='sales' && Object.keys(DATA).length>0) render();
 }
 
-function resetTopbarFilters(panelName){
-  // Reset LOB and Rep to "All"
+function saveCurrentPanelFilters(){
+  var panel = currentPanel;
+  if(!panelFilters[panel]) return;
+  panelFilters[panel].lob    = (document.getElementById('lobF')||{}).value||'all';
+  panelFilters[panel].rep    = (document.getElementById('repF')||{}).value||'all';
+  panelFilters[panel].from   = (document.getElementById('fromM')||{}).value||'April-2025';
+  panelFilters[panel].to     = (document.getElementById('toM')||{}).value||'March-2026';
+  panelFilters[panel].period = period;
+  // Save TL-specific cargo/view if leaving tradelane
+  if(panel === 'tradelane'){
+    panelFilters[panel].tlCargo = tlCargo;
+    panelFilters[panel].tlView  = tlView;
+  }
+}
+
+function restorePanelFilters(name){
+  var saved = panelFilters[name];
+  if(!saved) return;
+
+  // Restore LOB and Rep
   var lobEl = document.getElementById('lobF');
   var repEl = document.getElementById('repF');
-  if(lobEl) lobEl.value = 'all';
-  if(repEl) repEl.value = 'all';
+  if(lobEl) lobEl.value = saved.lob || 'all';
+  if(repEl) repEl.value = saved.rep || 'all';
 
-  if(panelName === 'tradelane'){
-    // Tradelane: lock to Monthly only, show FROM/TO
+  // Restore date range
+  var fromEl = document.getElementById('fromM');
+  var toEl   = document.getElementById('toM');
+  if(fromEl) fromEl.value = saved.from || 'April-2025';
+  if(toEl)   toEl.value   = saved.to   || 'March-2026';
+
+  if(name === 'tradelane'){
+    // Tradelane: always Monthly, lock other toggles
+    period = 'monthly';
     document.querySelectorAll('.tog').forEach(function(b){
       var t = b.textContent.trim();
-      if(t==='Weekly'||t==='Yearly'||t==='Custom'){
-        b.classList.add('locked-tog');
-        b.classList.remove('active');
-      }
+      if(t==='Weekly'||t==='Yearly'||t==='Custom'){ b.classList.add('locked-tog'); b.classList.remove('active'); }
       if(t==='Monthly') b.classList.add('active');
     });
     document.getElementById('drRow').style.display='flex';
-    // Reset date range to default FY
-    var f=document.getElementById('fromM'), t=document.getElementById('toM');
-    if(f) f.value='April-2025';
-    if(t) t.value='March-2026';
+    // Restore TL cargo and view toggles
+    if(saved.tlCargo){ tlCargo = saved.tlCargo; }
+    if(saved.tlView)  { tlView  = saved.tlView; }
   } else {
-    // All other panels: restore all toggle buttons
+    // Restore period toggle for non-TL panels
+    period = saved.period || 'monthly';
     document.querySelectorAll('.tog').forEach(function(b){
-      var tx = b.textContent.trim();
-      if(tx==='Weekly'||tx==='Yearly'||tx==='Custom'){
-        b.classList.remove('locked-tog');
-      }
+      var t = b.textContent.trim();
+      b.classList.remove('locked-tog','active');
     });
-    // Reset period to Monthly and date range to FY default
-    period = 'monthly';
+    var periodLabel = {monthly:'Monthly',weekly:'Weekly',yearly:'Yearly',custom:'Custom'}[period]||'Monthly';
     document.querySelectorAll('.tog').forEach(function(b){
-      var tx = b.textContent.trim();
-      b.classList.remove('active');
-      if(tx==='Monthly') b.classList.add('active');
+      var t = b.textContent.trim();
+      if(t === periodLabel) b.classList.add('active');
     });
-    var f=document.getElementById('fromM'), tt=document.getElementById('toM');
-    if(f) f.value='April-2025';
-    if(tt) tt.value='March-2026';
-    var drRow=document.getElementById('drRow');
-    if(drRow) drRow.style.display='flex';
+    // Show/hide date range row based on period
+    var drRow = document.getElementById('drRow');
+    if(drRow) drRow.style.display = (period==='yearly'||period==='weekly') ? 'none' : 'flex';
   }
 }
+
+// resetTopbarFilters removed — replaced by saveCurrentPanelFilters/restorePanelFilters
 
 function toggleSidebar(){sidebarOpen=!sidebarOpen;document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen);}
 
@@ -1357,6 +1391,25 @@ var MONTHS_ORDER = [
 
 // Called when Tradelane panel is shown
 function initTL(){
+  // Restore saved cargo/view state (or defaults if first visit)
+  var saved = panelFilters['tradelane']||{};
+  tlCargo = saved.tlCargo || 'all';
+  tlView  = saved.tlView  || 'pivot';
+
+  // Sync cargo buttons to restored state
+  var allBtn=document.getElementById('tl-cargo-all');
+  var fhBtn =document.getElementById('tl-cargo-fh');
+  var nomBtn=document.getElementById('tl-cargo-nom');
+  if(allBtn) allBtn.className='tog'+(tlCargo==='all'?' active':'');
+  if(fhBtn)  fhBtn.className ='tog'+(tlCargo==='Freehand'?' active':'');
+  if(nomBtn) nomBtn.className='tog'+(tlCargo==='Nomination Sales'?' active':'');
+
+  // Sync view buttons
+  var pvBtn=document.getElementById('tl-view-pivot');
+  var moBtn=document.getElementById('tl-view-monthly');
+  if(pvBtn) pvBtn.className='tog'+(tlView==='pivot'?' active':'');
+  if(moBtn) moBtn.className='tog'+(tlView==='monthly'?' active':'');
+
   if(!tlInited && TL_RAW.length > 0){
     aggregateTLData();
     tlInited = true;
@@ -1421,14 +1474,17 @@ function renderTL(){
   var toShort   = MS[to]   || to;
   var periodLbl = fromShort + ' – ' + toShort;
 
-  // Sort tradelanes by TEU descending
+  // Get LOB from shared topbar — defined ONCE here for entire renderTL scope
+  var tlLobF = (document.getElementById('lobF')||{}).value||'all';
+
+  // Sort tradelanes by GP descending
   var tradelanes = Object.keys(TL_DATA).sort(function(a,b){
     return tlGetTotalFiltered(b,months,'gp',tlLobF,tlCargo) - tlGetTotalFiltered(a,months,'gp',tlLobF,tlCargo);
   });
 
   // Update KPIs
   var kShp=0, kTeu=0, kRev=0, kGP=0;
-  var tlLobVal = (document.getElementById('lobF')||{}).value||'all';
+  var tlLobVal = tlLobF; // same value, reuse
   tradelanes.forEach(function(tl){
     kShp += tlGetTotalFiltered(tl,months,'shp',tlLobVal,tlCargo);
     kTeu += tlGetTotalFiltered(tl,months,'teu',tlLobVal,tlCargo);
