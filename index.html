@@ -8,309 +8,6 @@
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
-// ═══════════════════════════════════════════════════════════════
-// TRADELANE MODULE
-// ═══════════════════════════════════════════════════════════════
-let TL_DATA   = {};   // tradelane → cargo → month → {shp,teu,rev,gp}
-let tlView    = 'pivot';   // 'pivot' | 'monthly'
-let tlCargo   = 'all';     // 'all' | 'Freehand' | 'Nomination Sales'
-let tlExpanded = {};       // tradelane → bool (pivot expand)
-let tlTLExpanded = {};     // tradelane → bool (monthly expand)
-let tlInited  = false;
-
-const MONTHS_ORDER = [
-  'January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
-  'July-2025','August-2025','September-2025','October-2025','November-2025','December-2025',
-  'January-2026','February-2026','March-2026'
-];
-
-function initTL(){
-  // Use main topbar FROM/TO selectors — no own selectors
-  if(!tlInited && Object.keys(DATA).length>0){
-    aggregateTLData();
-    tlInited=true;
-  }
-  // Wire up view and cargo toggle buttons via event listeners
-  document.getElementById('tl-view-pivot').onclick=function(){ setTLView('pivot',this); };
-  document.getElementById('tl-view-monthly').onclick=function(){ setTLView('monthly',this); };
-  document.getElementById('tl-cargo-all').onclick=function(){ setTLCargo('all',this); };
-  document.getElementById('tl-cargo-fh').onclick=function(){ setTLCargo('Freehand',this); };
-  document.getElementById('tl-cargo-nom').onclick=function(){ setTLCargo('Nomination Sales',this); };
-  renderTL();
-}
-
-// Build TL_DATA from raw shipment data
-// TL_DATA[tradelane][cargo][month] = {shp, teu, rev, gp}
-function buildTLData(){
-  TL_DATA={};
-  // We need raw shipment rows — stored in DATA by rep/month
-  // But TL data needs to come from the raw fetch
-  // We already fetched TL and cargo in fetchShipment — stored in TL_RAW
-}
-
-// ── TL Raw data store (populated during fetchShipment) ──
-let TL_RAW = []; // {tl, cargo, month, teu, rev, gp, shp:1}
-
-// processTLRow inlined into fetchShipment
-
-function aggregateTLData(){
-  TL_DATA={};
-  TL_RAW.forEach(r=>{
-    if(!TL_DATA[r.tl]) TL_DATA[r.tl]={};
-    if(!TL_DATA[r.tl][r.cargo]) TL_DATA[r.tl][r.cargo]={};
-    if(!TL_DATA[r.tl][r.cargo][r.month]) TL_DATA[r.tl][r.cargo][r.month]={shp:0,teu:0,rev:0,gp:0};
-    const c=TL_DATA[r.tl][r.cargo][r.month];
-    c.shp+=1; c.teu+=r.teu; c.rev+=r.rev; c.gp+=r.gp;
-  });
-}
-
-function setTLView(v, el){
-  tlView=v;
-  document.querySelectorAll('#tl-view-pivot,#tl-view-monthly').forEach(b=>b.classList.remove('active'));
-  if(el) el.classList.add('active');
-  renderTL();
-}
-
-function setTLCargo(v, el){
-  tlCargo=v;
-  document.querySelectorAll('#tl-cargo-all,#tl-cargo-fh,#tl-cargo-nom').forEach(b=>b.classList.remove('active'));
-  if(el) el.classList.add('active');
-  renderTL();
-}
-
-function renderTL(){
-  if(!tlInited && Object.keys(DATA).length>0){ aggregateTLData(); tlInited=true; }
-  if(TL_RAW.length===0){ document.getElementById('tl-twrap').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">Loading tradelane data…</div>'; return; }
-
-  // Use the main topbar FROM/TO selectors (same ones Sales Performance uses)
-  const from=document.getElementById('fromM')?.value||'April-2025';
-  const to  =document.getElementById('toM')?.value||'March-2026';
-  const fi=MONTHS_ORDER.indexOf(from), ti=MONTHS_ORDER.indexOf(to);
-  const months=fi>=0&&ti>=0?MONTHS_ORDER.slice(fi,ti+1):MONTHS_ORDER;
-
-  // Compute aggregated data per tradelane
-  const tradelanes=Object.keys(TL_DATA).sort((a,b)=>{
-    const ta=tlTotal(a,months,'teu'), tb=tlTotal(b,months,'teu');
-    return tb-ta;
-  });
-
-  // Update KPI cards
-  let totalShp=0,totalTeu=0,totalRev=0,totalGP=0;
-  tradelanes.forEach(tl=>{
-    totalShp+=tlTotal(tl,months,'shp');
-    totalTeu+=tlTotal(tl,months,'teu');
-    totalRev+=tlTotal(tl,months,'rev');
-    totalGP +=tlTotal(tl,months,'gp');
-  });
-  setText('tl-k-shp', Math.round(totalShp).toLocaleString());
-  setText('tl-k-teu', fT(totalTeu));
-  setText('tl-k-rev', '$'+Math.round(totalRev).toLocaleString());
-  setText('tl-k-gp',  '$'+Math.round(totalGP).toLocaleString());
-  setText('tl-k-gppct', (totalRev>0?(totalGP/totalRev*100).toFixed(1):'0')+'%');
-
-  // Period label for FY Total column header
-  const fromShort=MS[from]||from, toShort=MS[to]||to;
-  const periodLbl=`${fromShort} – ${toShort}`;
-  setText('tl-tbl-meta','Indonesia → All · '+periodLbl);
-  setText('tl-tbl-sub', (tlView==='pivot'?'Pivot':'Monthly')+' · USD');
-
-  if(tlView==='pivot') renderTLPivot(tradelanes, months, periodLbl);
-  else renderTLMonthly(tradelanes, months, periodLbl);
-}
-
-function tlTotal(tl, months, field){
-  const cargoKeys = tlCargo==='all'
-    ? Object.keys(TL_DATA[tl]||{})
-    : [tlCargo];
-  let sum=0;
-  cargoKeys.forEach(ck=>{
-    months.forEach(m=>{
-      const c=TL_DATA[tl]&&TL_DATA[tl][ck]&&TL_DATA[tl][ck][m];
-      if(c) sum+=c[field]||0;
-    });
-  });
-  return sum;
-}
-
-function tlCargoTotal(tl, cargo, months, field){
-  let sum=0;
-  months.forEach(m=>{
-    const c=TL_DATA[tl]&&TL_DATA[tl][cargo]&&TL_DATA[tl][cargo][m];
-    if(c) sum+=c[field]||0;
-  });
-  return sum;
-}
-
-// ── PIVOT VIEW ──────────────────────────────────────────────────
-function renderTLPivot(tradelanes, months, periodLbl){
-  const GP_TGT = 0.0943;
-
-  // Grand totals
-  let gShp=0,gTeu=0,gRev=0,gGP=0;
-  tradelanes.forEach(tl=>{gShp+=tlTotal(tl,months,'shp');gTeu+=tlTotal(tl,months,'teu');gRev+=tlTotal(tl,months,'rev');gGP+=tlTotal(tl,months,'gp');});
-  const gGPpct=gRev>0?gGP/gRev*100:0;
-
-  let html=`<table><thead><tr>
-    <th class="h-rep" style="min-width:160px">Tradelane</th>
-    <th style="text-align:right;min-width:90px">Shipments</th>
-    <th style="text-align:right;min-width:90px">TEUs</th>
-    <th style="text-align:right;min-width:110px">Revenue ($)</th>
-    <th style="text-align:right;min-width:100px">GP ($)</th>
-    <th style="text-align:right;min-width:70px">GP %</th>
-  </tr></thead><tbody>`;
-
-  // Grand Total row
-  html+=`<tr class="r-grand">
-    <td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>
-    <td style="text-align:right;font-family:var(--mono);font-size:12px;font-weight:700">${Math.round(gShp).toLocaleString()}</td>
-    <td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--teal);font-weight:700">${fT(gTeu)}</td>
-    <td style="text-align:right;font-family:var(--mono);font-size:12px;font-weight:700">$${Math.round(gRev).toLocaleString()}</td>
-    <td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green);font-weight:700">$${Math.round(gGP).toLocaleString()}</td>
-    <td style="text-align:right;font-family:var(--mono);font-size:12px;font-weight:700;color:${gGPpct>=9.43?'var(--green)':'var(--red)'}">${gGPpct.toFixed(1)}%</td>
-  </tr>
-  <tr class="grand-sep"><td colspan="6"></td></tr>`;
-
-  tradelanes.forEach(tl=>{
-    const shp=tlTotal(tl,months,'shp');
-    const teu=tlTotal(tl,months,'teu');
-    const rev=tlTotal(tl,months,'rev');
-    const gp =tlTotal(tl,months,'gp');
-    const gp_pct=rev>0?gp/rev*100:0;
-    const exp=tlExpanded[tl]||false;
-    const hasSubs=tlCargo==='all';
-    const arr=hasSubs?(exp?'▼':'▶'):'';
-
-    html+=`<tr class="r-rep" style="cursor:${hasSubs?'pointer':'default'}" ${hasSubs?`onclick="toggleTLRow('${tl.replace(/'/g,"\'")}')"`:''}">
-      <td class="c-rep" style="padding-left:10px">
-        <span style="display:inline-flex;align-items:center;gap:6px">
-          ${hasSubs?`<span style="font-size:9px;color:var(--blue)">${arr}</span>`:''}
-          <span>${tl}</span>
-        </span>
-      </td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px">${Math.round(shp).toLocaleString()}</td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--teal)">${fT(teu)}</td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px">$${Math.round(rev).toLocaleString()}</td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">$${Math.round(gp).toLocaleString()}</td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px;font-weight:600;color:${gp_pct>=9.43?'var(--green)':'var(--red)'}">${gp_pct.toFixed(1)}%</td>
-    </tr>`;
-
-    if(hasSubs && exp){
-      ['Freehand','Nomination Sales'].forEach(cargo=>{
-        const cShp=tlCargoTotal(tl,cargo,months,'shp');
-        const cTeu=tlCargoTotal(tl,cargo,months,'teu');
-        const cRev=tlCargoTotal(tl,cargo,months,'rev');
-        const cGP =tlCargoTotal(tl,cargo,months,'gp');
-        const cPct=cRev>0?cGP/cRev*100:0;
-        const label=cargo==='Nomination Sales'?'Nomination':cargo;
-        html+=`<tr class="r-rep" style="background:#fafbfd">
-          <td class="c-rep" style="padding-left:28px;font-size:11px;color:var(--text2);font-weight:400;font-style:italic">↳ ${label}</td>
-          <td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--text3)">${Math.round(cShp).toLocaleString()}</td>
-          <td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--teal)">${fT(cTeu)}</td>
-          <td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--text2)">$${Math.round(cRev).toLocaleString()}</td>
-          <td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--green)">$${Math.round(cGP).toLocaleString()}</td>
-          <td style="text-align:right;font-family:var(--mono);font-size:11px;color:${cPct>=9.43?'var(--green)':'var(--red)'}">${cPct.toFixed(1)}%</td>
-        </tr>`;
-      });
-    }
-    // separator
-    html+=`<tr style="height:3px"><td colspan="6" style="background:var(--border-l);padding:0"></td></tr>`;
-  });
-
-  html+='</tbody></table>';
-  document.getElementById('tl-twrap').innerHTML=html;
-}
-
-function toggleTLRow(tl){ tlExpanded[tl]=!tlExpanded[tl]; renderTL(); }
-
-// ── MONTHLY VIEW ────────────────────────────────────────────────
-function renderTLMonthly(tradelanes, months, periodLbl){
-  const colCount = 2 + months.length; // tl-name + FY Total + months
-
-  let html=`<table><thead><tr>
-    <th class="h-rep" style="min-width:160px">Tradelane</th>
-    <th class="h-metric" style="min-width:100px">Metric</th>
-    <th class="h-total" style="min-width:110px">Total<br><span style="font-size:9px;font-weight:500;color:var(--orange)">${periodLbl}</span></th>
-    ${months.map(m=>`<th style="text-align:right;min-width:90px">${MS[m]||m}</th>`).join('')}
-  </tr></thead><tbody>`;
-
-  // Grand Total first
-  html+=buildTLMonthlyRows('Grand Total', tradelanes, months, true);
-  html+=`<tr class="grand-sep"><td colspan="${colCount}"></td></tr>`;
-
-  tradelanes.forEach(tl=>{
-    html+=buildTLMonthlyRows(tl, null, months, false);
-    html+=`<tr class="r-sep"><td colspan="${colCount}"></td></tr>`;
-  });
-
-  html+='</tbody></table>';
-  document.getElementById('tl-twrap').innerHTML=html;
-}
-
-function buildTLMonthlyRows(tl, allTL, months, isGrand){
-  const METRICS=[
-    {id:'shp', lbl:'Shipments', cls:'', color:'var(--text2)'},
-    {id:'teu', lbl:'TEUs',      cls:'', color:'var(--teal)'},
-    {id:'rev', lbl:'Revenue ($)',cls:'',color:'var(--text)'},
-    {id:'gp',  lbl:'GP ($)',    cls:'', color:'var(--green)'},
-  ];
-
-  const exp = tlTLExpanded[tl]!==false; // default expanded
-  const rows = METRICS;
-  const rc = isGrand?'r-grand':'r-rep';
-  const avBg = isGrand?'background:linear-gradient(135deg,#2563eb,#7c3aed)':`background:${rclr(tl)}`;
-  const tlInitials = isGrand?'GT':tl.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
-
-  // Get totals
-  const getVal=(tlName, m, field)=>{
-    if(isGrand){
-      return allTL.reduce((s,t)=>s+tlCargoMonthVal(t,m,field),0);
-    }
-    return tlCargoMonthVal(tlName,m,field);
-  };
-  const getTot=(tlName,field)=>months.reduce((s,m)=>s+getVal(tlName,m,field),0);
-
-  let html='';
-  rows.forEach((mr,mi)=>{
-    html+=`<tr class="${rc}">`;
-    if(mi===0){
-      html+=`<td class="c-rep" rowspan="${rows.length}" style="vertical-align:top;padding-top:8px">
-        <div class="ravcell">
-          <div class="rav" style="${avBg}">${tlInitials}</div>
-          <span style="font-weight:700;font-size:12px">${tl}</span>
-        </div>
-      </td>`;
-    }
-    html+=`<td class="c-metric" style="color:${mr.color}">${mr.lbl}</td>`;
-
-    // FY Total cell
-    const tot=getTot(tl,mr.id);
-    const totFmt=mr.id==='shp'?Math.round(tot).toLocaleString():mr.id==='teu'?fT(tot):'$'+Math.round(tot).toLocaleString();
-    html+=`<td class="c-total" style="color:${mr.color};font-weight:700">${totFmt}</td>`;
-
-    // Monthly cells
-    months.forEach(m=>{
-      const v=getVal(tl,m,mr.id);
-      const vFmt=v===0?'—':mr.id==='shp'?Math.round(v).toLocaleString():mr.id==='teu'?fT(v):'$'+Math.round(v).toLocaleString();
-      html+=`<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:${v===0?'var(--border-l)':mr.color}">${vFmt}</td>`;
-    });
-    html+='</tr>';
-  });
-  return html;
-}
-
-function tlCargoMonthVal(tl, month, field){
-  const cargoKeys = tlCargo==='all'
-    ? Object.keys(TL_DATA[tl]||{})
-    : [tlCargo];
-  let sum=0;
-  cargoKeys.forEach(ck=>{
-    const c=TL_DATA[tl]&&TL_DATA[tl][ck]&&TL_DATA[tl][ck][month];
-    if(c) sum+=c[field]||0;
-  });
-  return sum;
-}
-// ════════════════════════════════════════════════════════════════
-
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -752,15 +449,15 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <!-- TL VIEW TOGGLE + CARGO FILTER (below KPI cards) -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div class="toggles">
-            <button class="tog active" id="tl-view-pivot">Pivot</button>
-            <button class="tog" id="tl-view-monthly">Monthly</button>
+            <button class="tog active" id="tl-view-pivot" onclick="tlSetView('pivot')">Pivot</button>
+            <button class="tog" id="tl-view-monthly" onclick="tlSetView('monthly')">Monthly</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <span class="flbl">Cargo</span>
             <div class="toggles">
-              <button class="tog active" id="tl-cargo-all">All</button>
-              <button class="tog" id="tl-cargo-fh">Freehand</button>
-              <button class="tog" id="tl-cargo-nom">Nomination</button>
+              <button class="tog active" id="tl-cargo-all" onclick="tlSetCargo('all')">All</button>
+              <button class="tog" id="tl-cargo-fh" onclick="tlSetCargo('Freehand')">Freehand</button>
+              <button class="tog" id="tl-cargo-nom" onclick="tlSetCargo('Nomination Sales')">Nomination</button>
             </div>
           </div>
         </div>
@@ -1227,9 +924,10 @@ function getLast5Weeks(){
 // RENDER
 // ═══════════════════════════════════════════════
 function render(){
-  // If tradelane panel is visible, also re-render it
-  const tlPanel=document.getElementById('p-tradelane');
-  if(tlPanel && tlPanel.style.display!=='none' && tlInited) renderTL();
+  try{
+    var tlPanel=document.getElementById('p-tradelane');
+    if(tlPanel && tlPanel.style.display==='flex' && typeof renderTL==='function' && typeof tlInited!=='undefined' && tlInited) renderTL();
+  }catch(e){}
   const lob=document.getElementById('lobF').value;
   const repF=document.getElementById('repF').value;
   if(period==='weekly'){
@@ -1456,29 +1154,23 @@ function showPanel(name,el){
   if(el)el.classList.add('active');
   ['sales','tradelane','ops','finance','admin'].forEach(p=>{
     const e=document.getElementById('p-'+p);
-    if(e)e.style.display=p===name?( p==='sales'?'flex':p==='admin'?'flex':'block'):'none';
+    if(e)e.style.display=p===name?'flex':'none';
   });
   if(name==='admin') loadAdminUsers();
   if(name==='tradelane'){
-    // Lock topbar to Monthly only for Tradelane — disable other toggles
-    document.querySelectorAll('.tog').forEach(b=>{
-      if(['Weekly','Yearly','Custom'].includes(b.textContent.trim())){
-        b.classList.add('locked-tog');
-      }
+    // Disable non-Monthly toggles in topbar when on Tradelane
+    document.querySelectorAll('.tog').forEach(function(b){
+      var t=b.textContent.trim();
+      if(t==='Weekly'||t==='Yearly'||t==='Custom') b.classList.add('locked-tog');
+      if(t==='Monthly') b.classList.add('active');
     });
-    // Ensure Monthly is active
-    document.querySelectorAll('.tog').forEach(b=>{
-      if(b.textContent.trim()==='Monthly') b.classList.add('active');
-    });
-    // Show FROM/TO row
     document.getElementById('drRow').style.display='flex';
-    initTL();
+    setTimeout(function(){ if(typeof initTL==='function') initTL(); }, 50);
   } else {
-    // Restore all toggles when leaving Tradelane
-    document.querySelectorAll('.tog').forEach(b=>{
-      if(['Weekly','Yearly','Custom'].includes(b.textContent.trim())){
-        b.classList.remove('locked-tog');
-      }
+    // Restore topbar toggles when leaving Tradelane
+    document.querySelectorAll('.tog').forEach(function(b){
+      var t=b.textContent.trim();
+      if(t==='Weekly'||t==='Yearly'||t==='Custom') b.classList.remove('locked-tog');
     });
   }
 }
@@ -1606,10 +1298,318 @@ function g(a,i){if(!a[i]||a[i][0]===undefined||a[i][0]===null||a[i][0]==='')retu
 function pf(s){return parseFloat(s)||0;}
 function pu(s){if(typeof s==='number') return s;return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
 function pusd(s){if(typeof s==='number') return s;return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
+
+// ═══════════════════════════════════════════════════════════════
+// TRADELANE MODULE — clean rebuild
+// ═══════════════════════════════════════════════════════════════
+var TL_RAW  = [];
+var TL_DATA = {};
+var tlView  = 'pivot';
+var tlCargo = 'all';
+var tlExpanded = {};
+var tlInited   = false;
+
+var MONTHS_ORDER = [
+  'January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
+  'July-2025','August-2025','September-2025','October-2025','November-2025','December-2025',
+  'January-2026','February-2026','March-2026'
+];
+
+// Called when Tradelane panel is shown
+function initTL(){
+  if(!tlInited && TL_RAW.length > 0){
+    aggregateTLData();
+    tlInited = true;
+  }
+  renderTL();
+}
+
+function aggregateTLData(){
+  TL_DATA = {};
+  TL_RAW.forEach(function(r){
+    if(!TL_DATA[r.tl]) TL_DATA[r.tl] = {};
+    if(!TL_DATA[r.tl][r.cargo]) TL_DATA[r.tl][r.cargo] = {};
+    if(!TL_DATA[r.tl][r.cargo][r.month]) TL_DATA[r.tl][r.cargo][r.month] = {shp:0,teu:0,rev:0,gp:0};
+    var cell = TL_DATA[r.tl][r.cargo][r.month];
+    cell.shp += 1;
+    cell.teu += r.teu;
+    cell.rev += r.rev;
+    cell.gp  += r.gp;
+  });
+}
+
+// Toggle handlers — called from HTML onclick or JS
+function tlSetView(v){
+  tlView = v;
+  var pivot   = document.getElementById('tl-view-pivot');
+  var monthly = document.getElementById('tl-view-monthly');
+  if(pivot)   pivot.className   = 'tog' + (v==='pivot'  ? ' active' : '');
+  if(monthly) monthly.className = 'tog' + (v==='monthly'? ' active' : '');
+  renderTL();
+}
+
+function tlSetCargo(v){
+  tlCargo = v;
+  var all  = document.getElementById('tl-cargo-all');
+  var fh   = document.getElementById('tl-cargo-fh');
+  var nom  = document.getElementById('tl-cargo-nom');
+  if(all) all.className = 'tog' + (v==='all'              ? ' active' : '');
+  if(fh)  fh.className  = 'tog' + (v==='Freehand'         ? ' active' : '');
+  if(nom) nom.className = 'tog' + (v==='Nomination Sales' ? ' active' : '');
+  renderTL();
+}
+
+function renderTL(){
+  var wrap = document.getElementById('tl-twrap');
+  if(!wrap) return;
+  if(TL_RAW.length === 0){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Data loading — please wait and try Refresh.</div>';
+    return;
+  }
+  if(!tlInited){ aggregateTLData(); tlInited = true; }
+
+  // Use main topbar FROM/TO
+  var from = (document.getElementById('fromM') || {}).value || 'April-2025';
+  var to   = (document.getElementById('toM')   || {}).value || 'March-2026';
+  var fi = MONTHS_ORDER.indexOf(from);
+  var ti = MONTHS_ORDER.indexOf(to);
+  var months = (fi >= 0 && ti >= 0) ? MONTHS_ORDER.slice(fi, ti+1) : MONTHS_ORDER;
+
+  var fromShort = MS[from] || from;
+  var toShort   = MS[to]   || to;
+  var periodLbl = fromShort + ' – ' + toShort;
+
+  // Sort tradelanes by TEU descending
+  var tradelanes = Object.keys(TL_DATA).sort(function(a,b){
+    return tlGetTotal(b,months,'teu') - tlGetTotal(a,months,'teu');
+  });
+
+  // Update KPIs
+  var kShp=0, kTeu=0, kRev=0, kGP=0;
+  tradelanes.forEach(function(tl){
+    kShp += tlGetTotal(tl,months,'shp');
+    kTeu += tlGetTotal(tl,months,'teu');
+    kRev += tlGetTotal(tl,months,'rev');
+    kGP  += tlGetTotal(tl,months,'gp');
+  });
+  setText('tl-k-shp',   Math.round(kShp).toLocaleString());
+  setText('tl-k-teu',   fT(kTeu));
+  setText('tl-k-rev',   '$'+Math.round(kRev).toLocaleString());
+  setText('tl-k-gp',    '$'+Math.round(kGP).toLocaleString());
+  setText('tl-k-gppct', (kRev > 0 ? (kGP/kRev*100).toFixed(1) : '0') + '%');
+  setText('tl-tbl-meta','Indonesia → All · ' + periodLbl);
+  setText('tl-tbl-sub', (tlView === 'pivot' ? 'Pivot' : 'Monthly') + ' · USD');
+
+  if(tlView === 'pivot'){
+    renderTLPivot(tradelanes, months, periodLbl);
+  } else {
+    renderTLMonthly(tradelanes, months, periodLbl);
+  }
+}
+
+function tlGetTotal(tl, months, field){
+  var cargoKeys = (tlCargo === 'all') ? Object.keys(TL_DATA[tl] || {}) : [tlCargo];
+  var sum = 0;
+  cargoKeys.forEach(function(ck){
+    months.forEach(function(m){
+      var cell = TL_DATA[tl] && TL_DATA[tl][ck] && TL_DATA[tl][ck][m];
+      if(cell) sum += cell[field] || 0;
+    });
+  });
+  return sum;
+}
+
+function tlGetMonthVal(tl, month, field){
+  var cargoKeys = (tlCargo === 'all') ? Object.keys(TL_DATA[tl] || {}) : [tlCargo];
+  var sum = 0;
+  cargoKeys.forEach(function(ck){
+    var cell = TL_DATA[tl] && TL_DATA[tl][ck] && TL_DATA[tl][ck][month];
+    if(cell) sum += cell[field] || 0;
+  });
+  return sum;
+}
+
+function tlGetCargoMonthVal(tl, cargo, month, field){
+  var cell = TL_DATA[tl] && TL_DATA[tl][cargo] && TL_DATA[tl][cargo][month];
+  return cell ? (cell[field] || 0) : 0;
+}
+
+// ── PIVOT VIEW ──────────────────────────────────────────────────
+function renderTLPivot(tradelanes, months, periodLbl){
+  var gShp=0,gTeu=0,gRev=0,gGP=0;
+  tradelanes.forEach(function(tl){
+    gShp += tlGetTotal(tl,months,'shp');
+    gTeu += tlGetTotal(tl,months,'teu');
+    gRev += tlGetTotal(tl,months,'rev');
+    gGP  += tlGetTotal(tl,months,'gp');
+  });
+  var gPct = gRev > 0 ? gGP/gRev*100 : 0;
+
+  var rows = [];
+  rows.push('<table><thead><tr>'
+    + '<th class="h-rep" style="min-width:150px">Tradelane</th>'
+    + '<th style="text-align:right;min-width:90px">Shipments</th>'
+    + '<th style="text-align:right;min-width:80px">TEUs</th>'
+    + '<th style="text-align:right;min-width:110px">Revenue ($)</th>'
+    + '<th style="text-align:right;min-width:100px">GP ($)</th>'
+    + '<th style="text-align:right;min-width:65px">GP %</th>'
+    + '</tr></thead><tbody>');
+
+  var gColor = gPct>=9.43 ? 'var(--green)' : 'var(--red)';
+  rows.push('<tr class="r-grand">'
+    + '<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px">'+ Math.round(gShp).toLocaleString() +'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--teal)">'+ fT(gTeu) +'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px">$'+ Math.round(gRev).toLocaleString() +'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--green)">$'+ Math.round(gGP).toLocaleString() +'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:'+ gColor +'">'+ gPct.toFixed(1) +'%</td>'
+    + '</tr>'
+    + '<tr class="grand-sep"><td colspan="6"></td></tr>');
+
+  tradelanes.forEach(function(tl){
+    var shp = tlGetTotal(tl,months,'shp');
+    var teu = tlGetTotal(tl,months,'teu');
+    var rev = tlGetTotal(tl,months,'rev');
+    var gp  = tlGetTotal(tl,months,'gp');
+    var pct = rev > 0 ? gp/rev*100 : 0;
+    var exp = !!tlExpanded[tl];
+    var showSubs = (tlCargo === 'all');
+    var pctColor = pct>=9.43 ? 'var(--green)' : 'var(--red)';
+
+    // Build row — use data attribute for safe tl name passing
+    var tr = document.createElement('tr');
+    tr.className = 'r-rep';
+    if(showSubs){ tr.style.cursor='pointer'; tr.setAttribute('data-tlname', tl); tr.onclick = function(){ tlToggleRow(this.getAttribute('data-tlname')); }; }
+
+    var tdName = document.createElement('td');
+    tdName.className = 'c-rep'; tdName.style.paddingLeft='10px';
+    if(showSubs){
+      var span = document.createElement('span');
+      span.style.cssText='font-size:9px;color:var(--blue);margin-right:5px';
+      span.innerHTML = exp ? '&#9660;' : '&#9658;';
+      tdName.appendChild(span);
+    }
+    tdName.appendChild(document.createTextNode(tl));
+
+    var tdShp = document.createElement('td'); tdShp.style.cssText='text-align:right;font-family:var(--mono);font-size:12px'; tdShp.textContent=Math.round(shp).toLocaleString();
+    var tdTeu = document.createElement('td'); tdTeu.style.cssText='text-align:right;font-family:var(--mono);font-size:12px;color:var(--teal)'; tdTeu.textContent=fT(teu);
+    var tdRev = document.createElement('td'); tdRev.style.cssText='text-align:right;font-family:var(--mono);font-size:12px'; tdRev.textContent='$'+Math.round(rev).toLocaleString();
+    var tdGP  = document.createElement('td'); tdGP.style.cssText='text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)'; tdGP.textContent='$'+Math.round(gp).toLocaleString();
+    var tdPct = document.createElement('td'); tdPct.style.cssText='text-align:right;font-family:var(--mono);font-size:12px;font-weight:600;color:'+pctColor; tdPct.textContent=pct.toFixed(1)+'%';
+
+    tr.appendChild(tdName); tr.appendChild(tdShp); tr.appendChild(tdTeu); tr.appendChild(tdRev); tr.appendChild(tdGP); tr.appendChild(tdPct);
+    rows.push(tr.outerHTML);
+
+    if(showSubs && exp){
+      ['Freehand','Nomination Sales'].forEach(function(cargo){
+        var cShp=0,cTeu=0,cRev=0,cGP=0;
+        months.forEach(function(m){
+          cShp += tlGetCargoMonthVal(tl,cargo,m,'shp');
+          cTeu += tlGetCargoMonthVal(tl,cargo,m,'teu');
+          cRev += tlGetCargoMonthVal(tl,cargo,m,'rev');
+          cGP  += tlGetCargoMonthVal(tl,cargo,m,'gp');
+        });
+        var cPct = cRev > 0 ? cGP/cRev*100 : 0;
+        var cPctColor = cPct>=9.43 ? 'var(--green)' : 'var(--red)';
+        var label = cargo === 'Nomination Sales' ? 'Nomination' : cargo;
+        rows.push('<tr class="r-rep" style="background:#fafbfd">'
+          + '<td class="c-rep" style="padding-left:28px;font-size:11px;color:var(--text2);font-weight:400;font-style:italic">↳ '+label+'</td>'
+          + '<td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--text3)">'+Math.round(cShp).toLocaleString()+'</td>'
+          + '<td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--teal)">'+fT(cTeu)+'</td>'
+          + '<td style="text-align:right;font-family:var(--mono);font-size:11px">$'+Math.round(cRev).toLocaleString()+'</td>'
+          + '<td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--green)">$'+Math.round(cGP).toLocaleString()+'</td>'
+          + '<td style="text-align:right;font-family:var(--mono);font-size:11px;color:'+cPctColor+'">'+cPct.toFixed(1)+'%</td>'
+          + '</tr>');
+      });
+    }
+    rows.push('<tr style="height:3px"><td colspan="6" style="background:var(--border-l);padding:0"></td></tr>');
+  });
+
+  rows.push('</tbody></table>');
+  document.getElementById('tl-twrap').innerHTML = rows.join('');
+}
+function tlToggleRow(tlName){
+  tlExpanded[tlName] = !tlExpanded[tlName];
+  renderTL();
+}
+
+// ── MONTHLY VIEW ────────────────────────────────────────────────
+function renderTLMonthly(tradelanes, months, periodLbl){
+  var nCols = 2 + months.length;
+
+  var html = '<table><thead><tr>'
+    + '<th class="h-rep" style="min-width:150px">Tradelane</th>'
+    + '<th class="h-metric" style="min-width:100px">Metric</th>'
+    + '<th class="h-total" style="min-width:110px">Total<br><span style="font-size:9px;font-weight:400;color:var(--orange)">' + periodLbl + '</span></th>'
+    + months.map(function(m){ return '<th style="text-align:right;min-width:85px">' + (MS[m]||m) + '</th>'; }).join('')
+    + '</tr></thead><tbody>';
+
+  // Grand Total row
+  html += buildTLMonthlySection('Grand Total', tradelanes, months, true);
+  html += '<tr class="grand-sep"><td colspan="' + (nCols+1) + '"></td></tr>';
+
+  tradelanes.forEach(function(tl){
+    html += buildTLMonthlySection(tl, null, months, false);
+    html += '<tr class="r-sep"><td colspan="' + (nCols+1) + '"></td></tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('tl-twrap').innerHTML = html;
+}
+
+function buildTLMonthlySection(tl, allTL, months, isGrand){
+  var MROWS = [
+    {id:'shp', lbl:'Shipments',   color:'var(--text2)'},
+    {id:'teu', lbl:'TEUs',        color:'var(--teal)'},
+    {id:'rev', lbl:'Revenue ($)', color:'var(--text)'},
+    {id:'gp',  lbl:'GP ($)',      color:'var(--green)'},
+  ];
+  var rc  = isGrand ? 'r-grand' : 'r-rep';
+  var avBg = isGrand ? 'background:linear-gradient(135deg,#2563eb,#7c3aed)' : 'background:' + rclr(tl);
+  var initl = isGrand ? 'GT' : tl.split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+
+  function getVal(m, field){
+    if(isGrand){
+      return allTL.reduce(function(s,t){ return s + tlGetMonthVal(t,m,field); }, 0);
+    }
+    return tlGetMonthVal(tl, m, field);
+  }
+  function getTot(field){
+    return months.reduce(function(s,m){ return s + getVal(m,field); }, 0);
+  }
+
+  var html = '';
+  MROWS.forEach(function(mr, mi){
+    html += '<tr class="' + rc + '">';
+    if(mi === 0){
+      html += '<td class="c-rep" rowspan="' + MROWS.length + '" style="vertical-align:top;padding-top:8px">'
+        + '<div class="ravcell"><div class="rav" style="' + avBg + '">' + initl + '</div>'
+        + '<span style="font-weight:700;font-size:12px">' + tl + '</span></div></td>';
+    }
+    html += '<td class="c-metric" style="color:' + mr.color + '">' + mr.lbl + '</td>';
+
+    // FY Total
+    var tot = getTot(mr.id);
+    var totFmt = mr.id==='shp' ? Math.round(tot).toLocaleString() : mr.id==='teu' ? fT(tot) : '$'+Math.round(tot).toLocaleString();
+    html += '<td class="c-total" style="color:' + mr.color + ';font-weight:700">' + totFmt + '</td>';
+
+    // Monthly cells
+    months.forEach(function(m){
+      var v = getVal(m, mr.id);
+      var vFmt = v===0 ? '—' : mr.id==='shp' ? Math.round(v).toLocaleString() : mr.id==='teu' ? fT(v) : '$'+Math.round(v).toLocaleString();
+      html += '<td style="text-align:right;font-family:var(--mono);font-size:11.5px;border-right:1px solid #f0f2f8;color:' + (v===0?'#d1d5db':mr.color) + '">' + vFmt + '</td>';
+    });
+    html += '</tr>';
+  });
+  return html;
+}
+
+
 function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
 function setOv(show,msg){document.getElementById('overlay').style.display=show?'flex':'none';if(msg)document.getElementById('ovtxt').textContent=msg;}
 function showErr(msg){const e=document.getElementById('ebar');e.textContent='⚠ '+msg;e.style.display='block';}
 function hideErr(){document.getElementById('ebar').style.display='none';}
+
+
+
 </script>
-</body>
-</html>
