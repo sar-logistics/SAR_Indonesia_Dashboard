@@ -753,7 +753,7 @@ async function loadData(){
 }
 
 async function fetchShipment(){
-  const cols=['BF','CK','EI','FB','FC','EJ','EN','EH','FE'];
+  const cols=['BF','CK','EI','FB','FC','EL','EO','EH','FE']; // EL=Total Income($), EO=Total Profit($)
   const j=await apiFetch(batchUrl('Shipment Detail',cols));
   const [repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC]=j.valueRanges.map(v=>v.values||[]);
   const len=Math.max(repC.length,monC.length);
