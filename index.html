@@ -825,6 +825,15 @@ async function fetchShipment(){
     if(mode==='Dry Freight')cm.teuFCL+=teu;
     else if(mode==='ISO Tank')cm.teuTank+=teu;
     cm.tons+=tons;cm.rev+=rev;cm.gp+=gp;
+    // Store per-LOB breakdown for accurate LOB filtering of rev/gp
+    if(!cm.lobData) cm.lobData={};
+    const lobKey=mode||'Dry Freight';
+    if(!cm.lobData[lobKey]) cm.lobData[lobKey]={rev:0,gp:0,teuFCL:0,teuTank:0,tons:0};
+    cm.lobData[lobKey].rev+=rev;
+    cm.lobData[lobKey].gp+=gp;
+    if(mode==='Dry Freight') cm.lobData[lobKey].teuFCL+=teu;
+    else if(mode==='ISO Tank') cm.lobData[lobKey].teuTank+=teu;
+    else if(mode==='Air') cm.lobData[lobKey].tons+=tons;
     // Collect tradelane data (inline to avoid hoisting issues)
     const tl=g(tlC,i),cargo=g(cargoC,i)||'Freehand';
     if(tl&&mon){
@@ -840,6 +849,13 @@ async function fetchShipment(){
         if(mode==='Dry Freight')cw.teuFCL+=teu;
         else if(mode==='ISO Tank')cw.teuTank+=teu;
         cw.tons+=tons;cw.rev+=rev;cw.gp+=gp;
+        if(!cw.lobData) cw.lobData={};
+        const wlk=mode||'Dry Freight';
+        if(!cw.lobData[wlk]) cw.lobData[wlk]={rev:0,gp:0,teuFCL:0,teuTank:0,tons:0};
+        cw.lobData[wlk].rev+=rev; cw.lobData[wlk].gp+=gp;
+        if(mode==='Dry Freight') cw.lobData[wlk].teuFCL+=teu;
+        else if(mode==='ISO Tank') cw.lobData[wlk].teuTank+=teu;
+        else if(mode==='Air') cw.lobData[wlk].tons+=tons;
       }
     }
   }
@@ -984,12 +1000,21 @@ function applyFilters(lob,repF,months){
   reps.forEach(rep=>{
     out[rep]={};
     months.forEach(m=>{
-      const s=DATA[rep]&&DATA[rep][m]?DATA[rep][m]:{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-      let{teuFCL,teuTank,tons,rev,gp}=s;
-      if(lob==='Dry Freight'){teuTank=0;tons=0;}
-      else if(lob==='ISO Tank'){teuFCL=0;tons=0;}
-      else if(lob==='Air'){teuFCL=0;teuTank=0;}
-      out[rep][m]={teuFCL,teuTank,tons,rev,gp};
+      const s=DATA[rep]&&DATA[rep][m]?DATA[rep][m]:{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0,lobData:{}};
+      if(lob==='all'){
+        // All LOBs: use totals directly
+        out[rep][m]={teuFCL:s.teuFCL,teuTank:s.teuTank,tons:s.tons,rev:s.rev,gp:s.gp};
+      } else {
+        // Specific LOB: use lobData breakdown for accurate rev/gp
+        const ld=s.lobData&&s.lobData[lob]?s.lobData[lob]:{rev:0,gp:0,teuFCL:0,teuTank:0,tons:0};
+        out[rep][m]={
+          teuFCL: lob==='Dry Freight'?ld.teuFCL:0,
+          teuTank: lob==='ISO Tank'?ld.teuTank:0,
+          tons: lob==='Air'?ld.tons:0,
+          rev: ld.rev,
+          gp:  ld.gp
+        };
+      }
     });
   });
   return out;
@@ -1004,12 +1029,19 @@ function applyWeekFilters(lob,repF,weeks){
   (repF==='all'?Object.keys(WKDATA):[repF]).forEach(rep=>{
     out[rep]={};
     weeks.forEach(wk=>{
-      const s=WKDATA[rep]&&WKDATA[rep][wk]?WKDATA[rep][wk]:{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-      let{teuFCL,teuTank,tons,rev,gp}=s;
-      if(lob==='Dry Freight'){teuTank=0;tons=0;}
-      else if(lob==='ISO Tank'){teuFCL=0;tons=0;}
-      else if(lob==='Air'){teuFCL=0;teuTank=0;}
-      out[rep][wk]={teuFCL,teuTank,tons,rev,gp};
+      const s=WKDATA[rep]&&WKDATA[rep][wk]?WKDATA[rep][wk]:{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0,lobData:{}};
+      if(lob==='all'){
+        out[rep][wk]={teuFCL:s.teuFCL,teuTank:s.teuTank,tons:s.tons,rev:s.rev,gp:s.gp};
+      } else {
+        const ld=s.lobData&&s.lobData[lob]?s.lobData[lob]:{rev:0,gp:0,teuFCL:0,teuTank:0,tons:0};
+        out[rep][wk]={
+          teuFCL: lob==='Dry Freight'?ld.teuFCL:0,
+          teuTank: lob==='ISO Tank'?ld.teuTank:0,
+          tons: lob==='Air'?ld.tons:0,
+          rev: ld.rev,
+          gp:  ld.gp
+        };
+      }
     });
   });
   return out;
@@ -1672,15 +1704,16 @@ function renderTLMonthly(tradelanes, months, periodLbl){
     + months.map(function(m){ return '<th style="text-align:right;min-width:85px">' + (MS[m]||m) + '</th>'; }).join('')
     + '</tr></thead><tbody>';
 
-  // Grand Total row
   var tlLobForM = (document.getElementById('lobF')||{}).value||'all';
-  html += buildTLMonthlySection('Grand Total', tradelanes, months, true, tlLobForM);
-  html += '<tr class="grand-sep"><td colspan="' + (nCols+1) + '"></td></tr>';
 
   tradelanes.forEach(function(tl){
     html += buildTLMonthlySection(tl, null, months, false, tlLobForM);
     html += '<tr class="r-sep"><td colspan="' + (nCols+1) + '"></td></tr>';
   });
+
+  // Grand Total at BOTTOM
+  html += '<tr class="grand-sep"><td colspan="' + (nCols+1) + '"></td></tr>';
+  html += buildTLMonthlySection('Grand Total', tradelanes, months, true, tlLobForM);
 
   html += '</tbody></table>';
   document.getElementById('tl-twrap').innerHTML = html;
@@ -1698,11 +1731,14 @@ function buildTLMonthlySection(tl, allTL, months, isGrand, lobFilter){
   var avBg = isGrand ? 'background:linear-gradient(135deg,#2563eb,#7c3aed)' : 'background:' + rclr(tl);
   var initl = isGrand ? 'GT' : tl.split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
 
+  // Use tlGetTotalFiltered so LOB, cargo, rep filters all apply correctly
   function getVal(m, field){
     if(isGrand){
-      return allTL.reduce(function(s,t){ return s + tlGetMonthVal(t,m,field); }, 0);
+      return allTL.reduce(function(s,t){
+        return s + tlGetTotalFiltered(t,[m],field,lobFilter,tlCargo);
+      }, 0);
     }
-    return tlGetMonthVal(tl, m, field);
+    return tlGetTotalFiltered(tl,[m],field,lobFilter,tlCargo);
   }
   function getTot(field){
     return months.reduce(function(s,m){ return s + getVal(m,field); }, 0);
