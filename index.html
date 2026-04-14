@@ -452,13 +452,21 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
             <button class="tog active" id="tl-view-pivot" onclick="tlSetView('pivot')">Pivot</button>
             <button class="tog" id="tl-view-monthly" onclick="tlSetView('monthly')">Monthly</button>
           </div>
-          <div style="display:flex;align-items:center;gap:6px">
+          <div style="display:flex;align-items:center;gap:10px">
             <span class="flbl">Cargo</span>
             <div class="toggles">
               <button class="tog active" id="tl-cargo-all" onclick="tlSetCargo('all')">All</button>
               <button class="tog" id="tl-cargo-fh" onclick="tlSetCargo('Freehand')">Freehand</button>
               <button class="tog" id="tl-cargo-nom" onclick="tlSetCargo('Nomination Sales')">Nomination</button>
             </div>
+            <div class="tb-div" style="height:18px"></div>
+            <span class="flbl">LOB</span>
+            <select class="fsel" id="tl-lobF" onchange="renderTL()" style="min-width:100px">
+              <option value="all">All LOBs</option>
+              <option value="Dry Freight">Dry Freight</option>
+              <option value="ISO Tank">ISO Tank</option>
+              <option value="Air">Air Freight</option>
+            </select>
           </div>
         </div>
 
@@ -818,7 +826,7 @@ async function fetchShipment(){
     // Collect tradelane data (inline to avoid hoisting issues)
     const tl=g(tlC,i),cargo=g(cargoC,i)||'Freehand';
     if(tl&&mon){
-      TL_RAW.push({tl,cargo,month:mon,teu,rev,gp});
+      TL_RAW.push({tl,cargo,month:mon,teu,rev,gp,lob:mode||'all'});
     }
     const rawDate=g(dateC,i),rawWk=g(wkC,i);
     if(rawDate&&rawWk){
@@ -1368,9 +1376,11 @@ function renderTL(){
   }
   if(!tlInited){ aggregateTLData(); tlInited = true; }
 
-  // Use main topbar FROM/TO
+  // Use main topbar FROM/TO (date range shared — only dates, not LOB/Rep)
   var from = (document.getElementById('fromM') || {}).value || 'April-2025';
   var to   = (document.getElementById('toM')   || {}).value || 'March-2026';
+  // Use TL's own LOB filter — completely independent from Sales Performance
+  var tlLob = (document.getElementById('tl-lobF') || {}).value || 'all';
   var fi = MONTHS_ORDER.indexOf(from);
   var ti = MONTHS_ORDER.indexOf(to);
   var months = (fi >= 0 && ti >= 0) ? MONTHS_ORDER.slice(fi, ti+1) : MONTHS_ORDER;
@@ -1386,11 +1396,12 @@ function renderTL(){
 
   // Update KPIs
   var kShp=0, kTeu=0, kRev=0, kGP=0;
+  var tlLobVal = (document.getElementById('tl-lobF')||{}).value||'all';
   tradelanes.forEach(function(tl){
-    kShp += tlGetTotal(tl,months,'shp');
-    kTeu += tlGetTotal(tl,months,'teu');
-    kRev += tlGetTotal(tl,months,'rev');
-    kGP  += tlGetTotal(tl,months,'gp');
+    kShp += tlGetTotalFiltered(tl,months,'shp',tlLobVal,tlCargo);
+    kTeu += tlGetTotalFiltered(tl,months,'teu',tlLobVal,tlCargo);
+    kRev += tlGetTotalFiltered(tl,months,'rev',tlLobVal,tlCargo);
+    kGP  += tlGetTotalFiltered(tl,months,'gp',tlLobVal,tlCargo);
   });
   setText('tl-k-shp',   Math.round(kShp).toLocaleString());
   setText('tl-k-teu',   fT(kTeu));
@@ -1409,14 +1420,36 @@ function renderTL(){
 
 function tlGetTotal(tl, months, field){
   var cargoKeys = (tlCargo === 'all') ? Object.keys(TL_DATA[tl] || {}) : [tlCargo];
+  var lobEl = document.getElementById('tl-lobF');
+  var lob = lobEl ? lobEl.value : 'all';
   var sum = 0;
   cargoKeys.forEach(function(ck){
     months.forEach(function(m){
       var cell = TL_DATA[tl] && TL_DATA[tl][ck] && TL_DATA[tl][ck][m];
-      if(cell) sum += cell[field] || 0;
+      if(cell) sum += tlApplyLob(cell[field] || 0, cell, field, lob);
     });
   });
   return sum;
+}
+
+// Apply LOB filter to TL data
+// Note: TL_RAW stores LOB info — we need to re-aggregate with LOB filter
+// Since TL_DATA doesn't store LOB breakdown, we filter from TL_RAW directly
+function tlGetTotalFiltered(tl, months, field, lob, cargo){
+  var sum = 0;
+  TL_RAW.forEach(function(r){
+    if(r.tl !== tl) return;
+    if(cargo !== 'all' && r.cargo !== cargo) return;
+    if(lob !== 'all' && r.lob !== lob) return;
+    if(months.indexOf(r.month) < 0) return;
+    sum += (field === 'shp') ? 1 : (r[field] || 0);
+  });
+  return sum;
+}
+
+function tlApplyLob(val, cell, field, lob){
+  // LOB filtering is handled at TL_RAW level via tlGetTotalFiltered
+  return val;
 }
 
 function tlGetMonthVal(tl, month, field){
@@ -1436,12 +1469,13 @@ function tlGetCargoMonthVal(tl, cargo, month, field){
 
 // ── PIVOT VIEW ──────────────────────────────────────────────────
 function renderTLPivot(tradelanes, months, periodLbl){
+  var tlLobF = (document.getElementById('tl-lobF')||{}).value||'all';
   var gShp=0,gTeu=0,gRev=0,gGP=0;
   tradelanes.forEach(function(tl){
-    gShp += tlGetTotal(tl,months,'shp');
-    gTeu += tlGetTotal(tl,months,'teu');
-    gRev += tlGetTotal(tl,months,'rev');
-    gGP  += tlGetTotal(tl,months,'gp');
+    gShp += tlGetTotalFiltered(tl,months,'shp',tlLobF,tlCargo);
+    gTeu += tlGetTotalFiltered(tl,months,'teu',tlLobF,tlCargo);
+    gRev += tlGetTotalFiltered(tl,months,'rev',tlLobF,tlCargo);
+    gGP  += tlGetTotalFiltered(tl,months,'gp',tlLobF,tlCargo);
   });
   var gPct = gRev > 0 ? gGP/gRev*100 : 0;
 
@@ -1455,22 +1489,25 @@ function renderTLPivot(tradelanes, months, periodLbl){
     + '<th style="text-align:right;min-width:65px">GP %</th>'
     + '</tr></thead><tbody>');
 
-  var gColor = gPct>=9.43 ? 'var(--green)' : 'var(--red)';
-  rows.push('<tr class="r-grand">'
-    + '<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px">'+ Math.round(gShp).toLocaleString() +'</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--teal)">'+ fT(gTeu) +'</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px">$'+ Math.round(gRev).toLocaleString() +'</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--green)">$'+ Math.round(gGP).toLocaleString() +'</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:'+ gColor +'">'+ gPct.toFixed(1) +'%</td>'
-    + '</tr>'
-    + '<tr class="grand-sep"><td colspan="6"></td></tr>');
+  // Grand total built separately — added at BOTTOM after all tradelane rows
+  var grandRow = (function(){
+    var gColor = gPct>=9.43 ? 'var(--green)' : 'var(--red)';
+    return '<tr class="grand-sep"><td colspan="6"></td></tr>'
+      + '<tr class="r-grand">'
+      + '<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px">'+ Math.round(gShp).toLocaleString() +'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--teal)">'+ fT(gTeu) +'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px">$'+ Math.round(gRev).toLocaleString() +'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--green)">$'+ Math.round(gGP).toLocaleString() +'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:12px;color:'+ gColor +'">'+ gPct.toFixed(1) +'%</td>'
+      + '</tr>';
+  })();
 
   tradelanes.forEach(function(tl){
-    var shp = tlGetTotal(tl,months,'shp');
-    var teu = tlGetTotal(tl,months,'teu');
-    var rev = tlGetTotal(tl,months,'rev');
-    var gp  = tlGetTotal(tl,months,'gp');
+    var shp = tlGetTotalFiltered(tl,months,'shp',tlLobF,tlCargo);
+    var teu = tlGetTotalFiltered(tl,months,'teu',tlLobF,tlCargo);
+    var rev = tlGetTotalFiltered(tl,months,'rev',tlLobF,tlCargo);
+    var gp  = tlGetTotalFiltered(tl,months,'gp',tlLobF,tlCargo);
     var pct = rev > 0 ? gp/rev*100 : 0;
     var exp = !!tlExpanded[tl];
     var showSubs = (tlCargo === 'all');
@@ -1504,10 +1541,10 @@ function renderTLPivot(tradelanes, months, periodLbl){
       ['Freehand','Nomination Sales'].forEach(function(cargo){
         var cShp=0,cTeu=0,cRev=0,cGP=0;
         months.forEach(function(m){
-          cShp += tlGetCargoMonthVal(tl,cargo,m,'shp');
-          cTeu += tlGetCargoMonthVal(tl,cargo,m,'teu');
-          cRev += tlGetCargoMonthVal(tl,cargo,m,'rev');
-          cGP  += tlGetCargoMonthVal(tl,cargo,m,'gp');
+          cShp += tlGetTotalFiltered(tl,[m],'shp',tlLobF,cargo);
+          cTeu += tlGetTotalFiltered(tl,[m],'teu',tlLobF,cargo);
+          cRev += tlGetTotalFiltered(tl,[m],'rev',tlLobF,cargo);
+          cGP  += tlGetTotalFiltered(tl,[m],'gp',tlLobF,cargo);
         });
         var cPct = cRev > 0 ? cGP/cRev*100 : 0;
         var cPctColor = cPct>=9.43 ? 'var(--green)' : 'var(--red)';
@@ -1525,6 +1562,7 @@ function renderTLPivot(tradelanes, months, periodLbl){
     rows.push('<tr style="height:3px"><td colspan="6" style="background:var(--border-l);padding:0"></td></tr>');
   });
 
+  rows.push(grandRow);
   rows.push('</tbody></table>');
   document.getElementById('tl-twrap').innerHTML = rows.join('');
 }
@@ -1545,11 +1583,12 @@ function renderTLMonthly(tradelanes, months, periodLbl){
     + '</tr></thead><tbody>';
 
   // Grand Total row
-  html += buildTLMonthlySection('Grand Total', tradelanes, months, true);
+  var tlLobForM = (document.getElementById('tl-lobF')||{}).value||'all';
+  html += buildTLMonthlySection('Grand Total', tradelanes, months, true, tlLobForM);
   html += '<tr class="grand-sep"><td colspan="' + (nCols+1) + '"></td></tr>';
 
   tradelanes.forEach(function(tl){
-    html += buildTLMonthlySection(tl, null, months, false);
+    html += buildTLMonthlySection(tl, null, months, false, tlLobForM);
     html += '<tr class="r-sep"><td colspan="' + (nCols+1) + '"></td></tr>';
   });
 
@@ -1557,7 +1596,8 @@ function renderTLMonthly(tradelanes, months, periodLbl){
   document.getElementById('tl-twrap').innerHTML = html;
 }
 
-function buildTLMonthlySection(tl, allTL, months, isGrand){
+function buildTLMonthlySection(tl, allTL, months, isGrand, lobFilter){
+  if(!lobFilter) lobFilter='all';
   var MROWS = [
     {id:'shp', lbl:'Shipments',   color:'var(--text2)'},
     {id:'teu', lbl:'TEUs',        color:'var(--teal)'},
