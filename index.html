@@ -818,7 +818,8 @@ async function fetchShipment(){
     // Collect tradelane data (inline to avoid hoisting issues)
     const tl=g(tlC,i),cargo=g(cargoC,i)||'Freehand';
     if(tl&&mon){
-      TL_RAW.push({tl,cargo,month:mon,teu,rev,gp,lob:mode||'all'});
+      const mappedRep = REP_MAP[rawRep]||'Nomination Sales';
+      TL_RAW.push({tl,cargo,month:mon,teu,rev,gp,lob:mode||'all',rep:mappedRep});
     }
     const rawDate=g(dateC,i),rawWk=g(wkC,i);
     if(rawDate&&rawWk){
@@ -926,7 +927,10 @@ function getLast5Weeks(){
 function render(){
   try{
     var tlPanel=document.getElementById('p-tradelane');
-    if(tlPanel && tlPanel.style.display==='flex' && typeof renderTL==='function' && typeof tlInited!=='undefined' && tlInited) renderTL();
+    if(tlPanel && tlPanel.style.display==='flex' && typeof renderTL==='function' && typeof tlInited!=='undefined' && tlInited){
+      renderTL();
+      return; // don't run Sales Performance render when on Tradelane
+    }
   }catch(e){}
   const lob=document.getElementById('lobF').value;
   const repF=document.getElementById('repF').value;
@@ -1419,7 +1423,7 @@ function renderTL(){
 
   // Sort tradelanes by TEU descending
   var tradelanes = Object.keys(TL_DATA).sort(function(a,b){
-    return tlGetTotal(b,months,'teu') - tlGetTotal(a,months,'teu');
+    return tlGetTotalFiltered(b,months,'gp',tlLobF,tlCargo) - tlGetTotalFiltered(a,months,'gp',tlLobF,tlCargo);
   });
 
   // Update KPIs
@@ -1464,11 +1468,13 @@ function tlGetTotal(tl, months, field){
 // Note: TL_RAW stores LOB info — we need to re-aggregate with LOB filter
 // Since TL_DATA doesn't store LOB breakdown, we filter from TL_RAW directly
 function tlGetTotalFiltered(tl, months, field, lob, cargo){
+  var repF = (document.getElementById('repF')||{}).value||'all';
   var sum = 0;
   TL_RAW.forEach(function(r){
     if(r.tl !== tl) return;
     if(cargo !== 'all' && r.cargo !== cargo) return;
     if(lob !== 'all' && r.lob !== lob) return;
+    if(repF !== 'all' && r.rep !== repF) return;
     if(months.indexOf(r.month) < 0) return;
     sum += (field === 'shp') ? 1 : (r[field] || 0);
   });
