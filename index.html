@@ -661,14 +661,9 @@ const REP_MAP = {
   'Mohammad Arshad':'Nomination Sales','Prashant Poojari':'Nomination Sales',
   'Lukman Fauzan':'Nomination Sales','Pooja Nomination':'Pooja Jain',
 };
-const REP_TARGETS = {
-  'Satyaprakash Haryani':22315,'Benoy Varghese':16075,'Vinayak Gaonkar':11358,
-  'Jyoti Ranjane':7703,'Aris':9825,'Daissy':3090,'Kiran Humbre':21425,
-  'Geeta Dhuri':2401,'Dijita Nagarkar':4900,'Nomination Sales':0,'Pooja Jain':0,
-};
-const REP_WEEKLY_TARGETS = Object.fromEntries(
-  Object.entries(REP_TARGETS).map(([k,v])=>[k,Math.round(v/4.33)])
-);
+// Targets loaded LIVE from Sales Target sheet — not hardcoded
+let REP_TARGETS = {};         // populated by fetchTargets()
+let REP_WEEKLY_TARGETS = {};  // populated by fetchTargets()
 const ALL_REPS = ['Aris','Benoy Varghese','Daissy','Dijita Nagarkar','Geeta Dhuri',
   'Jyoti Ranjane','Kiran Humbre','Nomination Sales','Pooja Jain',
   'Satyaprakash Haryani','Vinayak Gaonkar'];
@@ -741,6 +736,9 @@ async function loadData(){
   hideErr();
   DATA={};GDATA={};WKDATA={};WKINFO={};
   try{
+    setOv(true,'Fetching Sales Targets…');
+    await fetchTargets();
+    setOv(true,'Fetching Shipment Detail…');
     await fetchShipment();
     setOv(true,'Fetching General Job Detail…');
     await fetchGeneral();
@@ -756,7 +754,8 @@ async function fetchShipment(){
   const cols=['BF','CK','EI','FB','FC','EL','EO','EH','FE']; // EL=Total Income($), EO=Total Profit($)
   const j=await apiFetch(batchUrl('Shipment Detail',cols));
   const [repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC]=j.valueRanges.map(v=>v.values||[]);
-  const len=Math.max(repC.length,monC.length);
+  // Use max of ALL columns — revenue/GP rows may extend beyond rep/month rows
+  const len=Math.max(repC.length,monC.length,revC.length,gpC.length);
   for(let i=1;i<len;i++){
     const rawRep=g(repC,i),mon=g(monC,i);
     if(!mon) continue;
@@ -795,6 +794,40 @@ async function fetchGeneral(){
     const rev=pu(g(revC,i)),gp=pu(g(gpC,i));
     ensure(GDATA,rep,mon);
     GDATA[rep][mon].rev+=rev;GDATA[rep][mon].gp+=gp;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// FETCH TARGETS LIVE FROM SALES TARGET SHEET
+// ═══════════════════════════════════════════════
+async function fetchTargets(){
+  // Sales Target sheet: B=SalesRep, G=MonthlyTarget3x, H=WeeklyTarget
+  const cols=['B','G','H'];
+  try{
+    const j=await apiFetch(batchUrl('Sales Target',cols));
+    const [repC,mTgtC,wTgtC]=j.valueRanges.map(v=>v.values||[]);
+    REP_TARGETS={};REP_WEEKLY_TARGETS={};
+    const len=Math.max(repC.length,mTgtC.length);
+    for(let i=1;i<len;i++){
+      const rep=g(repC,i);
+      if(!rep) continue;
+      const mt=pusd(g(mTgtC,i));
+      const wt=pusd(g(wTgtC,i));
+      // Map rep name using REP_MAP in case sheet name differs
+      const mappedRep=REP_MAP[rep]||rep;
+      REP_TARGETS[mappedRep]=mt;
+      REP_WEEKLY_TARGETS[mappedRep]=wt;
+    }
+    // Ensure reps without targets default to 0
+    ALL_REPS.forEach(r=>{
+      if(REP_TARGETS[r]===undefined) REP_TARGETS[r]=0;
+      if(REP_WEEKLY_TARGETS[r]===undefined) REP_WEEKLY_TARGETS[r]=0;
+    });
+    console.log('Targets loaded:', REP_TARGETS);
+  }catch(e){
+    console.warn('Could not load Sales Target sheet:', e.message);
+    // Fallback to zeros so dashboard still works
+    ALL_REPS.forEach(r=>{REP_TARGETS[r]=0;REP_WEEKLY_TARGETS[r]=0;});
   }
 }
 
@@ -1192,6 +1225,7 @@ function ensure(obj,rep,key){if(!obj[rep])obj[rep]={};if(!obj[rep][key])obj[rep]
 function g(a,i){return a[i]&&a[i][0]?a[i][0].trim():'';}
 function pf(s){return parseFloat(s)||0;}
 function pu(s){return parseFloat(String(s).replace(/[\$,]/g,''))||0;}
+function pusd(s){return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
 function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
 function setOv(show,msg){document.getElementById('overlay').style.display=show?'flex':'none';if(msg)document.getElementById('ovtxt').textContent=msg;}
 function showErr(msg){const e=document.getElementById('ebar');e.textContent='⚠ '+msg;e.style.display='block';}
