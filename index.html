@@ -8,6 +8,313 @@
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
+// ═══════════════════════════════════════════════════════════════
+// PENDENCY MODULE — Ops & Finance
+// ═══════════════════════════════════════════════════════════════
+var PEND_RAW   = [];
+var opsInited  = false;
+var finInited  = false;
+var opsView    = 'pivot';
+var finView    = 'pivot';
+
+var MONTHS_LIST = [
+  'January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
+  'July-2025','August-2025','September-2025','October-2025','November-2025','December-2025',
+  'January-2026','February-2026','March-2026'
+];
+
+// ── OPS PENDENCY ─────────────────────────────────────────────────────────────
+// Open  = INV / WRK (ops not locked)
+// Closed = CMP (ops locked, finance pending)
+// Total  = CLS + CMP + INV + WRK (all non-blank)
+
+function initOps(){
+  var saved = panelFilters['ops']||{};
+  opsView = saved.opsView||'pivot';
+  var pvBtn=document.getElementById('ops-view-pivot');
+  var moBtn=document.getElementById('ops-view-monthly');
+  if(pvBtn) pvBtn.className='tog'+(opsView==='pivot'?' active':'');
+  if(moBtn) moBtn.className='tog'+(opsView==='monthly'?' active':'');
+  document.getElementById('ops-view-pivot').onclick=function(){ opsView='pivot'; panelFilters['ops'].opsView='pivot'; this.className='tog active'; document.getElementById('ops-view-monthly').className='tog'; renderOps(); };
+  document.getElementById('ops-view-monthly').onclick=function(){ opsView='monthly'; panelFilters['ops'].opsView='monthly'; this.className='tog active'; document.getElementById('ops-view-pivot').className='tog'; renderOps(); };
+  renderOps();
+}
+
+function initFin(){
+  var saved = panelFilters['finance']||{};
+  finView = saved.finView||'pivot';
+  var pvBtn=document.getElementById('fin-view-pivot');
+  var moBtn=document.getElementById('fin-view-monthly');
+  if(pvBtn) pvBtn.className='tog'+(finView==='pivot'?' active':'');
+  if(moBtn) moBtn.className='tog'+(finView==='monthly'?' active':'');
+  document.getElementById('fin-view-pivot').onclick=function(){ finView='pivot'; panelFilters['finance'].finView='pivot'; this.className='tog active'; document.getElementById('fin-view-monthly').className='tog'; renderFin(); };
+  document.getElementById('fin-view-monthly').onclick=function(){ finView='monthly'; panelFilters['finance'].finView='monthly'; this.className='tog active'; document.getElementById('fin-view-pivot').className='tog'; renderFin(); };
+  renderFin();
+}
+
+function getPendFilters(){
+  var lob  = (document.getElementById('lobF')||{}).value||'all';
+  var from = (document.getElementById('fromM')||{}).value||'April-2025';
+  var to   = (document.getElementById('toM')||{}).value||'March-2026';
+  var fi   = MONTHS_LIST.indexOf(from), ti = MONTHS_LIST.indexOf(to);
+  var months = (fi>=0&&ti>=0) ? MONTHS_LIST.slice(fi,ti+1) : MONTHS_LIST;
+  return {lob:lob, months:months, from:from, to:to};
+}
+
+function pendFilter(row, lob, months){
+  if(months.indexOf(row.month)<0) return false;
+  if(lob!=='all' && row.lob!==lob) return false;
+  return true;
+}
+
+function renderOps(){
+  var wrap=document.getElementById('ops-twrap'); if(!wrap) return;
+  var f=getPendFilters();
+  var lob=f.lob, months=f.months;
+  var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
+
+  // All non-blank rows in date range
+  var allRows = PEND_RAW.filter(function(r){ return pendFilter(r,lob,months); });
+  var openRows   = allRows.filter(function(r){ return r.status==='INV'||r.status==='WRK'; });
+  var closedRows = allRows.filter(function(r){ return r.status==='CMP'; });
+
+  // KPI cards
+  setText('ops-k-open',   openRows.length.toLocaleString());
+  setText('ops-k-closed', closedRows.length.toLocaleString());
+  setText('ops-k-total',  allRows.length.toLocaleString());
+  setText('ops-tbl-sub',  opsView==='pivot'?'Pivot':'Monthly');
+  setText('ops-tbl-meta', fromShort);
+
+  if(opsView==='pivot') renderOpsPivot(allRows, openRows, closedRows);
+  else renderOpsMonthly(allRows, months, fromShort);
+}
+
+function renderOpsPivot(allRows, openRows, closedRows){
+  // Group by operator
+  var operators = {};
+  allRows.forEach(function(r){
+    if(!operators[r.operator]) operators[r.operator]={open:0,closed:0,total:0};
+    operators[r.operator].total++;
+    if(r.status==='INV'||r.status==='WRK') operators[r.operator].open++;
+    if(r.status==='CMP') operators[r.operator].closed++;
+  });
+
+  // Sort by open jobs desc then total desc
+  var opList = Object.keys(operators).sort(function(a,b){
+    return (operators[b].open - operators[a].open) || (operators[b].total - operators[a].total);
+  });
+
+  var gOpen=openRows.length, gClosed=closedRows.length, gTotal=allRows.length;
+
+  var html = '<table><thead><tr>'
+    + '<th class="h-rep" style="min-width:160px">Job Operator</th>'
+    + '<th style="text-align:right;min-width:100px;color:var(--red)">Open Jobs</th>'
+    + '<th style="text-align:right;min-width:100px;color:var(--green)">Closed Jobs</th>'
+    + '<th style="text-align:right;min-width:100px">Total Jobs</th>'
+    + '</tr></thead><tbody>';
+
+  // Grand Total
+  html += '<tr class="r-grand">'
+    + '<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'—')+'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'—')+'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700">'+gTotal+'</td>'
+    + '</tr><tr class="grand-sep"><td colspan="4"></td></tr>';
+
+  opList.forEach(function(op){
+    var d=operators[op];
+    var initl=op.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+    html += '<tr class="r-rep">'
+      + '<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(op)+'">'+initl+'</div><span>'+op+'</span></div></td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'—')+'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'—')+'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
+      + '</tr>';
+    html += '<tr style="height:3px"><td colspan="4" style="background:var(--border-l);padding:0"></td></tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('ops-twrap').innerHTML = html;
+}
+
+function renderOpsMonthly(allRows, months, periodLbl){
+  // Group by operator × month
+  var operators = {};
+  allRows.forEach(function(r){
+    if(!operators[r.operator]) operators[r.operator]={};
+    if(!operators[r.operator][r.month]) operators[r.operator][r.month]={open:0,closed:0,total:0};
+    operators[r.operator][r.month].total++;
+    if(r.status==='INV'||r.status==='WRK') operators[r.operator][r.month].open++;
+    if(r.status==='CMP') operators[r.operator][r.month].closed++;
+  });
+
+  var opList = Object.keys(operators).sort(function(a,b){
+    var ta=Object.values(operators[a]).reduce(function(s,v){return s+v.total;},0);
+    var tb=Object.values(operators[b]).reduce(function(s,v){return s+v.total;},0);
+    return tb-ta;
+  });
+
+  var nCols = 2 + months.length;
+  var ROWS=[{id:'open',lbl:'Open Jobs',color:'var(--red)'},{id:'closed',lbl:'Closed Jobs',color:'var(--green)'},{id:'total',lbl:'Total Jobs',color:'var(--text)'}];
+
+  var html='<table><thead><tr>'
+    +'<th class="h-rep">Job Operator</th>'
+    +'<th class="h-metric">Metric</th>'
+    +'<th class="h-total">Total<br><span style="font-size:9px;font-weight:400;color:var(--orange)">'+periodLbl+'</span></th>'
+    +months.map(function(m){return '<th style="text-align:right;min-width:80px">'+(MS[m]||m)+'</th>';}).join('')
+    +'</tr></thead><tbody>';
+
+  // Grand total at top
+  html += buildPendSection('Grand Total', operators, opList, months, ROWS, true);
+  html += '<tr class="grand-sep"><td colspan="'+nCols+'"></td></tr>';
+
+  opList.forEach(function(op){
+    html += buildPendSection(op, operators, null, months, ROWS, false);
+    html += '<tr class="r-sep"><td colspan="'+nCols+'"></td></tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('ops-twrap').innerHTML = html;
+}
+
+function buildPendSection(name, operators, allOps, months, ROWS, isGrand){
+  var rc   = isGrand?'r-grand':'r-rep';
+  var avBg = isGrand?'background:linear-gradient(135deg,#2563eb,#7c3aed)':'background:'+rclr(name);
+  var initl= isGrand?'GT':name.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+
+  function getVal(m,field){
+    if(isGrand) return allOps.reduce(function(s,op){ var c=operators[op]&&operators[op][m]; return s+(c?c[field]:0); },0);
+    var c=operators[name]&&operators[name][m]; return c?(c[field]||0):0;
+  }
+  function getTot(field){return months.reduce(function(s,m){return s+getVal(m,field);},0);}
+
+  var html='';
+  ROWS.forEach(function(mr,mi){
+    html+='<tr class="'+rc+'">';
+    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">'+initl+'</div><span style="font-weight:700;font-size:12px">'+name+'</span></div></td>';
+    html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
+    var tot=getTot(mr.id);
+    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'—')+'</td>';
+    months.forEach(function(m){
+      var v=getVal(m,mr.id);
+      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'—')+'</td>';
+    });
+    html+='</tr>';
+  });
+  return html;
+}
+
+// ── FINANCE PENDENCY ─────────────────────────────────────────────────────────
+// Open   = CMP (finance pending)
+// Closed = CLS (finance locked)
+// Total  = all non-blank
+
+function renderFin(){
+  var wrap=document.getElementById('fin-twrap'); if(!wrap) return;
+  var f=getPendFilters();
+  var lob=f.lob, months=f.months;
+  var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
+
+  var allRows    = PEND_RAW.filter(function(r){ return pendFilter(r,lob,months); });
+  var openRows   = allRows.filter(function(r){ return r.status==='CMP'; });
+  var closedRows = allRows.filter(function(r){ return r.status==='CLS'; });
+
+  setText('fin-k-open',   openRows.length.toLocaleString());
+  setText('fin-k-closed', closedRows.length.toLocaleString());
+  setText('fin-k-total',  allRows.length.toLocaleString());
+  setText('fin-tbl-sub',  finView==='pivot'?'Pivot':'Monthly');
+  setText('fin-tbl-meta', fromShort);
+
+  if(finView==='pivot') renderFinPivot(allRows, openRows, closedRows);
+  else renderFinMonthly(allRows, months, fromShort);
+}
+
+function renderFinPivot(allRows, openRows, closedRows){
+  // Group by sales rep (not job operator — finance view)
+  var reps = {};
+  allRows.forEach(function(r){
+    if(!reps[r.rep]) reps[r.rep]={open:0,closed:0,total:0};
+    reps[r.rep].total++;
+    if(r.status==='CMP') reps[r.rep].open++;
+    if(r.status==='CLS') reps[r.rep].closed++;
+  });
+
+  var repList = Object.keys(reps).sort(function(a,b){ return reps[b].open-reps[a].open||reps[b].total-reps[a].total; });
+  var gOpen=openRows.length, gClosed=closedRows.length, gTotal=allRows.length;
+
+  var html='<table><thead><tr>'
+    +'<th class="h-rep" style="min-width:160px">Sales Rep</th>'
+    +'<th style="text-align:right;min-width:100px;color:var(--red)">Open Jobs</th>'
+    +'<th style="text-align:right;min-width:100px;color:var(--green)">Closed Jobs</th>'
+    +'<th style="text-align:right;min-width:100px">Total Jobs</th>'
+    +'</tr></thead><tbody>';
+
+  html+='<tr class="r-grand">'
+    +'<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
+    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'—')+'</td>'
+    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'—')+'</td>'
+    +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+gTotal+'</td>'
+    +'</tr><tr class="grand-sep"><td colspan="4"></td></tr>';
+
+  repList.forEach(function(rep){
+    var d=reps[rep];
+    var initl=rep.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+    html+='<tr class="r-rep">'
+      +'<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(rep)+'">'+initl+'</div><span>'+rep+'</span></div></td>'
+      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'—')+'</td>'
+      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'—')+'</td>'
+      +'<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
+      +'</tr>';
+    html+='<tr style="height:3px"><td colspan="4" style="background:var(--border-l);padding:0"></td></tr>';
+  });
+
+  html+='</tbody></table>';
+  document.getElementById('fin-twrap').innerHTML=html;
+}
+
+function renderFinMonthly(allRows, months, periodLbl){
+  // Finance rep = Trupti Gore (single row) grouped by month
+  var byMonth = {};
+  months.forEach(function(m){ byMonth[m]={open:0,closed:0,total:0}; });
+  allRows.forEach(function(r){
+    if(!byMonth[r.month]) byMonth[r.month]={open:0,closed:0,total:0};
+    byMonth[r.month].total++;
+    if(r.status==='CMP') byMonth[r.month].open++;
+    if(r.status==='CLS') byMonth[r.month].closed++;
+  });
+
+  var nCols=2+months.length;
+  var ROWS=[{id:'open',lbl:'Open Jobs',color:'var(--red)'},{id:'closed',lbl:'Closed Jobs',color:'var(--green)'},{id:'total',lbl:'Total Jobs',color:'var(--text)'}];
+
+  function getVal(m,field){ return byMonth[m]?(byMonth[m][field]||0):0; }
+  function getTot(field){ return months.reduce(function(s,m){return s+getVal(m,field);},0); }
+
+  var html='<table><thead><tr>'
+    +'<th class="h-rep">Finance Rep</th>'
+    +'<th class="h-metric">Metric</th>'
+    +'<th class="h-total">Total<br><span style="font-size:9px;font-weight:400;color:var(--orange)">'+periodLbl+'</span></th>'
+    +months.map(function(m){return '<th style="text-align:right;min-width:80px">'+(MS[m]||m)+'</th>';}).join('')
+    +'</tr></thead><tbody>';
+
+  var avBg='background:linear-gradient(135deg,#0891b2,#0d9488)';
+  ROWS.forEach(function(mr,mi){
+    html+='<tr class="r-rep">';
+    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">TG</div><span style="font-weight:700;font-size:12px">Trupti Gore</span></div></td>';
+    html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
+    var tot=getTot(mr.id);
+    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'—')+'</td>';
+    months.forEach(function(m){
+      var v=getVal(m,mr.id);
+      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'—')+'</td>';
+    });
+    html+='</tr>';
+  });
+
+  html+='</tbody></table>';
+  document.getElementById('fin-twrap').innerHTML=html;
+}
+// ════════════════════════════════════════════════════════════════
+
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -477,8 +784,63 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           </div>
         </div>
       </div>
-      <div id="p-ops" style="display:none;flex:1"><div class="coming"><div style="font-size:36px">⚙️</div><h3>Operation Pendency</h3><p>Coming soon</p></div></div>
-      <div id="p-finance" style="display:none;flex:1"><div class="coming"><div style="font-size:36px">💰</div><h3>Finance Pendency</h3><p>Coming soon</p></div></div>
+      <!-- OPS PENDENCY PANEL -->
+      <div id="p-ops" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
+        <!-- OPS KPI CARDS -->
+        <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+          <div class="kpi kr"><div class="kpi-lbl">Total Open Jobs</div><div class="kpi-val" id="ops-k-open">—</div><div class="kpi-sub">Not locked · INV / WRK</div></div>
+          <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="ops-k-closed">—</div><div class="kpi-sub">Ops locked · CMP</div></div>
+          <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="ops-k-total">—</div><div class="kpi-sub">All valid records</div></div>
+        </div>
+        <!-- OPS VIEW TOGGLE -->
+        <div style="display:flex;align-items:center;flex-shrink:0">
+          <div class="toggles">
+            <button class="tog active" id="ops-view-pivot">Pivot</button>
+            <button class="tog" id="ops-view-monthly">Monthly</button>
+          </div>
+        </div>
+        <!-- OPS TABLE CARD -->
+        <div class="tcard" style="flex:1">
+          <div class="thead-bar">
+            <div style="display:flex;align-items:center;gap:8px">
+              <h2>Operation Pendency</h2>
+              <span style="color:var(--border);font-size:13px">|</span>
+              <span id="ops-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot</span>
+            </div>
+            <div class="thead-meta" id="ops-tbl-meta">—</div>
+          </div>
+          <div class="twrap" id="ops-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading…</div></div>
+        </div>
+      </div>
+      <!-- FINANCE PENDENCY PANEL -->
+      <div id="p-finance" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
+        <!-- FINANCE KPI CARDS -->
+        <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+          <div class="kpi kr"><div class="kpi-lbl">Total Open Jobs</div><div class="kpi-val" id="fin-k-open">—</div><div class="kpi-sub">Finance pending · CMP</div></div>
+          <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="fin-k-closed">—</div><div class="kpi-sub">Finance locked · CLS</div></div>
+          <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="fin-k-total">—</div><div class="kpi-sub">All valid records</div></div>
+        </div>
+        <!-- FINANCE VIEW TOGGLE -->
+        <div style="display:flex;align-items:center;flex-shrink:0">
+          <div class="toggles">
+            <button class="tog active" id="fin-view-pivot">Pivot</button>
+            <button class="tog" id="fin-view-monthly">Monthly</button>
+          </div>
+        </div>
+        <!-- FINANCE TABLE CARD -->
+        <div class="tcard" style="flex:1">
+          <div class="thead-bar">
+            <div style="display:flex;align-items:center;gap:8px">
+              <h2>Finance Pendency</h2>
+              <span style="color:var(--border);font-size:13px">|</span>
+              <span id="fin-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot</span>
+              <span style="font-size:11px;color:var(--text3)">· Finance Rep: <strong style="color:var(--text)">Trupti Gore</strong></span>
+            </div>
+            <div class="thead-meta" id="fin-tbl-meta">—</div>
+          </div>
+          <div class="twrap" id="fin-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading…</div></div>
+        </div>
+      </div>
 
       <!-- ADMIN PANEL -->
       <div id="p-admin" style="display:none;flex:1;flex-direction:column;min-height:0">
@@ -672,7 +1034,7 @@ function showAccessDenied(email){
 function doSignOut(){
   auth.signOut().then(()=>{
     currentUser=null;currentRole=null;allowedReps=[];oauthToken=null;
-    DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;
+    DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;PEND_RAW=[];opsInited=false;finInited=false;
     location.reload();
   });
 }
@@ -737,8 +1099,8 @@ let period='monthly',teuExp={},sidebarOpen=true;
 var panelFilters = {
   sales:     {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
   tradelane: {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
-  ops:       {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
-  finance:   {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
+  ops:       {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026', opsView:'pivot'},
+  finance:   {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026', finView:'pivot'},
 };
 var currentPanel = 'sales';
 
@@ -789,7 +1151,7 @@ async function loadData(){
   setOv(true,'Fetching Shipment Detail…');
   document.getElementById('rbtn').classList.add('spinning');
   hideErr();
-  DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;
+  DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;PEND_RAW=[];opsInited=false;finInited=false;
   try{
     setOv(true,'Fetching Sales Targets…');
     await fetchTargets();
@@ -807,9 +1169,9 @@ async function loadData(){
 
 async function fetchShipment(){
   // Added EG=Tradelane, EW=Freehand/Nomination for Tradelane module
-  const cols=['BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW'];
+  const cols=['BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW','BG','BH'];
   const j=await apiFetch(batchUrl('Shipment Detail',cols));
-  const [repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC]=j.valueRanges.map(v=>v.values||[]);
+  const [repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC]=j.valueRanges.map(v=>v.values||[]);
   // Use max of ALL columns — revenue/GP rows may extend beyond rep/month rows
   const len=Math.max(repC.length,monC.length,revC.length,gpC.length);
   TL_RAW=[]; // reset tradelane raw data
@@ -839,6 +1201,12 @@ async function fetchShipment(){
     if(tl&&mon){
       const mappedRep = REP_MAP[rawRep]||'Nomination Sales';
       TL_RAW.push({tl,cargo,month:mon,teu,rev,gp,lob:mode||'all',rep:mappedRep});
+    }
+    // Ops & Finance pendency raw rows (non-blank status only)
+    const jobStatus=g(statusC,i), jobOp=g(opC,i);
+    if(jobStatus){
+      const pendRow={status:jobStatus,operator:jobOp||'Unknown',month:mon,lob:mode||'Dry Freight',rep:REP_MAP[rawRep]||'Nomination Sales'};
+      PEND_RAW.push(pendRow);
     }
     const rawDate=g(dateC,i),rawWk=g(wkC,i);
     if(rawDate&&rawWk){
@@ -953,10 +1321,11 @@ function getLast5Weeks(){
 function render(){
   try{
     var tlPanel=document.getElementById('p-tradelane');
-    if(tlPanel && tlPanel.style.display==='flex' && typeof renderTL==='function' && typeof tlInited!=='undefined' && tlInited){
-      renderTL();
-      return; // don't run Sales Performance render when on Tradelane
-    }
+    if(tlPanel && tlPanel.style.display==='flex' && typeof renderTL==='function' && typeof tlInited!=='undefined' && tlInited){ renderTL(); return; }
+    var opsPanel=document.getElementById('p-ops');
+    if(opsPanel && opsPanel.style.display==='flex' && typeof renderOps==='function'){ renderOps(); return; }
+    var finPanel=document.getElementById('p-finance');
+    if(finPanel && finPanel.style.display==='flex' && typeof renderFin==='function'){ renderFin(); return; }
   }catch(e){}
   const lob=document.getElementById('lobF').value;
   const repF=document.getElementById('repF').value;
@@ -1227,8 +1596,10 @@ function showPanel(name,el){
   // ── RESTORE saved filter state for the new panel ─────────────────
   restorePanelFilters(name);
 
-  if(name==='admin')  loadAdminUsers();
+  if(name==='admin')    loadAdminUsers();
   if(name==='tradelane') setTimeout(function(){ if(typeof initTL==='function') initTL(); }, 50);
+  if(name==='ops')       setTimeout(function(){ if(typeof initOps==='function') initOps(); }, 50);
+  if(name==='finance')   setTimeout(function(){ if(typeof initFin==='function') initFin(); }, 50);
   if(name==='sales' && Object.keys(DATA).length>0) render();
 }
 
@@ -1240,11 +1611,10 @@ function saveCurrentPanelFilters(){
   panelFilters[panel].from   = (document.getElementById('fromM')||{}).value||'April-2025';
   panelFilters[panel].to     = (document.getElementById('toM')||{}).value||'March-2026';
   panelFilters[panel].period = period;
-  // Save TL-specific cargo/view if leaving tradelane
-  if(panel === 'tradelane'){
-    panelFilters[panel].tlCargo = tlCargo;
-    panelFilters[panel].tlView  = tlView;
-  }
+  // Save panel-specific view state
+  if(panel === 'tradelane'){ panelFilters[panel].tlCargo = tlCargo; panelFilters[panel].tlView = tlView; }
+  if(panel === 'ops')      { panelFilters[panel].opsView = opsView; }
+  if(panel === 'finance')  { panelFilters[panel].finView = finView; }
 }
 
 function restorePanelFilters(name){
@@ -1263,8 +1633,8 @@ function restorePanelFilters(name){
   if(fromEl) fromEl.value = saved.from || 'April-2025';
   if(toEl)   toEl.value   = saved.to   || 'March-2026';
 
-  if(name === 'tradelane'){
-    // Tradelane: always Monthly, lock other toggles
+  if(name === 'tradelane' || name === 'ops' || name === 'finance'){
+    // Lock to Monthly only for these panels
     period = 'monthly';
     document.querySelectorAll('.tog').forEach(function(b){
       var t = b.textContent.trim();
@@ -1272,9 +1642,11 @@ function restorePanelFilters(name){
       if(t==='Monthly') b.classList.add('active');
     });
     document.getElementById('drRow').style.display='flex';
-    // Restore TL cargo and view toggles
-    if(saved.tlCargo){ tlCargo = saved.tlCargo; }
-    if(saved.tlView)  { tlView  = saved.tlView; }
+    // TL-specific state
+    if(name==='tradelane'){
+      if(saved.tlCargo){ tlCargo = saved.tlCargo; }
+      if(saved.tlView)  { tlView  = saved.tlView; }
+    }
   } else {
     // Restore period toggle for non-TL panels
     period = saved.period || 'monthly';
