@@ -8,312 +8,6 @@
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
-// ═══════════════════════════════════════════════════════════════
-// PENDENCY MODULE — Ops & Finance
-// ═══════════════════════════════════════════════════════════════
-var PEND_RAW   = [];
-var opsInited  = false;
-var finInited  = false;
-var opsView    = 'pivot';
-var finView    = 'pivot';
-
-var MONTHS_LIST = [
-  'January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
-  'July-2025','August-2025','September-2025','October-2025','November-2025','December-2025',
-  'January-2026','February-2026','March-2026'
-];
-
-// ── OPS PENDENCY ─────────────────────────────────────────────────────────────
-// Open  = INV / WRK (ops not locked)
-// Closed = CMP (ops locked, finance pending)
-// Total  = CLS + CMP + INV + WRK (all non-blank)
-
-function initOps(){
-  var saved = panelFilters['ops']||{};
-  opsView = saved.opsView||'pivot';
-  var pvBtn=document.getElementById('ops-view-pivot');
-  var moBtn=document.getElementById('ops-view-monthly');
-  if(pvBtn) pvBtn.className='tog'+(opsView==='pivot'?' active':'');
-  if(moBtn) moBtn.className='tog'+(opsView==='monthly'?' active':'');
-  document.getElementById('ops-view-pivot').onclick=function(){ opsView='pivot'; panelFilters['ops'].opsView='pivot'; this.className='tog active'; document.getElementById('ops-view-monthly').className='tog'; renderOps(); };
-  document.getElementById('ops-view-monthly').onclick=function(){ opsView='monthly'; panelFilters['ops'].opsView='monthly'; this.className='tog active'; document.getElementById('ops-view-pivot').className='tog'; renderOps(); };
-  renderOps();
-}
-
-function initFin(){
-  var saved = panelFilters['finance']||{};
-  finView = saved.finView||'pivot';
-  var pvBtn=document.getElementById('fin-view-pivot');
-  var moBtn=document.getElementById('fin-view-monthly');
-  if(pvBtn) pvBtn.className='tog'+(finView==='pivot'?' active':'');
-  if(moBtn) moBtn.className='tog'+(finView==='monthly'?' active':'');
-  document.getElementById('fin-view-pivot').onclick=function(){ finView='pivot'; panelFilters['finance'].finView='pivot'; this.className='tog active'; document.getElementById('fin-view-monthly').className='tog'; renderFin(); };
-  document.getElementById('fin-view-monthly').onclick=function(){ finView='monthly'; panelFilters['finance'].finView='monthly'; this.className='tog active'; document.getElementById('fin-view-pivot').className='tog'; renderFin(); };
-  renderFin();
-}
-
-function getPendFilters(){
-  var lob  = (document.getElementById('lobF')||{}).value||'all';
-  var from = (document.getElementById('fromM')||{}).value||'April-2025';
-  var to   = (document.getElementById('toM')||{}).value||'March-2026';
-  var fi   = MONTHS_LIST.indexOf(from), ti = MONTHS_LIST.indexOf(to);
-  var months = (fi>=0&&ti>=0) ? MONTHS_LIST.slice(fi,ti+1) : MONTHS_LIST;
-  return {lob:lob, months:months, from:from, to:to};
-}
-
-function pendFilter(row, lob, months){
-  if(months.indexOf(row.month)<0) return false;
-  if(lob!=='all' && row.lob!==lob) return false;
-  return true;
-}
-
-function renderOps(){
-  var wrap=document.getElementById('ops-twrap'); if(!wrap) return;
-  var f=getPendFilters();
-  var lob=f.lob, months=f.months;
-  var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
-
-  // All non-blank rows in date range
-  var allRows = PEND_RAW.filter(function(r){ return pendFilter(r,lob,months); });
-  var openRows   = allRows.filter(function(r){ return r.status==='INV'||r.status==='WRK'; });
-  var closedRows = allRows.filter(function(r){ return r.status==='CMP'; });
-
-  // KPI cards
-  setText('ops-k-open',   openRows.length.toLocaleString());
-  setText('ops-k-closed', closedRows.length.toLocaleString());
-  setText('ops-k-total',  allRows.length.toLocaleString());
-  setText('ops-tbl-sub',  opsView==='pivot'?'Pivot':'Monthly');
-  setText('ops-tbl-meta', fromShort);
-
-  if(opsView==='pivot') renderOpsPivot(allRows, openRows, closedRows);
-  else renderOpsMonthly(allRows, months, fromShort);
-}
-
-function renderOpsPivot(allRows, openRows, closedRows){
-  // Group by operator
-  var operators = {};
-  allRows.forEach(function(r){
-    if(!operators[r.operator]) operators[r.operator]={open:0,closed:0,total:0};
-    operators[r.operator].total++;
-    if(r.status==='INV'||r.status==='WRK') operators[r.operator].open++;
-    if(r.status==='CMP') operators[r.operator].closed++;
-  });
-
-  // Sort by open jobs desc then total desc
-  var opList = Object.keys(operators).sort(function(a,b){
-    return (operators[b].open - operators[a].open) || (operators[b].total - operators[a].total);
-  });
-
-  var gOpen=openRows.length, gClosed=closedRows.length, gTotal=allRows.length;
-
-  var html = '<table><thead><tr>'
-    + '<th class="h-rep" style="min-width:160px">Job Operator</th>'
-    + '<th style="text-align:right;min-width:100px;color:var(--red)">Open Jobs</th>'
-    + '<th style="text-align:right;min-width:100px;color:var(--green)">Closed Jobs</th>'
-    + '<th style="text-align:right;min-width:100px">Total Jobs</th>'
-    + '</tr></thead><tbody>';
-
-  // Grand Total
-  html += '<tr class="r-grand">'
-    + '<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'—')+'</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'—')+'</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700">'+gTotal+'</td>'
-    + '</tr><tr class="grand-sep"><td colspan="4"></td></tr>';
-
-  opList.forEach(function(op){
-    var d=operators[op];
-    var initl=op.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
-    html += '<tr class="r-rep">'
-      + '<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(op)+'">'+initl+'</div><span>'+op+'</span></div></td>'
-      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'—')+'</td>'
-      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'—')+'</td>'
-      + '<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
-      + '</tr>';
-    html += '<tr style="height:3px"><td colspan="4" style="background:var(--border-l);padding:0"></td></tr>';
-  });
-
-  html += '</tbody></table>';
-  document.getElementById('ops-twrap').innerHTML = html;
-}
-
-function renderOpsMonthly(allRows, months, periodLbl){
-  // Group by operator × month
-  var operators = {};
-  allRows.forEach(function(r){
-    if(!operators[r.operator]) operators[r.operator]={};
-    if(!operators[r.operator][r.month]) operators[r.operator][r.month]={open:0,closed:0,total:0};
-    operators[r.operator][r.month].total++;
-    if(r.status==='INV'||r.status==='WRK') operators[r.operator][r.month].open++;
-    if(r.status==='CMP') operators[r.operator][r.month].closed++;
-  });
-
-  var opList = Object.keys(operators).sort(function(a,b){
-    var ta=Object.values(operators[a]).reduce(function(s,v){return s+v.total;},0);
-    var tb=Object.values(operators[b]).reduce(function(s,v){return s+v.total;},0);
-    return tb-ta;
-  });
-
-  var nCols = 2 + months.length;
-  var ROWS=[{id:'open',lbl:'Open Jobs',color:'var(--red)'},{id:'closed',lbl:'Closed Jobs',color:'var(--green)'},{id:'total',lbl:'Total Jobs',color:'var(--text)'}];
-
-  var html='<table><thead><tr>'
-    +'<th class="h-rep">Job Operator</th>'
-    +'<th class="h-metric">Metric</th>'
-    +'<th class="h-total">Total<br><span style="font-size:9px;font-weight:400;color:var(--orange)">'+periodLbl+'</span></th>'
-    +months.map(function(m){return '<th style="text-align:right;min-width:80px">'+(MS[m]||m)+'</th>';}).join('')
-    +'</tr></thead><tbody>';
-
-  // Grand total at top
-  html += buildPendSection('Grand Total', operators, opList, months, ROWS, true);
-  html += '<tr class="grand-sep"><td colspan="'+nCols+'"></td></tr>';
-
-  opList.forEach(function(op){
-    html += buildPendSection(op, operators, null, months, ROWS, false);
-    html += '<tr class="r-sep"><td colspan="'+nCols+'"></td></tr>';
-  });
-
-  html += '</tbody></table>';
-  document.getElementById('ops-twrap').innerHTML = html;
-}
-
-function buildPendSection(name, operators, allOps, months, ROWS, isGrand){
-  var rc   = isGrand?'r-grand':'r-rep';
-  var avBg = isGrand?'background:linear-gradient(135deg,#2563eb,#7c3aed)':'background:'+rclr(name);
-  var initl= isGrand?'GT':name.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
-
-  function getVal(m,field){
-    if(isGrand) return allOps.reduce(function(s,op){ var c=operators[op]&&operators[op][m]; return s+(c?c[field]:0); },0);
-    var c=operators[name]&&operators[name][m]; return c?(c[field]||0):0;
-  }
-  function getTot(field){return months.reduce(function(s,m){return s+getVal(m,field);},0);}
-
-  var html='';
-  ROWS.forEach(function(mr,mi){
-    html+='<tr class="'+rc+'">';
-    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">'+initl+'</div><span style="font-weight:700;font-size:12px">'+name+'</span></div></td>';
-    html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
-    var tot=getTot(mr.id);
-    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'—')+'</td>';
-    months.forEach(function(m){
-      var v=getVal(m,mr.id);
-      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'—')+'</td>';
-    });
-    html+='</tr>';
-  });
-  return html;
-}
-
-// ── FINANCE PENDENCY ─────────────────────────────────────────────────────────
-// Open   = CMP (finance pending)
-// Closed = CLS (finance locked)
-// Total  = all non-blank
-
-function renderFin(){
-  var wrap=document.getElementById('fin-twrap'); if(!wrap) return;
-  var f=getPendFilters();
-  var lob=f.lob, months=f.months;
-  var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
-
-  var allRows    = PEND_RAW.filter(function(r){ return pendFilter(r,lob,months); });
-  var openRows   = allRows.filter(function(r){ return r.status==='CMP'; });
-  var closedRows = allRows.filter(function(r){ return r.status==='CLS'; });
-
-  setText('fin-k-open',   openRows.length.toLocaleString());
-  setText('fin-k-closed', closedRows.length.toLocaleString());
-  setText('fin-k-total',  allRows.length.toLocaleString());
-  setText('fin-tbl-sub',  finView==='pivot'?'Pivot':'Monthly');
-  setText('fin-tbl-meta', fromShort);
-
-  if(finView==='pivot') renderFinPivot(allRows, openRows, closedRows);
-  else renderFinMonthly(allRows, months, fromShort);
-}
-
-function renderFinPivot(allRows, openRows, closedRows){
-  // Group by sales rep (not job operator — finance view)
-  var reps = {};
-  allRows.forEach(function(r){
-    if(!reps[r.rep]) reps[r.rep]={open:0,closed:0,total:0};
-    reps[r.rep].total++;
-    if(r.status==='CMP') reps[r.rep].open++;
-    if(r.status==='CLS') reps[r.rep].closed++;
-  });
-
-  var repList = Object.keys(reps).sort(function(a,b){ return reps[b].open-reps[a].open||reps[b].total-reps[a].total; });
-  var gOpen=openRows.length, gClosed=closedRows.length, gTotal=allRows.length;
-
-  var html='<table><thead><tr>'
-    +'<th class="h-rep" style="min-width:160px">Sales Rep</th>'
-    +'<th style="text-align:right;min-width:100px;color:var(--red)">Open Jobs</th>'
-    +'<th style="text-align:right;min-width:100px;color:var(--green)">Closed Jobs</th>'
-    +'<th style="text-align:right;min-width:100px">Total Jobs</th>'
-    +'</tr></thead><tbody>';
-
-  html+='<tr class="r-grand">'
-    +'<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
-    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'—')+'</td>'
-    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'—')+'</td>'
-    +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+gTotal+'</td>'
-    +'</tr><tr class="grand-sep"><td colspan="4"></td></tr>';
-
-  repList.forEach(function(rep){
-    var d=reps[rep];
-    var initl=rep.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
-    html+='<tr class="r-rep">'
-      +'<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(rep)+'">'+initl+'</div><span>'+rep+'</span></div></td>'
-      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'—')+'</td>'
-      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'—')+'</td>'
-      +'<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
-      +'</tr>';
-    html+='<tr style="height:3px"><td colspan="4" style="background:var(--border-l);padding:0"></td></tr>';
-  });
-
-  html+='</tbody></table>';
-  document.getElementById('fin-twrap').innerHTML=html;
-}
-
-function renderFinMonthly(allRows, months, periodLbl){
-  // Finance rep = Trupti Gore (single row) grouped by month
-  var byMonth = {};
-  months.forEach(function(m){ byMonth[m]={open:0,closed:0,total:0}; });
-  allRows.forEach(function(r){
-    if(!byMonth[r.month]) byMonth[r.month]={open:0,closed:0,total:0};
-    byMonth[r.month].total++;
-    if(r.status==='CMP') byMonth[r.month].open++;
-    if(r.status==='CLS') byMonth[r.month].closed++;
-  });
-
-  var nCols=2+months.length;
-  var ROWS=[{id:'open',lbl:'Open Jobs',color:'var(--red)'},{id:'closed',lbl:'Closed Jobs',color:'var(--green)'},{id:'total',lbl:'Total Jobs',color:'var(--text)'}];
-
-  function getVal(m,field){ return byMonth[m]?(byMonth[m][field]||0):0; }
-  function getTot(field){ return months.reduce(function(s,m){return s+getVal(m,field);},0); }
-
-  var html='<table><thead><tr>'
-    +'<th class="h-rep">Finance Rep</th>'
-    +'<th class="h-metric">Metric</th>'
-    +'<th class="h-total">Total<br><span style="font-size:9px;font-weight:400;color:var(--orange)">'+periodLbl+'</span></th>'
-    +months.map(function(m){return '<th style="text-align:right;min-width:80px">'+(MS[m]||m)+'</th>';}).join('')
-    +'</tr></thead><tbody>';
-
-  var avBg='background:linear-gradient(135deg,#0891b2,#0d9488)';
-  ROWS.forEach(function(mr,mi){
-    html+='<tr class="r-rep">';
-    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">TG</div><span style="font-weight:700;font-size:12px">Trupti Gore</span></div></td>';
-    html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
-    var tot=getTot(mr.id);
-    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'—')+'</td>';
-    months.forEach(function(m){
-      var v=getVal(m,mr.id);
-      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'—')+'</td>';
-    });
-    html+='</tr>';
-  });
-
-  html+='</tbody></table>';
-  document.getElementById('fin-twrap').innerHTML=html;
-}
-// ════════════════════════════════════════════════════════════════
 
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -707,7 +401,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <option value="Air">Air Freight</option>
         <option value="General">General</option>
       </select>
-      <span class="flbl">Rep</span>
+      <span class="flbl" id="repFLabel">Rep</span>
       <select class="fsel" id="repF" onchange="render()" style="min-width:88px">
         <option value="all">All Reps</option>
       </select>
@@ -1621,11 +1315,24 @@ function restorePanelFilters(name){
   var saved = panelFilters[name];
   if(!saved) return;
 
-  // Restore LOB and Rep
+  // Restore LOB and Rep — swap options based on panel
   var lobEl = document.getElementById('lobF');
   var repEl = document.getElementById('repF');
+  var repLbl = document.getElementById('repFLabel');
   if(lobEl) lobEl.value = saved.lob || 'all';
-  if(repEl) repEl.value = saved.rep || 'all';
+
+  if(name === 'ops'){
+    // Swap to Job Operators
+    swapRepFilter('operator');
+    if(repEl) repEl.value = saved.rep || 'all';
+  } else if(name === 'finance'){
+    // Finance pendency - no rep filter needed, hide it
+    swapRepFilter('none');
+  } else {
+    // Sales reps for all other panels
+    swapRepFilter('sales');
+    if(repEl) repEl.value = saved.rep || 'all';
+  }
 
   // Restore date range
   var fromEl = document.getElementById('fromM');
@@ -2157,11 +1864,359 @@ function buildTLMonthlySection(tl, allTL, months, isGrand, lobFilter){
 }
 
 
+function swapRepFilter(mode){
+  var repEl  = document.getElementById('repF');
+  var repLbl = document.getElementById('repFLabel');
+  if(!repEl) return;
+  repEl.innerHTML = ''; // clear all options
+
+  if(mode === 'none'){
+    // Hide the filter entirely for finance
+    repEl.parentElement.style.display='none';
+    return;
+  }
+  repEl.parentElement.style.display='flex';
+
+  if(mode === 'operator'){
+    if(repLbl) repLbl.textContent = 'Operator';
+    repEl.innerHTML = '<option value="all">All Operators</option>';
+    // Get unique operators from PEND_RAW
+    var ops = [...new Set(PEND_RAW.map(function(r){return r.operator;}))].filter(Boolean).sort();
+    ops.forEach(function(op){
+      var o=document.createElement('option'); o.value=o.textContent=op; repEl.appendChild(o);
+    });
+  } else {
+    // Sales reps
+    if(repLbl) repLbl.textContent = 'Rep';
+    repEl.innerHTML = '<option value="all">All Reps</option>';
+    ALL_REPS.forEach(function(r){
+      var o=document.createElement('option'); o.value=o.textContent=r; repEl.appendChild(o);
+    });
+    // Re-apply locked reps for non-admin
+    if(allowedReps.length>0){
+      Array.from(repEl.options).forEach(function(o){
+        if(o.value!=='all' && allowedReps.indexOf(o.value)<0) o.remove();
+      });
+    }
+  }
+}
+
 function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
 function setOv(show,msg){document.getElementById('overlay').style.display=show?'flex':'none';if(msg)document.getElementById('ovtxt').textContent=msg;}
 function showErr(msg){const e=document.getElementById('ebar');e.textContent='⚠ '+msg;e.style.display='block';}
 function hideErr(){document.getElementById('ebar').style.display='none';}
 
 
+
+
+// ═══════════════════════════════════════════════════════════════
+// PENDENCY MODULE — Ops & Finance
+// ═══════════════════════════════════════════════════════════════
+var PEND_RAW   = [];
+var opsInited  = false;
+var finInited  = false;
+var opsView    = 'pivot';
+var finView    = 'pivot';
+
+var MONTHS_LIST = [
+  'January-2025','February-2025','March-2025','April-2025','May-2025','June-2025',
+  'July-2025','August-2025','September-2025','October-2025','November-2025','December-2025',
+  'January-2026','February-2026','March-2026'
+];
+
+// ── OPS PENDENCY ─────────────────────────────────────────────────────────────
+// Open  = INV / WRK (ops not locked)
+// Closed = CMP (ops locked, finance pending)
+// Total  = CLS + CMP + INV + WRK (all non-blank)
+
+function initOps(){
+  var saved = panelFilters['ops']||{};
+  opsView = saved.opsView||'pivot';
+  var pvBtn=document.getElementById('ops-view-pivot');
+  var moBtn=document.getElementById('ops-view-monthly');
+  if(pvBtn) pvBtn.className='tog'+(opsView==='pivot'?' active':'');
+  if(moBtn) moBtn.className='tog'+(opsView==='monthly'?' active':'');
+  document.getElementById('ops-view-pivot').onclick=function(){ opsView='pivot'; panelFilters['ops'].opsView='pivot'; this.className='tog active'; document.getElementById('ops-view-monthly').className='tog'; renderOps(); };
+  document.getElementById('ops-view-monthly').onclick=function(){ opsView='monthly'; panelFilters['ops'].opsView='monthly'; this.className='tog active'; document.getElementById('ops-view-pivot').className='tog'; renderOps(); };
+  renderOps();
+}
+
+function initFin(){
+  var saved = panelFilters['finance']||{};
+  finView = saved.finView||'pivot';
+  var pvBtn=document.getElementById('fin-view-pivot');
+  var moBtn=document.getElementById('fin-view-monthly');
+  if(pvBtn) pvBtn.className='tog'+(finView==='pivot'?' active':'');
+  if(moBtn) moBtn.className='tog'+(finView==='monthly'?' active':'');
+  document.getElementById('fin-view-pivot').onclick=function(){ finView='pivot'; panelFilters['finance'].finView='pivot'; this.className='tog active'; document.getElementById('fin-view-monthly').className='tog'; renderFin(); };
+  document.getElementById('fin-view-monthly').onclick=function(){ finView='monthly'; panelFilters['finance'].finView='monthly'; this.className='tog active'; document.getElementById('fin-view-pivot').className='tog'; renderFin(); };
+  renderFin();
+}
+
+function getPendFilters(){
+  var lob      = (document.getElementById('lobF')||{}).value||'all';
+  var operator = (document.getElementById('repF')||{}).value||'all';
+  var from     = (document.getElementById('fromM')||{}).value||'April-2025';
+  var to       = (document.getElementById('toM')||{}).value||'March-2026';
+  var fi = MONTHS_LIST.indexOf(from), ti = MONTHS_LIST.indexOf(to);
+  var months = (fi>=0&&ti>=0) ? MONTHS_LIST.slice(fi,ti+1) : MONTHS_LIST;
+  return {lob:lob, operator:operator, months:months, from:from, to:to};
+}
+
+function pendFilter(row, lob, months, operator){
+  if(months.indexOf(row.month)<0) return false;
+  if(lob!=='all' && row.lob!==lob) return false;
+  if(operator && operator!=='all' && row.operator!==operator) return false;
+  return true;
+}
+
+function renderOps(){
+  var wrap=document.getElementById('ops-twrap'); if(!wrap) return;
+  var f=getPendFilters();
+  var lob=f.lob, months=f.months;
+  var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
+
+  // All non-blank rows in date range
+  var operator = f.operator;
+  var allRows = PEND_RAW.filter(function(r){ return pendFilter(r,lob,months,operator); });
+  var openRows   = allRows.filter(function(r){ return r.status==='INV'||r.status==='WRK'; });
+  var closedRows = allRows.filter(function(r){ return r.status==='CMP'; });
+
+  // KPI cards
+  setText('ops-k-open',   openRows.length.toLocaleString());
+  setText('ops-k-closed', closedRows.length.toLocaleString());
+  setText('ops-k-total',  allRows.length.toLocaleString());
+  setText('ops-tbl-sub',  opsView==='pivot'?'Pivot':'Monthly');
+  setText('ops-tbl-meta', fromShort);
+
+  if(opsView==='pivot') renderOpsPivot(allRows, openRows, closedRows);
+  else renderOpsMonthly(allRows, months, fromShort);
+}
+
+function renderOpsPivot(allRows, openRows, closedRows){
+  // Group by operator
+  var operators = {};
+  allRows.forEach(function(r){
+    if(!operators[r.operator]) operators[r.operator]={open:0,closed:0,total:0};
+    operators[r.operator].total++;
+    if(r.status==='INV'||r.status==='WRK') operators[r.operator].open++;
+    if(r.status==='CMP') operators[r.operator].closed++;
+  });
+
+  // Sort by open jobs desc then total desc
+  var opList = Object.keys(operators).sort(function(a,b){
+    return (operators[b].open - operators[a].open) || (operators[b].total - operators[a].total);
+  });
+
+  var gOpen=openRows.length, gClosed=closedRows.length, gTotal=allRows.length;
+
+  var html = '<table><thead><tr>'
+    + '<th class="h-rep" style="min-width:160px">Job Operator</th>'
+    + '<th style="text-align:right;min-width:100px;color:var(--red)">Open Jobs</th>'
+    + '<th style="text-align:right;min-width:100px;color:var(--green)">Closed Jobs</th>'
+    + '<th style="text-align:right;min-width:100px">Total Jobs</th>'
+    + '</tr></thead><tbody>';
+
+  // Grand Total
+  html += '<tr class="r-grand">'
+    + '<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'—')+'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'—')+'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700">'+gTotal+'</td>'
+    + '</tr><tr class="grand-sep"><td colspan="4"></td></tr>';
+
+  opList.forEach(function(op){
+    var d=operators[op];
+    var initl=op.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+    html += '<tr class="r-rep">'
+      + '<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(op)+'">'+initl+'</div><span>'+op+'</span></div></td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'—')+'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'—')+'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
+      + '</tr>';
+    html += '<tr style="height:3px"><td colspan="4" style="background:var(--border-l);padding:0"></td></tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('ops-twrap').innerHTML = html;
+}
+
+function renderOpsMonthly(allRows, months, periodLbl){
+  // Group by operator × month
+  var operators = {};
+  allRows.forEach(function(r){
+    if(!operators[r.operator]) operators[r.operator]={};
+    if(!operators[r.operator][r.month]) operators[r.operator][r.month]={open:0,closed:0,total:0};
+    operators[r.operator][r.month].total++;
+    if(r.status==='INV'||r.status==='WRK') operators[r.operator][r.month].open++;
+    if(r.status==='CMP') operators[r.operator][r.month].closed++;
+  });
+
+  var opList = Object.keys(operators).sort(function(a,b){
+    var ta=Object.values(operators[a]).reduce(function(s,v){return s+v.total;},0);
+    var tb=Object.values(operators[b]).reduce(function(s,v){return s+v.total;},0);
+    return tb-ta;
+  });
+
+  var nCols = 2 + months.length;
+  var ROWS=[{id:'open',lbl:'Open Jobs',color:'var(--red)'},{id:'closed',lbl:'Closed Jobs',color:'var(--green)'},{id:'total',lbl:'Total Jobs',color:'var(--text)'}];
+
+  var html='<table><thead><tr>'
+    +'<th class="h-rep">Job Operator</th>'
+    +'<th class="h-metric">Metric</th>'
+    +'<th class="h-total">Total<br><span style="font-size:9px;font-weight:400;color:var(--orange)">'+periodLbl+'</span></th>'
+    +months.map(function(m){return '<th style="text-align:right;min-width:80px">'+(MS[m]||m)+'</th>';}).join('')
+    +'</tr></thead><tbody>';
+
+  // Grand total at top
+  html += buildPendSection('Grand Total', operators, opList, months, ROWS, true);
+  html += '<tr class="grand-sep"><td colspan="'+nCols+'"></td></tr>';
+
+  opList.forEach(function(op){
+    html += buildPendSection(op, operators, null, months, ROWS, false);
+    html += '<tr class="r-sep"><td colspan="'+nCols+'"></td></tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('ops-twrap').innerHTML = html;
+}
+
+function buildPendSection(name, operators, allOps, months, ROWS, isGrand){
+  var rc   = isGrand?'r-grand':'r-rep';
+  var avBg = isGrand?'background:linear-gradient(135deg,#2563eb,#7c3aed)':'background:'+rclr(name);
+  var initl= isGrand?'GT':name.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+
+  function getVal(m,field){
+    if(isGrand) return allOps.reduce(function(s,op){ var c=operators[op]&&operators[op][m]; return s+(c?c[field]:0); },0);
+    var c=operators[name]&&operators[name][m]; return c?(c[field]||0):0;
+  }
+  function getTot(field){return months.reduce(function(s,m){return s+getVal(m,field);},0);}
+
+  var html='';
+  ROWS.forEach(function(mr,mi){
+    html+='<tr class="'+rc+'">';
+    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">'+initl+'</div><span style="font-weight:700;font-size:12px">'+name+'</span></div></td>';
+    html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
+    var tot=getTot(mr.id);
+    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'—')+'</td>';
+    months.forEach(function(m){
+      var v=getVal(m,mr.id);
+      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'—')+'</td>';
+    });
+    html+='</tr>';
+  });
+  return html;
+}
+
+// ── FINANCE PENDENCY ─────────────────────────────────────────────────────────
+// Open   = CMP (finance pending)
+// Closed = CLS (finance locked)
+// Total  = all non-blank
+
+function renderFin(){
+  var wrap=document.getElementById('fin-twrap'); if(!wrap) return;
+  var f=getPendFilters();
+  var lob=f.lob, months=f.months;
+  var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
+
+  var allRows    = PEND_RAW.filter(function(r){ return pendFilter(r,lob,months,null); });
+  var openRows   = allRows.filter(function(r){ return r.status==='CMP'; });
+  var closedRows = allRows.filter(function(r){ return r.status==='CLS'; });
+
+  setText('fin-k-open',   openRows.length.toLocaleString());
+  setText('fin-k-closed', closedRows.length.toLocaleString());
+  setText('fin-k-total',  allRows.length.toLocaleString());
+  setText('fin-tbl-sub',  finView==='pivot'?'Pivot':'Monthly');
+  setText('fin-tbl-meta', fromShort);
+
+  if(finView==='pivot') renderFinPivot(allRows, openRows, closedRows);
+  else renderFinMonthly(allRows, months, fromShort);
+}
+
+function renderFinPivot(allRows, openRows, closedRows){
+  // Group by sales rep (not job operator — finance view)
+  var reps = {};
+  allRows.forEach(function(r){
+    if(!reps[r.rep]) reps[r.rep]={open:0,closed:0,total:0};
+    reps[r.rep].total++;
+    if(r.status==='CMP') reps[r.rep].open++;
+    if(r.status==='CLS') reps[r.rep].closed++;
+  });
+
+  var repList = Object.keys(reps).sort(function(a,b){ return reps[b].open-reps[a].open||reps[b].total-reps[a].total; });
+  var gOpen=openRows.length, gClosed=closedRows.length, gTotal=allRows.length;
+
+  var html='<table><thead><tr>'
+    +'<th class="h-rep" style="min-width:160px">Sales Rep</th>'
+    +'<th style="text-align:right;min-width:100px;color:var(--red)">Open Jobs</th>'
+    +'<th style="text-align:right;min-width:100px;color:var(--green)">Closed Jobs</th>'
+    +'<th style="text-align:right;min-width:100px">Total Jobs</th>'
+    +'</tr></thead><tbody>';
+
+  html+='<tr class="r-grand">'
+    +'<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
+    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'—')+'</td>'
+    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'—')+'</td>'
+    +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+gTotal+'</td>'
+    +'</tr><tr class="grand-sep"><td colspan="4"></td></tr>';
+
+  repList.forEach(function(rep){
+    var d=reps[rep];
+    var initl=rep.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+    html+='<tr class="r-rep">'
+      +'<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(rep)+'">'+initl+'</div><span>'+rep+'</span></div></td>'
+      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'—')+'</td>'
+      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'—')+'</td>'
+      +'<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
+      +'</tr>';
+    html+='<tr style="height:3px"><td colspan="4" style="background:var(--border-l);padding:0"></td></tr>';
+  });
+
+  html+='</tbody></table>';
+  document.getElementById('fin-twrap').innerHTML=html;
+}
+
+function renderFinMonthly(allRows, months, periodLbl){
+  // Finance rep = Trupti Gore (single row) grouped by month
+  var byMonth = {};
+  months.forEach(function(m){ byMonth[m]={open:0,closed:0,total:0}; });
+  allRows.forEach(function(r){
+    if(!byMonth[r.month]) byMonth[r.month]={open:0,closed:0,total:0};
+    byMonth[r.month].total++;
+    if(r.status==='CMP') byMonth[r.month].open++;
+    if(r.status==='CLS') byMonth[r.month].closed++;
+  });
+
+  var nCols=2+months.length;
+  var ROWS=[{id:'open',lbl:'Open Jobs',color:'var(--red)'},{id:'closed',lbl:'Closed Jobs',color:'var(--green)'},{id:'total',lbl:'Total Jobs',color:'var(--text)'}];
+
+  function getVal(m,field){ return byMonth[m]?(byMonth[m][field]||0):0; }
+  function getTot(field){ return months.reduce(function(s,m){return s+getVal(m,field);},0); }
+
+  var html='<table><thead><tr>'
+    +'<th class="h-rep">Finance Rep</th>'
+    +'<th class="h-metric">Metric</th>'
+    +'<th class="h-total">Total<br><span style="font-size:9px;font-weight:400;color:var(--orange)">'+periodLbl+'</span></th>'
+    +months.map(function(m){return '<th style="text-align:right;min-width:80px">'+(MS[m]||m)+'</th>';}).join('')
+    +'</tr></thead><tbody>';
+
+  var avBg='background:linear-gradient(135deg,#0891b2,#0d9488)';
+  ROWS.forEach(function(mr,mi){
+    html+='<tr class="r-rep">';
+    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">TG</div><span style="font-weight:700;font-size:12px">Trupti Gore</span></div></td>';
+    html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
+    var tot=getTot(mr.id);
+    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'—')+'</td>';
+    months.forEach(function(m){
+      var v=getVal(m,mr.id);
+      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'—')+'</td>';
+    });
+    html+='</tr>';
+  });
+
+  html+='</tbody></table>';
+  document.getElementById('fin-twrap').innerHTML=html;
+}
+// ════════════════════════════════════════════════════════════════
 
 </script>
