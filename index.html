@@ -1050,8 +1050,9 @@ function applyWeekFilters(lob,repF,weeks){
 function updateKPIs(data,months){
   let rev=0,gp=0,tf=0,tt=0,tons=0;
   Object.values(data).forEach(rd=>months.forEach(m=>{const c=rd[m]||{};rev+=c.rev||0;gp+=c.gp||0;tf+=c.teuFCL||0;tt+=c.teuTank||0;tons+=c.tons||0;}));
-  // Target respects rep filter — only sum targets for visible reps
-  const visibleReps=repF==='all'?Object.keys(REP_TARGETS):[repF];
+  // Read repF from DOM directly (it's local to render(), not global)
+  const _repF=document.getElementById('repF').value;
+  const visibleReps=_repF==='all'?Object.keys(REP_TARGETS):[_repF];
   const mTgt=visibleReps.reduce((a,r)=>a+(REP_TARGETS[r]||0),0);
   setText('k-rev','$'+Math.round(rev).toLocaleString());
   setText('k-tgt','$'+Math.round(mTgt*months.length).toLocaleString());
@@ -1065,7 +1066,8 @@ function updateKPIs(data,months){
 function updateKPIsWeekly(data,weeks){
   let rev=0,gp=0,tf=0,tt=0,tons=0;
   Object.values(data).forEach(rd=>weeks.forEach(wk=>{const c=rd[wk]||{};rev+=c.rev||0;gp+=c.gp||0;tf+=c.teuFCL||0;tt+=c.teuTank||0;tons+=c.tons||0;}));
-  const visibleRepsW=repF==='all'?Object.keys(REP_WEEKLY_TARGETS):[repF];
+  const _repFW=document.getElementById('repF').value;
+  const visibleRepsW=_repFW==='all'?Object.keys(REP_WEEKLY_TARGETS):[_repFW];
   const wTgt=visibleRepsW.reduce((a,r)=>a+(REP_WEEKLY_TARGETS[r]||0),0);
   setText('k-rev','$'+Math.round(rev).toLocaleString());
   setText('k-tgt','$'+Math.round(wTgt*weeks.length).toLocaleString());
@@ -1096,8 +1098,9 @@ function renderTable(data,months,from,to){
   const reps=Object.keys(data).sort();
   const grand={};months.forEach(m=>grand[m]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
   reps.forEach(rep=>months.forEach(m=>{const c=data[rep][m];grand[m].teuFCL+=c.teuFCL;grand[m].teuTank+=c.teuTank;grand[m].tons+=c.tons;grand[m].rev+=c.rev;grand[m].gp+=c.gp;}));
-  // Grand total target: only sum targets for reps currently shown
-  const visReps=repF==='all'?Object.keys(REP_TARGETS):[repF];
+  // Grand total target: read repF from DOM, sum only visible reps
+  const _repFT=document.getElementById('repF').value;
+  const visReps=_repFT==='all'?reps:reps.filter(r=>r===_repFT);
   const gTgt=visReps.reduce((a,r)=>a+(REP_TARGETS[r]||0),0)*months.length;
   let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">FY Total</th>${months.map(m=>`<th>${MS[m]||m}</th>`).join('')}</tr></thead><tbody>`;
   html+=buildRows(grand,months,'Grand Total',gTgt,true,false,reps);
@@ -1114,7 +1117,9 @@ function renderTableWeekly(data,weeks){
   const reps=Object.keys(data).sort();
   const grand={};weeks.forEach(wk=>grand[wk]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
   reps.forEach(rep=>weeks.forEach(wk=>{const c=data[rep][wk]||{};grand[wk].teuFCL+=(c.teuFCL||0);grand[wk].teuTank+=(c.teuTank||0);grand[wk].tons+=(c.tons||0);grand[wk].rev+=(c.rev||0);grand[wk].gp+=(c.gp||0);}));
-  const wTgt=Object.values(REP_WEEKLY_TARGETS).reduce((a,b)=>a+b,0)*weeks.length;
+  const _repFW2=document.getElementById('repF').value;
+  const _visRepsW=_repFW2==='all'?reps:reps.filter(r=>r===_repFW2);
+  const wTgt=_visRepsW.reduce((a,r)=>a+(REP_WEEKLY_TARGETS[r]||0),0)*weeks.length;
   let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">5-Wk Total</th>${weeks.map(wk=>`<th style="min-width:130px">${WKINFO[wk]?.label||wk}</th>`).join('')}</tr></thead><tbody>`;
   html+=buildRows(grand,weeks,'Grand Total',wTgt,true,true,reps);
   html+=`<tr class="grand-sep">${'<td></td>'.repeat(3+weeks.length)}</tr>`;
@@ -1145,7 +1150,7 @@ function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly,visibleReps){
     keys.forEach(k=>{
       const c=mData[k]||{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
       // Per-month target: use visibleReps for grand row (mData keys are months not reps)
-      const _vr = isGrand ? (visibleReps||Object.keys(REP_TARGETS)) : null;
+      const _vr = isGrand ? (visibleReps||reps||Object.keys(REP_TARGETS)) : null;
       const perTgt=isWeekly
         ?(isGrand?_vr.reduce((a,r)=>a+(REP_WEEKLY_TARGETS[r]||0),0):(REP_WEEKLY_TARGETS[repName]||0))
         :(isGrand?_vr.reduce((a,r)=>a+(REP_TARGETS[r]||0),0)       :(REP_TARGETS[repName]||0));
