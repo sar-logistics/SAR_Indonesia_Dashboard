@@ -1100,9 +1100,9 @@ function renderTable(data,months,from,to){
   const visReps=repF==='all'?Object.keys(REP_TARGETS):[repF];
   const gTgt=visReps.reduce((a,r)=>a+(REP_TARGETS[r]||0),0)*months.length;
   let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">FY Total</th>${months.map(m=>`<th>${MS[m]||m}</th>`).join('')}</tr></thead><tbody>`;
-  html+=buildRows(grand,months,'Grand Total',gTgt,true,false);
+  html+=buildRows(grand,months,'Grand Total',gTgt,true,false,reps);
   html+=`<tr class="grand-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;
-  reps.forEach(rep=>{html+=buildRows(data[rep],months,rep,(REP_TARGETS[rep]||0)*months.length,false,false);html+=`<tr class="r-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;});
+  reps.forEach(rep=>{html+=buildRows(data[rep],months,rep,(REP_TARGETS[rep]||0)*months.length,false,false,null);html+=`<tr class="r-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;});
   html+='</tbody></table>';
   document.getElementById('twrap').innerHTML=html;
 }
@@ -1116,14 +1116,14 @@ function renderTableWeekly(data,weeks){
   reps.forEach(rep=>weeks.forEach(wk=>{const c=data[rep][wk]||{};grand[wk].teuFCL+=(c.teuFCL||0);grand[wk].teuTank+=(c.teuTank||0);grand[wk].tons+=(c.tons||0);grand[wk].rev+=(c.rev||0);grand[wk].gp+=(c.gp||0);}));
   const wTgt=Object.values(REP_WEEKLY_TARGETS).reduce((a,b)=>a+b,0)*weeks.length;
   let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">5-Wk Total</th>${weeks.map(wk=>`<th style="min-width:130px">${WKINFO[wk]?.label||wk}</th>`).join('')}</tr></thead><tbody>`;
-  html+=buildRows(grand,weeks,'Grand Total',wTgt,true,true);
+  html+=buildRows(grand,weeks,'Grand Total',wTgt,true,true,reps);
   html+=`<tr class="grand-sep">${'<td></td>'.repeat(3+weeks.length)}</tr>`;
-  reps.forEach(rep=>{html+=buildRows(data[rep],weeks,rep,(REP_WEEKLY_TARGETS[rep]||0)*weeks.length,false,true);html+=`<tr class="r-sep">${'<td></td>'.repeat(3+weeks.length)}</tr>`;});
+  reps.forEach(rep=>{html+=buildRows(data[rep],weeks,rep,(REP_WEEKLY_TARGETS[rep]||0)*weeks.length,false,true,null);html+=`<tr class="r-sep">${'<td></td>'.repeat(3+weeks.length)}</tr>`;});
   html+='</tbody></table>';
   document.getElementById('twrap').innerHTML=html;
 }
 
-function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly){
+function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly,visibleReps){
   const exp=teuExp[repName]!==false;
   const hasTgt=!isGrand&&(isWeekly?REP_WEEKLY_TARGETS[repName]:REP_TARGETS[repName])>0;
   let totF=0,totT=0,totTons=0,totRev=0,totGP=0;
@@ -1139,13 +1139,13 @@ function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly){
     let lbl=mr.lbl;
     if(mr.teu)lbl=`<button class="teubtn${exp?' open':''}" onclick="toggleTEU('${repName}')"><span class="arr">${exp?'▼':'▶'}</span> TEUs</button>`;
     html+=`<td class="c-metric${mr.sub?' sub':''}">${lbl}</td>`;
-    const periodTgt=isWeekly?Object.values(REP_WEEKLY_TARGETS).reduce((a,b)=>a+b,0)*keys.length:totalTgt;
+    const periodTgt=totalTgt; // totalTgt already correctly scoped to visible reps
     const fv=cVal(mr,totF,totT,totTons,totRev,totGP,isGrand?periodTgt:totalTgt,totVar,hasTgt,isGrand);
     html+=`<td class="c-total ${mr.cls}${fv.x?` ${fv.x}`:''}">${fv.v}</td>`;
     keys.forEach(k=>{
       const c=mData[k]||{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-      // Per-month target: for Grand row sum only reps in current data, not all reps
-      const _vr=Object.keys(mData||{});
+      // Per-month target: use visibleReps for grand row (mData keys are months not reps)
+      const _vr = isGrand ? (visibleReps||Object.keys(REP_TARGETS)) : null;
       const perTgt=isWeekly
         ?(isGrand?_vr.reduce((a,r)=>a+(REP_WEEKLY_TARGETS[r]||0),0):(REP_WEEKLY_TARGETS[repName]||0))
         :(isGrand?_vr.reduce((a,r)=>a+(REP_TARGETS[r]||0),0)       :(REP_TARGETS[repName]||0));
