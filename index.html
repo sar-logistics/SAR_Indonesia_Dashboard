@@ -945,18 +945,21 @@ function getSelfRep(){
 
 // Returns the effective rep filter based on role + repF selection
 function getEffectiveRepFilter(repF){
+  // Returns: 'all' = no restriction, or array of permitted rep names
   if(isFullAccess()){
-    return repF==='all' ? null : [repF];
+    // Admin / co-admin / regional manager: full access
+    return repF==='all' ? 'all' : [repF];
   }
   // Non-full-access: manager/viewer
   const selfRep = getSelfRep();
   const permitted = allowedReps.length>0 ? allowedReps : (selfRep ? [selfRep] : []);
   if(repF==='all'){
-    return permitted.length>0 ? permitted : null; // return null means see all (shouldn't happen for restricted)
+    // Return permitted list (never 'all' for restricted users)
+    return permitted.length>0 ? permitted : [];
   }
-  // Specific rep selected — only if permitted
+  // Specific rep selected — only if in permitted list
   if(permitted.length===0 || permitted.includes(repF)) return [repF];
-  return permitted;
+  return permitted; // fallback: their permitted reps
 }
 
 // ═══════════════════════════════════════════════
@@ -1202,8 +1205,8 @@ function getMonths(from,to){
 function applyFilters(lob,repF,months){
   const out={};
   const effRep=getEffectiveRepFilter(repF);
-  // Resolve to array: null=all, array=specific reps
-  const repsArr=Array.isArray(effRep)?effRep:(effRep==='all'?null:[effRep]);
+  // effRep is 'all' (no restriction) or array of permitted reps
+  const repsArr=effRep==='all'?null:(Array.isArray(effRep)?effRep:[effRep]);
   if(lob==='General'){
     const allGenReps=[...new Set([...Object.keys(DATA),...Object.keys(GDATA)])];
     const reps=repsArr?allGenReps.filter(r=>repsArr.includes(r)):allGenReps;
@@ -1229,15 +1232,17 @@ function applyFilters(lob,repF,months){
 
 function applyWeekFilters(lob,repF,weeks){
   const out={};
-  const effRep=getEffectiveRepFilter(repF);
-  const repsArr=Array.isArray(effRep)?effRep:(effRep==='all'?null:[effRep]);
+  const _wkEff0=getEffectiveRepFilter(repF);
+  const _wkArr0=_wkEff0==='all'?null:(Array.isArray(_wkEff0)?_wkEff0:[_wkEff0]);
   if(lob==='General'){
-    const r2=repsArr?Object.keys(DATA).filter(r=>repsArr.includes(r)):Object.keys(DATA);
+    const r2=_wkArr0?Object.keys(DATA).filter(r=>_wkArr0.includes(r)):Object.keys(DATA);
     r2.forEach(rep=>{out[rep]={};weeks.forEach(wk=>{out[rep][wk]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};});});
     return out;
   }
   const allWkReps=Object.keys(WKDATA);
-  const reps=repsArr?allWkReps.filter(r=>repsArr.includes(r)):allWkReps;
+  const wkEff=getEffectiveRepFilter(repF);
+  const wkArr=wkEff==='all'?null:(Array.isArray(wkEff)?wkEff:[wkEff]);
+  const reps=wkArr?allWkReps.filter(r=>wkArr.includes(r)):allWkReps;
   reps.forEach(rep=>{
     out[rep]={};
     weeks.forEach(wk=>{
@@ -1260,7 +1265,7 @@ function updateKPIs(data,months){
   const _repF=document.getElementById('repF').value;
   const _effR=getEffectiveRepFilter(_repF);
   const _allTgtReps=Object.keys(REP_TARGETS);
-  const visibleReps=_effR===null?_allTgtReps:_allTgtReps.filter(r=>_effR.includes(r));
+  const visibleReps=_effR==='all'?_allTgtReps:(Array.isArray(_effR)?_allTgtReps.filter(r=>_effR.includes(r)):_allTgtReps);
   const mTgt=visibleReps.reduce((a,r)=>a+(REP_TARGETS[r]||0),0);
   setText('k-rev','$'+Math.round(rev).toLocaleString());
   setText('k-tgt','$'+Math.round(mTgt*months.length).toLocaleString());
@@ -1277,7 +1282,7 @@ function updateKPIsWeekly(data,weeks){
   const _repFW=document.getElementById('repF').value;
   const _effRW=getEffectiveRepFilter(_repFW);
   const _allWkReps=Object.keys(REP_WEEKLY_TARGETS);
-  const visibleRepsW=_effRW===null?_allWkReps:_allWkReps.filter(r=>_effRW.includes(r));
+  const visibleRepsW=_effRW==='all'?_allWkReps:(Array.isArray(_effRW)?_allWkReps.filter(r=>_effRW.includes(r)):_allWkReps);
   const wTgt=visibleRepsW.reduce((a,r)=>a+(REP_WEEKLY_TARGETS[r]||0),0);
   setText('k-rev','$'+Math.round(rev).toLocaleString());
   setText('k-tgt','$'+Math.round(wTgt*weeks.length).toLocaleString());
@@ -1311,7 +1316,7 @@ function renderTable(data,months,from,to){
   // Grand total target: only sum targets for reps in current filtered view
   const _repFT=document.getElementById('repF').value;
   const _effRT=getEffectiveRepFilter(_repFT);
-  const visReps=_effRT===null?reps:reps.filter(r=>_effRT.includes(r));
+  const visReps=_effRT==='all'?reps:(Array.isArray(_effRT)?reps.filter(r=>_effRT.includes(r)):reps);
   const gTgt=visReps.reduce((a,r)=>a+(REP_TARGETS[r]||0),0)*months.length;
     let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">FY Total</th>${months.map(m=>`<th>${MS[m]||m}</th>`).join('')}</tr></thead><tbody>`;
   html+=buildRows(grand,months,'Grand Total',gTgt,true,false,reps);
