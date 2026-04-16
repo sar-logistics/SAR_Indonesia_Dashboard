@@ -439,7 +439,6 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       </select>
       <span class="flbl" id="repFLabel">Rep</span>
       <select class="fsel" id="repF" onchange="render()" style="min-width:88px">
-        <option value="all">All Reps</option>
       </select>
     </div>
 
@@ -550,13 +549,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="fin-k-closed">—</div><div class="kpi-sub">Finance locked · CLS</div></div>
           <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="fin-k-total">—</div><div class="kpi-sub">All valid records</div></div>
         </div>
-        <!-- FINANCE VIEW TOGGLE -->
-        <div style="display:flex;align-items:center;flex-shrink:0">
-          <div class="toggles">
-            <button class="tog active" id="fin-view-pivot">Pivot</button>
-            <button class="tog" id="fin-view-monthly">Monthly</button>
-          </div>
-        </div>
+        <!-- FINANCE VIEW: Monthly only -->
         <!-- FINANCE TABLE CARD -->
         <div class="tcard" style="flex:1">
           <div class="thead-bar">
@@ -809,15 +802,33 @@ function doSignOut(){
   });
 }
 
+// Returns true only for roles that can see ALL reps
+function isFullAccess(){
+  const r = (currentRole||'').toLowerCase();
+  return r === 'admin' || r === 'co-admin' || r === 'regional manager';
+}
+
+// Returns the effective allowed reps for this user:
+// - Full access roles: [] means all reps
+// - Manager/Viewer with assigned reps: those reps
+// - Manager/Viewer with NO assigned reps: empty means only self
+//   (but we don't know their rep name here, handled in applyFilters)
+function effectiveAllowedReps(){
+  if(isFullAccess()) return []; // unrestricted
+  return allowedReps; // could be empty = "no one" (self-only, handled via currentUser email)
+}
+
 function lockRepFilter(){
   const sel = document.getElementById('repF');
-  if(allowedReps.length===0) return; // admin/manager sees all
-  // Remove options not in allowedReps
+  if(isFullAccess()) return; // admin/regional manager — no restrictions
+
+  // Restricted users: remove "All Reps" — they never see aggregate data
   Array.from(sel.options).forEach(o=>{
-    if(o.value!=='all' && !allowedReps.includes(o.value)){
-      o.remove();
-    }
+    if(o.value==='all'){ o.remove(); return; }
+    if(allowedReps.length>0 && !allowedReps.includes(o.value)) o.remove();
   });
+
+  if(sel.options.length>0) sel.value=sel.options[0].value;
 }
 
 // ═══════════════════════════════════════════════
@@ -866,11 +877,12 @@ let period='monthly',teuExp={},sidebarOpen=true;
 
 // ── PER-DASHBOARD FILTER MEMORY ──────────────────────────────
 // Each panel remembers its own: lob, rep, period, fromM, toM
+// panelFilters.rep default is set after login based on role
 var panelFilters = {
-  sales:     {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
-  tradelane: {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026'},
-  ops:       {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026', opsView:'pivot'},
-  finance:   {lob:'all', rep:'all', period:'monthly', from:'April-2025', to:'March-2026', finView:'pivot'},
+  sales:     {lob:'all', rep:'__INIT__', period:'monthly', from:'April-2025', to:'March-2026'},
+  tradelane: {lob:'all', rep:'__INIT__', period:'monthly', from:'April-2025', to:'March-2026'},
+  ops:       {lob:'all', rep:'__INIT__', period:'monthly', from:'April-2025', to:'March-2026', opsView:'pivot'},
+  finance:   {lob:'all', rep:'__INIT__', period:'monthly', from:'April-2025', to:'March-2026', finView:'pivot'},
 };
 var currentPanel = 'sales';
 
@@ -882,10 +894,69 @@ function buildSelectors(){
   if(f.options.length>0) return; // already built
   MONTHS.forEach(m=>{f.innerHTML+=`<option value="${m}">${MS[m]}</option>`;t.innerHTML+=`<option value="${m}">${MS[m]}</option>`;});
   f.value='April-2025';t.value='March-2026';
-  // Rep filter
+  // Rep filter — only full-access roles see "All Reps"
   const rs=document.getElementById('repF');
-  const reps=allowedReps.length>0?allowedReps:ALL_REPS;
-  reps.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
+  if(isFullAccess()){
+    // Admin / co-admin / regional manager: All Reps + individual selection
+    const allOpt=document.createElement('option');
+    allOpt.value='all';allOpt.textContent='All Reps';
+    rs.appendChild(allOpt);
+    ALL_REPS.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
+  } else if(allowedReps.length>0){
+    // Manager/Viewer with specific reps assigned: only those reps
+    allowedReps.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
+    if(rs.options.length>0) rs.value=rs.options[0].value;
+  } else {
+    // Manager/Viewer with NO reps assigned: only their own name
+    // We match their display name to a sales rep via email name part
+    const selfRep = getSelfRep();
+    if(selfRep){
+      const o=document.createElement('option');o.value=o.textContent=selfRep;rs.appendChild(o);
+    } else {
+      // Fallback: show all reps but enforce restriction at data level
+      ALL_REPS.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
+    }
+    if(rs.options.length>0) rs.value=rs.options[0].value;
+  }
+  // Initialise all panelFilter rep defaults now that dropdown is built
+  const defaultRep = isFullAccess() ? 'all' : (rs.options.length>0 ? rs.options[0].value : 'all');
+  Object.keys(panelFilters).forEach(p=>{
+    if(panelFilters[p].rep==='__INIT__') panelFilters[p].rep=defaultRep;
+  });
+}
+
+// Get the sales rep name that matches the current logged-in user
+// Used for manager/viewer with no reps assigned — they see only themselves
+function getSelfRep(){
+  if(!currentUser) return null;
+  const name=(currentUser.displayName||'').toLowerCase().trim();
+  const email=(currentUser.email||'').toLowerCase();
+  // Try to match display name to a known rep
+  for(const rep of ALL_REPS){
+    if(name.includes(rep.toLowerCase()) || rep.toLowerCase().includes(name.split(' ')[0])) return rep;
+  }
+  // Try email prefix
+  const prefix=email.split('@')[0].replace(/[._]/g,' ');
+  for(const rep of ALL_REPS){
+    if(prefix.includes(rep.toLowerCase().split(' ')[0])) return rep;
+  }
+  return null;
+}
+
+// Returns the effective rep filter based on role + repF selection
+function getEffectiveRepFilter(repF){
+  if(isFullAccess()){
+    return repF==='all' ? null : [repF];
+  }
+  // Non-full-access: manager/viewer
+  const selfRep = getSelfRep();
+  const permitted = allowedReps.length>0 ? allowedReps : (selfRep ? [selfRep] : []);
+  if(repF==='all'){
+    return permitted.length>0 ? permitted : null; // return null means see all (shouldn't happen for restricted)
+  }
+  // Specific rep selected — only if permitted
+  if(permitted.length===0 || permitted.includes(repF)) return [repF];
+  return permitted;
 }
 
 // ═══════════════════════════════════════════════
@@ -1130,29 +1201,26 @@ function getMonths(from,to){
 
 function applyFilters(lob,repF,months){
   const out={};
+  const effRep=getEffectiveRepFilter(repF);
+  // Resolve to array: null=all, array=specific reps
+  const repsArr=Array.isArray(effRep)?effRep:(effRep==='all'?null:[effRep]);
   if(lob==='General'){
-    const reps=repF==='all'?[...new Set([...Object.keys(DATA),...Object.keys(GDATA)])]:[repF];
+    const allGenReps=[...new Set([...Object.keys(DATA),...Object.keys(GDATA)])];
+    const reps=repsArr?allGenReps.filter(r=>repsArr.includes(r)):allGenReps;
     reps.forEach(rep=>{out[rep]={};months.forEach(m=>{const gd=GDATA[rep]&&GDATA[rep][m]?GDATA[rep][m]:{rev:0,gp:0};out[rep][m]={teuFCL:0,teuTank:0,tons:0,rev:gd.rev,gp:gd.gp};});});
     return out;
   }
-  const reps=repF==='all'?Object.keys(DATA):[repF];
+  const allDataReps=Object.keys(DATA);
+  const reps=repsArr?allDataReps.filter(r=>repsArr.includes(r)):allDataReps;
   reps.forEach(rep=>{
     out[rep]={};
     months.forEach(m=>{
       const s=DATA[rep]&&DATA[rep][m]?DATA[rep][m]:{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0,lobData:{}};
       if(lob==='all'){
-        // All LOBs: use totals directly
         out[rep][m]={teuFCL:s.teuFCL,teuTank:s.teuTank,tons:s.tons,rev:s.rev,gp:s.gp};
       } else {
-        // Specific LOB: use lobData breakdown for accurate rev/gp
         const ld=s.lobData&&s.lobData[lob]?s.lobData[lob]:{rev:0,gp:0,teuFCL:0,teuTank:0,tons:0};
-        out[rep][m]={
-          teuFCL: lob==='Dry Freight'?ld.teuFCL:0,
-          teuTank: lob==='ISO Tank'?ld.teuTank:0,
-          tons: lob==='Air'?ld.tons:0,
-          rev: ld.rev,
-          gp:  ld.gp
-        };
+        out[rep][m]={teuFCL:lob==='Dry Freight'?ld.teuFCL:0,teuTank:lob==='ISO Tank'?ld.teuTank:0,tons:lob==='Air'?ld.tons:0,rev:ld.rev,gp:ld.gp};
       }
     });
   });
@@ -1161,11 +1229,16 @@ function applyFilters(lob,repF,months){
 
 function applyWeekFilters(lob,repF,weeks){
   const out={};
+  const effRep=getEffectiveRepFilter(repF);
+  const repsArr=Array.isArray(effRep)?effRep:(effRep==='all'?null:[effRep]);
   if(lob==='General'){
-    Object.keys(DATA).forEach(rep=>{out[rep]={};weeks.forEach(wk=>{out[rep][wk]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};});});
+    const r2=repsArr?Object.keys(DATA).filter(r=>repsArr.includes(r)):Object.keys(DATA);
+    r2.forEach(rep=>{out[rep]={};weeks.forEach(wk=>{out[rep][wk]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};});});
     return out;
   }
-  (repF==='all'?Object.keys(WKDATA):[repF]).forEach(rep=>{
+  const allWkReps=Object.keys(WKDATA);
+  const reps=repsArr?allWkReps.filter(r=>repsArr.includes(r)):allWkReps;
+  reps.forEach(rep=>{
     out[rep]={};
     weeks.forEach(wk=>{
       const s=WKDATA[rep]&&WKDATA[rep][wk]?WKDATA[rep][wk]:{teuFCL:0,teuTank:0,tons:0,rev:0,gp:0,lobData:{}};
@@ -1173,13 +1246,7 @@ function applyWeekFilters(lob,repF,weeks){
         out[rep][wk]={teuFCL:s.teuFCL,teuTank:s.teuTank,tons:s.tons,rev:s.rev,gp:s.gp};
       } else {
         const ld=s.lobData&&s.lobData[lob]?s.lobData[lob]:{rev:0,gp:0,teuFCL:0,teuTank:0,tons:0};
-        out[rep][wk]={
-          teuFCL: lob==='Dry Freight'?ld.teuFCL:0,
-          teuTank: lob==='ISO Tank'?ld.teuTank:0,
-          tons: lob==='Air'?ld.tons:0,
-          rev: ld.rev,
-          gp:  ld.gp
-        };
+        out[rep][wk]={teuFCL:lob==='Dry Freight'?ld.teuFCL:0,teuTank:lob==='ISO Tank'?ld.teuTank:0,tons:lob==='Air'?ld.tons:0,rev:ld.rev,gp:ld.gp};
       }
     });
   });
@@ -1191,7 +1258,9 @@ function updateKPIs(data,months){
   Object.values(data).forEach(rd=>months.forEach(m=>{const c=rd[m]||{};rev+=c.rev||0;gp+=c.gp||0;tf+=c.teuFCL||0;tt+=c.teuTank||0;tons+=c.tons||0;}));
   // Read repF from DOM directly (it's local to render(), not global)
   const _repF=document.getElementById('repF').value;
-  const visibleReps=_repF==='all'?Object.keys(REP_TARGETS):[_repF];
+  const _effR=getEffectiveRepFilter(_repF);
+  const _allTgtReps=Object.keys(REP_TARGETS);
+  const visibleReps=_effR===null?_allTgtReps:_allTgtReps.filter(r=>_effR.includes(r));
   const mTgt=visibleReps.reduce((a,r)=>a+(REP_TARGETS[r]||0),0);
   setText('k-rev','$'+Math.round(rev).toLocaleString());
   setText('k-tgt','$'+Math.round(mTgt*months.length).toLocaleString());
@@ -1206,7 +1275,9 @@ function updateKPIsWeekly(data,weeks){
   let rev=0,gp=0,tf=0,tt=0,tons=0;
   Object.values(data).forEach(rd=>weeks.forEach(wk=>{const c=rd[wk]||{};rev+=c.rev||0;gp+=c.gp||0;tf+=c.teuFCL||0;tt+=c.teuTank||0;tons+=c.tons||0;}));
   const _repFW=document.getElementById('repF').value;
-  const visibleRepsW=_repFW==='all'?Object.keys(REP_WEEKLY_TARGETS):[_repFW];
+  const _effRW=getEffectiveRepFilter(_repFW);
+  const _allWkReps=Object.keys(REP_WEEKLY_TARGETS);
+  const visibleRepsW=_effRW===null?_allWkReps:_allWkReps.filter(r=>_effRW.includes(r));
   const wTgt=visibleRepsW.reduce((a,r)=>a+(REP_WEEKLY_TARGETS[r]||0),0);
   setText('k-rev','$'+Math.round(rev).toLocaleString());
   setText('k-tgt','$'+Math.round(wTgt*weeks.length).toLocaleString());
@@ -1237,11 +1308,12 @@ function renderTable(data,months,from,to){
   const reps=Object.keys(data).sort();
   const grand={};months.forEach(m=>grand[m]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
   reps.forEach(rep=>months.forEach(m=>{const c=data[rep][m];grand[m].teuFCL+=c.teuFCL;grand[m].teuTank+=c.teuTank;grand[m].tons+=c.tons;grand[m].rev+=c.rev;grand[m].gp+=c.gp;}));
-  // Grand total target: read repF from DOM, sum only visible reps
+  // Grand total target: only sum targets for reps in current filtered view
   const _repFT=document.getElementById('repF').value;
-  const visReps=_repFT==='all'?reps:reps.filter(r=>r===_repFT);
+  const _effRT=getEffectiveRepFilter(_repFT);
+  const visReps=_effRT===null?reps:reps.filter(r=>_effRT.includes(r));
   const gTgt=visReps.reduce((a,r)=>a+(REP_TARGETS[r]||0),0)*months.length;
-  let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">FY Total</th>${months.map(m=>`<th>${MS[m]||m}</th>`).join('')}</tr></thead><tbody>`;
+    let html=`<table><thead><tr><th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th><th class="h-total">FY Total</th>${months.map(m=>`<th>${MS[m]||m}</th>`).join('')}</tr></thead><tbody>`;
   html+=buildRows(grand,months,'Grand Total',gTgt,true,false,reps);
   html+=`<tr class="grand-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;
   reps.forEach(rep=>{html+=buildRows(data[rep],months,rep,(REP_TARGETS[rep]||0)*months.length,false,false,null);html+=`<tr class="r-sep">${'<td></td>'.repeat(3+months.length)}</tr>`;});
@@ -1377,7 +1449,13 @@ function saveCurrentPanelFilters(){
   var panel = currentPanel;
   if(!panelFilters[panel]) return;
   panelFilters[panel].lob    = (document.getElementById('lobF')||{}).value||'all';
-  panelFilters[panel].rep    = (document.getElementById('repF')||{}).value||'all';
+  var _savedRep=(document.getElementById('repF')||{}).value||'all';
+  // Security: only full-access roles can save 'all'
+  if(_savedRep==='all' && !isFullAccess()){
+    var _repElS=document.getElementById('repF');
+    _savedRep=(_repElS&&_repElS.options.length>0)?_repElS.options[0].value:(allowedReps.length>0?allowedReps[0]:(getSelfRep()||'all'));
+  }
+  panelFilters[panel].rep = _savedRep;
   panelFilters[panel].from   = (document.getElementById('fromM')||{}).value||'April-2025';
   panelFilters[panel].to     = (document.getElementById('toM')||{}).value||'March-2026';
   panelFilters[panel].period = period;
@@ -1397,17 +1475,25 @@ function restorePanelFilters(name){
   var repLbl = document.getElementById('repFLabel');
   if(lobEl) lobEl.value = saved.lob || 'all';
 
+  // SECURITY: only full-access roles can restore to 'all'
+  var safeRep = saved.rep || 'all';
+  if(safeRep === 'all' && !isFullAccess()){
+    // Non-full-access: default to first available rep in dropdown
+    var repElTmp=document.getElementById('repF');
+    safeRep = (repElTmp && repElTmp.options.length>0) ? repElTmp.options[0].value : (allowedReps.length>0?allowedReps[0]:(getSelfRep()||'all'));
+  }
+
   if(name === 'ops'){
     // Swap to Job Operators
     swapRepFilter('operator');
-    if(repEl) repEl.value = saved.rep || 'all';
+    if(repEl){ repEl.value = saved.rep||'all'; if(!repEl.value) repEl.selectedIndex=0; }
   } else if(name === 'finance'){
     // Finance pendency - no rep filter needed, hide it
     swapRepFilter('none');
   } else {
     // Sales reps for all other panels
     swapRepFilter('sales');
-    if(repEl) repEl.value = saved.rep || 'all';
+    if(repEl){ repEl.value = safeRep; if(!repEl.value) repEl.selectedIndex=0; }
   }
 
   // Restore date range
@@ -1841,12 +1927,15 @@ function tlGetTotal(tl, months, field){
 // Since TL_DATA doesn't store LOB breakdown, we filter from TL_RAW directly
 function tlGetTotalFiltered(tl, months, field, lob, cargo){
   var repF = (document.getElementById('repF')||{}).value||'all';
+  var effRep = getEffectiveRepFilter(repF);
+  // Resolve to array for easy checking
+  var repArr = Array.isArray(effRep) ? effRep : (effRep==='all' ? null : [effRep]);
   var sum = 0;
   TL_RAW.forEach(function(r){
     if(r.tl !== tl) return;
     if(cargo !== 'all' && r.cargo !== cargo) return;
     if(lob !== 'all' && r.lob !== lob) return;
-    if(repF !== 'all' && r.rep !== repF) return;
+    if(repArr !== null && repArr.indexOf(r.rep) < 0) return;
     if(months.indexOf(r.month) < 0) return;
     sum += (field === 'shp') ? 1 : (r[field] || 0);
   });
@@ -2079,15 +2168,23 @@ function swapRepFilter(mode){
   } else {
     // Sales reps
     if(repLbl) repLbl.textContent = 'Rep';
-    repEl.innerHTML = '<option value="all">All Reps</option>';
-    ALL_REPS.forEach(function(r){
-      var o=document.createElement('option'); o.value=o.textContent=r; repEl.appendChild(o);
-    });
-    // Re-apply locked reps for non-admin
-    if(allowedReps.length>0){
-      Array.from(repEl.options).forEach(function(o){
-        if(o.value!=='all' && allowedReps.indexOf(o.value)<0) o.remove();
+    repEl.innerHTML = '';
+
+    if(allowedReps.length===0){
+      // Admin/unrestricted: show "All Reps" + every rep
+      var allOpt=document.createElement('option');
+      allOpt.value='all'; allOpt.textContent='All Reps';
+      repEl.appendChild(allOpt);
+      ALL_REPS.forEach(function(r){
+        var o=document.createElement('option'); o.value=o.textContent=r; repEl.appendChild(o);
       });
+    } else {
+      // Restricted user: ONLY show their allowed reps — no "All Reps" option
+      allowedReps.forEach(function(r){
+        var o=document.createElement('option'); o.value=o.textContent=r; repEl.appendChild(o);
+      });
+      // Auto-select first rep so data always loads for a specific rep
+      if(repEl.options.length>0) repEl.value=repEl.options[0].value;
     }
   }
 }
@@ -2133,14 +2230,8 @@ function initOps(){
 }
 
 function initFin(){
-  var saved = panelFilters['finance']||{};
-  finView = saved.finView||'pivot';
-  var pvBtn=document.getElementById('fin-view-pivot');
-  var moBtn=document.getElementById('fin-view-monthly');
-  if(pvBtn) pvBtn.className='tog'+(finView==='pivot'?' active':'');
-  if(moBtn) moBtn.className='tog'+(finView==='monthly'?' active':'');
-  document.getElementById('fin-view-pivot').onclick=function(){ finView='pivot'; panelFilters['finance'].finView='pivot'; this.className='tog active'; document.getElementById('fin-view-monthly').className='tog'; renderFin(); };
-  document.getElementById('fin-view-monthly').onclick=function(){ finView='monthly'; panelFilters['finance'].finView='monthly'; this.className='tog active'; document.getElementById('fin-view-pivot').className='tog'; renderFin(); };
+  // Finance pendency is monthly view only — no pivot
+  finView = 'monthly';
   renderFin();
 }
 
@@ -2317,11 +2408,11 @@ function renderFin(){
   setText('fin-k-open',   openRows.length.toLocaleString());
   setText('fin-k-closed', closedRows.length.toLocaleString());
   setText('fin-k-total',  allRows.length.toLocaleString());
-  setText('fin-tbl-sub',  finView==='pivot'?'Pivot':'Monthly');
+  setText('fin-tbl-sub',  'Monthly');
   setText('fin-tbl-meta', fromShort);
 
-  if(finView==='pivot') renderFinPivot(allRows, openRows, closedRows);
-  else renderFinMonthly(allRows, months, fromShort);
+  // Finance pendency: monthly view only
+  renderFinMonthly(allRows, months, fromShort);
 }
 
 function renderFinPivot(allRows, openRows, closedRows){
