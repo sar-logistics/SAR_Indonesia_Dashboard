@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAR Indonesia · Sales Dashboard</title>
+<title>SAR Indonesia ? Sales Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- Firebase SDK -->
@@ -29,7 +29,7 @@
 }
 html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px}
 
-/* ── LOGIN SCREEN ── */
+/* ?? LOGIN SCREEN ?? */
 #loginScreen{
   position:fixed;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#1e1b4b 50%,#312e81 100%);
   display:flex;align-items:center;justify-content:center;z-index:9999;
@@ -59,7 +59,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .login-err{margin-top:14px;font-size:12px;color:var(--red);display:none;background:#fef2f2;padding:8px 12px;border-radius:6px}
 .login-footer{margin-top:20px;font-size:11px;color:var(--text3)}
 
-/* ── ACCESS DENIED ── */
+/* ?? ACCESS DENIED ?? */
 #accessDenied{
   position:fixed;inset:0;background:var(--bg);
   display:none;align-items:center;justify-content:center;z-index:9998;
@@ -71,14 +71,14 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .denied-email{font-size:11.5px;color:var(--text2);background:var(--bg);padding:6px 12px;border-radius:6px;margin:10px 0;font-family:var(--mono)}
 .so-btn{margin-top:14px;padding:8px 20px;border-radius:7px;border:none;background:var(--red);color:#fff;font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer}
 
-/* ── LOADING OVERLAY ── */
+/* ?? LOADING OVERLAY ?? */
 .overlay{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
 .spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .65s linear infinite}
 .ov-txt{font-size:13px;font-weight:500;color:var(--text2)}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ── APP ── */
+/* ?? APP ?? */
 .app{display:flex;height:100vh;overflow:hidden}
 
 /* SIDEBAR */
@@ -211,7 +211,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 .coming h3{font-size:16px;font-weight:700;color:var(--text2);margin:12px 0 6px}
 .coming p{font-size:12px;color:var(--text3)}
 
-/* ── ADMIN PANEL ── */
+/* ?? ADMIN PANEL ?? */
 .admin-wrap{flex:1;overflow-y:auto;padding:4px 0}
 .admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .admin-header h2{font-size:15px;font-weight:700}
@@ -256,7 +256,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 .btn-save:hover{opacity:.85}
 .admin-note{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:7px;padding:10px 14px;font-size:11.5px;color:var(--blue);margin-bottom:16px}
 
-/* ── ADMIN REDESIGN ── */
+/* ?? ADMIN REDESIGN ?? */
 .admin-tabs{display:flex;gap:6px;margin-bottom:18px;flex-shrink:0}
 .admin-tab{padding:7px 18px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
 .admin-tab.active{background:var(--blue-bg);border-color:#bfdbfe;color:var(--blue)}
@@ -318,7 +318,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 <!-- ACCESS DENIED -->
 <div id="accessDenied" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9998;align-items:center;justify-content:center;flex-direction:column">
   <div class="denied-card">
-    <div style="font-size:36px">🚫</div>
+    <div style="font-size:36px">?</div>
     <h2>Access Denied</h2>
     <p>Your account is not authorised to access this dashboard.</p>
     <div class="denied-email" id="deniedEmail"></div>
@@ -330,7 +330,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 <!-- LOADING OVERLAY -->
 <div id="overlay" class="overlay">
   <div class="spinner"></div>
-  <div class="ov-txt" id="ovtxt">Signing in…</div>
+  <div class="ov-txt" id="ovtxt">Signing in...</div>
 </div>
 
 <!-- MAIN APP -->
@@ -374,12 +374,12 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <div class="sb-user">
         <div class="sb-avatar-placeholder" id="sbAvatar">?</div>
         <div>
-          <div class="sb-uname" id="sbName">—</div>
-          <div class="sb-urole" id="sbRole">—</div>
+          <div class="sb-uname" id="sbName">--</div>
+          <div class="sb-urole" id="sbRole">--</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600;margin-bottom:8px"><div class="live-dot"></div>Live Data</div>
-      <div class="rts" id="rts">—</div>
+      <div class="rts" id="rts">--</div>
       <button class="signout-btn" onclick="doSignOut()" style="margin-top:8px">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
         Sign Out
@@ -401,7 +401,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <div><div class="b-name">SAR Indonesia</div><div class="b-sub">Sales Dashboard</div></div>
       </div>
       <div class="tb1-right">
-        <div class="fy-badge">FY 2025–26</div>
+        <div class="fy-badge">FY 2025-26</div>
         <div class="live-pill"><div class="live-dot"></div>Live Data</div>
         <button class="rb-top" id="rbtn" onclick="loadData()">
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
@@ -458,23 +458,23 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <!-- SALES -->
       <div id="p-sales" style="display:flex;flex-direction:column;flex:1;min-height:0;gap:12px">
         <div class="kpis">
-          <div class="kpi kb"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="k-rev">—</div><div class="kpi-sub">USD · Period</div></div>
-          <div class="kpi ko"><div class="kpi-lbl">GP Target</div><div class="kpi-val" id="k-tgt">—</div><div class="kpi-sub" id="k-tgt-sub">Monthly avg</div></div>
-          <div class="kpi kg"><div class="kpi-lbl">Gross Profit</div><div class="kpi-val" id="k-gp">—</div><div class="kpi-sub">USD · Period</div></div>
-          <div class="kpi kp"><div class="kpi-lbl">GP %</div><div class="kpi-val" id="k-gppct">—</div><div class="kpi-sub">Target: 9.43%</div></div>
-          <div class="kpi kt"><div class="kpi-lbl">Total TEUs</div><div class="kpi-val" id="k-teu">—</div><div class="kpi-sub" id="k-teu-sub">FCL + ISO</div></div>
-          <div class="kpi kr"><div class="kpi-lbl">Tons (Air)</div><div class="kpi-val" id="k-tons">—</div><div class="kpi-sub">Chargeable wt</div></div>
+          <div class="kpi kb"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="k-rev">--</div><div class="kpi-sub">USD ? Period</div></div>
+          <div class="kpi ko"><div class="kpi-lbl">GP Target</div><div class="kpi-val" id="k-tgt">--</div><div class="kpi-sub" id="k-tgt-sub">Monthly avg</div></div>
+          <div class="kpi kg"><div class="kpi-lbl">Gross Profit</div><div class="kpi-val" id="k-gp">--</div><div class="kpi-sub">USD ? Period</div></div>
+          <div class="kpi kp"><div class="kpi-lbl">GP %</div><div class="kpi-val" id="k-gppct">--</div><div class="kpi-sub">Target: 9.43%</div></div>
+          <div class="kpi kt"><div class="kpi-lbl">Total TEUs</div><div class="kpi-val" id="k-teu">--</div><div class="kpi-sub" id="k-teu-sub">FCL + ISO</div></div>
+          <div class="kpi kr"><div class="kpi-lbl">Tons (Air)</div><div class="kpi-val" id="k-tons">--</div><div class="kpi-sub">Chargeable wt</div></div>
         </div>
         <div class="tcard">
           <div class="thead-bar">
             <div style="display:flex;align-items:center;gap:8px">
               <h2>Sales Performance</h2>
               <span style="color:var(--border);font-size:13px;font-weight:300">|</span>
-              <span id="tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Monthly · USD</span>
+              <span id="tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Monthly ? USD</span>
             </div>
-            <div class="thead-meta" id="tbl-meta">—</div>
+            <div class="thead-meta" id="tbl-meta">--</div>
           </div>
-          <div class="twrap" id="twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading…</div></div>
+          <div class="twrap" id="twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div></div>
         </div>
       </div>
 
@@ -484,11 +484,11 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 
         <!-- TL KPI CARDS -->
         <div class="kpis">
-          <div class="kpi kb"><div class="kpi-lbl">Total Shipments</div><div class="kpi-val" id="tl-k-shp">—</div><div class="kpi-sub">Jobs count</div></div>
-          <div class="kpi kt"><div class="kpi-lbl">Total TEUs</div><div class="kpi-val" id="tl-k-teu">—</div><div class="kpi-sub">FCL + ISO</div></div>
-          <div class="kpi ko"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="tl-k-rev">—</div><div class="kpi-sub">USD · Period</div></div>
-          <div class="kpi kg"><div class="kpi-lbl">Total GP</div><div class="kpi-val" id="tl-k-gp">—</div><div class="kpi-sub">USD · Period</div></div>
-          <div class="kpi kp"><div class="kpi-lbl">GP %</div><div class="kpi-val" id="tl-k-gppct">—</div><div class="kpi-sub">of revenue</div></div>
+          <div class="kpi kb"><div class="kpi-lbl">Total Shipments</div><div class="kpi-val" id="tl-k-shp">--</div><div class="kpi-sub">Jobs count</div></div>
+          <div class="kpi kt"><div class="kpi-lbl">Total TEUs</div><div class="kpi-val" id="tl-k-teu">--</div><div class="kpi-sub">FCL + ISO</div></div>
+          <div class="kpi ko"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="tl-k-rev">--</div><div class="kpi-sub">USD ? Period</div></div>
+          <div class="kpi kg"><div class="kpi-lbl">Total GP</div><div class="kpi-val" id="tl-k-gp">--</div><div class="kpi-sub">USD ? Period</div></div>
+          <div class="kpi kp"><div class="kpi-lbl">GP %</div><div class="kpi-val" id="tl-k-gppct">--</div><div class="kpi-sub">of revenue</div></div>
         </div>
 
         <!-- TL VIEW TOGGLE + CARGO FILTER (below KPI cards) -->
@@ -513,12 +513,12 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
             <div style="display:flex;align-items:center;gap:8px">
               <h2>Tradelane Insights</h2>
               <span style="color:var(--border);font-size:13px">|</span>
-              <span id="tl-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot · USD</span>
+              <span id="tl-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot ? USD</span>
             </div>
-            <div class="thead-meta" id="tl-tbl-meta">Indonesia → All</div>
+            <div class="thead-meta" id="tl-tbl-meta">Indonesia -> All</div>
           </div>
           <div class="twrap" id="tl-twrap">
-            <div style="padding:40px;text-align:center;color:var(--text3)">Loading…</div>
+            <div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div>
           </div>
         </div>
       </div>
@@ -527,7 +527,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <div id="p-teams" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div>
-            <div style="font-size:14px;font-weight:700">👥 Teams</div>
+            <div style="font-size:14px;font-weight:700">? Teams</div>
             <div style="font-size:11.5px;color:var(--text3);margin-top:2px">Reporting hierarchy & org chart</div>
           </div>
         </div>
@@ -543,7 +543,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
             </button>
           </div>
           <div class="twrap" id="teams-wrap" style="padding:16px">
-            <div style="text-align:center;color:var(--text3);padding:40px">Loading org chart…</div>
+            <div style="text-align:center;color:var(--text3);padding:40px">Loading org chart...</div>
           </div>
         </div>
       </div>
@@ -551,22 +551,21 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <div id="p-ops" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
         <!-- OPS KPI CARDS -->
         <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
-          <div class="kpi kr"><div class="kpi-lbl">Total Open Jobs</div><div class="kpi-val" id="ops-k-open">—</div><div class="kpi-sub">Not locked · INV / WRK</div></div>
-          <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="ops-k-closed">—</div><div class="kpi-sub">Ops locked · CMP</div></div>
-          <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="ops-k-total">—</div><div class="kpi-sub">All valid records</div></div>
+          <div class="kpi kr"><div class="kpi-lbl">Total Open Jobs</div><div class="kpi-val" id="ops-k-open">--</div><div class="kpi-sub">Not locked ? INV / WRK</div></div>
+          <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="ops-k-closed">--</div><div class="kpi-sub">Ops locked ? CMP</div></div>
+          <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="ops-k-total">--</div><div class="kpi-sub">All valid records</div></div>
         </div>
         <!-- OPS VIEW TOGGLE + SALES REP FILTER -->
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
           <div class="toggles">
             <button class="tog active" id="ops-view-pivot">Pivot</button>
             <button class="tog" id="ops-view-monthly">Monthly</button>
           </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span class="flbl">Sales Rep</span>
-            <select class="fsel" id="ops-repF" onchange="renderOps()" style="min-width:120px">
-              <option value="all">All Reps</option>
-            </select>
-          </div>
+          <div class="tb-div" style="height:18px"></div>
+          <span class="flbl">Sales Rep</span>
+          <select class="fsel" id="ops-repF" onchange="renderOps()" style="min-width:130px">
+            <option value="all">All Reps</option>
+          </select>
         </div>
         <!-- OPS TABLE CARD -->
         <div class="tcard" style="flex:1">
@@ -576,9 +575,9 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
               <span style="color:var(--border);font-size:13px">|</span>
               <span id="ops-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot</span>
             </div>
-            <div class="thead-meta" id="ops-tbl-meta">—</div>
+            <div class="thead-meta" id="ops-tbl-meta">--</div>
           </div>
-          <div class="twrap" id="ops-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading…</div></div>
+          <div class="twrap" id="ops-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div></div>
         </div>
       </div>
       <!-- FINANCE PENDENCY PANEL -->
@@ -587,7 +586,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div>
             <div style="font-size:14px;font-weight:700">Teams</div>
-            <div style="font-size:11.5px;color:var(--text3);margin-top:2px">Reporting hierarchy · Org chart</div>
+            <div style="font-size:11.5px;color:var(--text3);margin-top:2px">Reporting hierarchy ? Org chart</div>
           </div>
           <button class="rb-top" onclick="loadTeams()">
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
@@ -600,10 +599,10 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
               <div class="live-dot" style="background:var(--blue)"></div>
               <h2>Org Chart</h2>
             </div>
-            <div class="thead-meta" id="teams-meta">—</div>
+            <div class="thead-meta" id="teams-meta">--</div>
           </div>
           <div style="overflow-y:auto;flex:1;padding:20px" id="teams-wrap">
-            <div style="padding:30px;text-align:center;color:var(--text3)">Loading org chart…</div>
+            <div style="padding:30px;text-align:center;color:var(--text3)">Loading org chart...</div>
           </div>
         </div>
       </div>
@@ -611,18 +610,16 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <div id="p-finance" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
         <!-- FINANCE KPI CARDS -->
         <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
-          <div class="kpi kr"><div class="kpi-lbl">Total Open Jobs</div><div class="kpi-val" id="fin-k-open">—</div><div class="kpi-sub">Finance pending · CMP</div></div>
-          <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="fin-k-closed">—</div><div class="kpi-sub">Finance locked · CLS</div></div>
-          <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="fin-k-total">—</div><div class="kpi-sub">All valid records</div></div>
+          <div class="kpi kr"><div class="kpi-lbl">Total Open Jobs</div><div class="kpi-val" id="fin-k-open">--</div><div class="kpi-sub">Finance pending ? CMP</div></div>
+          <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="fin-k-closed">--</div><div class="kpi-sub">Finance locked ? CLS</div></div>
+          <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="fin-k-total">--</div><div class="kpi-sub">All valid records</div></div>
         </div>
-        <!-- FINANCE VIEW: Monthly only — Sales Rep filter -->
-        <div style="display:flex;align-items:center;justify-content:flex-end;flex-shrink:0">
-          <div style="display:flex;align-items:center;gap:6px" id="fin-rep-row">
-            <span class="flbl">Sales Rep</span>
-            <select class="fsel" id="fin-repF" onchange="renderFin()" style="min-width:120px">
-              <option value="all">All Reps</option>
-            </select>
-          </div>
+        <!-- FINANCE: Filters row -- FROM/TO + Sales Rep -->
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap" id="fin-rep-row">
+          <span class="flbl">Sales Rep</span>
+          <select class="fsel" id="fin-repF" onchange="renderFin()" style="min-width:130px">
+            <option value="all">All Reps</option>
+          </select>
         </div>
         <!-- FINANCE TABLE CARD -->
         <div class="tcard" style="flex:1">
@@ -631,11 +628,11 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
               <h2>Finance Pendency</h2>
               <span style="color:var(--border);font-size:13px">|</span>
               <span id="fin-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot</span>
-              <span style="font-size:11px;color:var(--text3)">· Finance Rep: <strong style="color:var(--text)">Trupti Gore</strong></span>
+              <span style="font-size:11px;color:var(--text3)">? Finance Rep: <strong style="color:var(--text)">Trupti Gore</strong></span>
             </div>
-            <div class="thead-meta" id="fin-tbl-meta">—</div>
+            <div class="thead-meta" id="fin-tbl-meta">--</div>
           </div>
-          <div class="twrap" id="fin-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading…</div></div>
+          <div class="twrap" id="fin-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div></div>
         </div>
       </div>
 
@@ -644,7 +641,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <!-- Admin Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:15px">🔐</span>
+            <span style="font-size:15px">?</span>
             <span style="font-size:14px;font-weight:700;color:var(--text)">Admin Panel</span>
           </div>
           <button class="add-user-btn" onclick="openAddUser()">
@@ -665,16 +662,16 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         </div>
         <!-- Users Tab -->
         <div id="admin-users-tab" style="flex:1;overflow-y:auto">
-          <div id="userCardsWrap"><div style="padding:30px;text-align:center;color:var(--text3)">Loading users…</div></div>
+          <div id="userCardsWrap"><div style="padding:30px;text-align:center;color:var(--text3)">Loading users...</div></div>
         </div>
         <!-- Analytics Tab -->
         <div id="admin-analytics-tab" style="display:none;flex:1;overflow-y:auto">
           <div class="analytics-stats">
-            <div class="a-stat"><div class="a-stat-val" id="an-total" style="color:var(--blue)">—</div><div class="a-stat-lbl">Total Users</div></div>
-            <div class="a-stat"><div class="a-stat-val" id="an-active" style="color:var(--green)">—</div><div class="a-stat-lbl">Active Users</div></div>
-            <div class="a-stat"><div class="a-stat-val" id="an-7d" style="color:var(--purple)">—</div><div class="a-stat-lbl">Logged In (7 Days)</div></div>
+            <div class="a-stat"><div class="a-stat-val" id="an-total" style="color:var(--blue)">--</div><div class="a-stat-lbl">Total Users</div></div>
+            <div class="a-stat"><div class="a-stat-val" id="an-active" style="color:var(--green)">--</div><div class="a-stat-lbl">Active Users</div></div>
+            <div class="a-stat"><div class="a-stat-val" id="an-7d" style="color:var(--purple)">--</div><div class="a-stat-lbl">Logged In (7 Days)</div></div>
           </div>
-          <div id="analyticsTableWrap"><div style="padding:30px;text-align:center;color:var(--text3)">Loading analytics…</div></div>
+          <div id="analyticsTableWrap"><div style="padding:30px;text-align:center;color:var(--text3)">Loading analytics...</div></div>
         </div>
       </div>
       <!-- TEAMS PANEL -->
@@ -697,7 +694,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
             </div>
           </div>
           <div style="overflow-y:auto;flex:1;padding:20px" id="orgChartWrap">
-            <div style="padding:40px;text-align:center;color:var(--text3)">Loading org chart…</div>
+            <div style="padding:40px;text-align:center;color:var(--text3)">Loading org chart...</div>
           </div>
         </div>
       </div>
@@ -710,7 +707,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
   <div class="modal" style="max-width:500px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <h3 id="modalTitle" style="margin:0">Add User</h3>
-      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">×</button>
+      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">?</button>
     </div>
     <p id="modalDesc" style="margin-bottom:18px">Create or edit a dashboard user</p>
     <div class="form-row">
@@ -721,7 +718,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <div class="form-row">
         <label>Role *</label>
         <select id="mRole">
-          <option value="">Select…</option>
+          <option value="">Select...</option>
           <option value="Admin">Admin</option>
           <option value="Regional Manager">Regional Manager</option>
           <option value="Zonal Manager">Zonal Manager</option>
@@ -759,16 +756,16 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       </select>
     </div>
     <div class="modal-footer">
-      <button class="btn-save" onclick="saveUser()">✓ Save User</button>
+      <button class="btn-save" onclick="saveUser()">Save User</button>
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
     </div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // FIREBASE CONFIG
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 const firebaseConfig = {
   apiKey: "AIzaSyCQ4oi4_KoZdh1J1Xvenr-vXoF8YDgPF-8",
   authDomain: "sar-indonesia-dashboard-11702.firebaseapp.com",
@@ -782,14 +779,14 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // GOOGLE SHEETS CONFIG
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 const SHEET_ID = '1H610k9P24-3iUXlrl-RhqrH-7Iy5zYoJ4IjsuKapg84';
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // USER STATE
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 let currentUser      = null;
 let currentRole      = null;
 let allowedReps      = [];      // legacy - kept for compat
@@ -800,9 +797,9 @@ let teamOpsNames     = null;    // null=all, []=none, ['Eka Pratiwi',...]= speci
 let selfSalesRep     = null;    // mapped sales rep name from Sales Mapping sheet
 let selfOpsRep       = null;    // mapped ops rep name from Ops Mapping sheet
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // AUTH FLOW
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 auth.onAuthStateChanged(async user => {
   if(!user){
     // Show login screen
@@ -811,8 +808,8 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('mainApp').style.display='none';
     return;
   }
-  // User is signed in — verify in Firestore
-  setOv(true,'Verifying access…');
+  // User is signed in -- verify in Firestore
+  setOv(true,'Verifying access...');
   document.getElementById('loginScreen').style.display='none';
   try{
     await loadUserProfile(user);
@@ -864,15 +861,15 @@ async function loadUserProfile(user){
   currentUserUID = doc.id;
   allowedReps    = []; // not used in v8
 
-  // ── Step 1: Fetch mapping sheets to get salesRepName and opsRepName ──
-  setOv(true,'Loading user mappings…');
+  // ?? Step 1: Fetch mapping sheets to get salesRepName and opsRepName ??
+  setOv(true,'Loading user mappings...');
   try{ await fetchMappings(user.email); }catch(e){ console.warn('Mapping fetch failed:',e); }
 
-  // ── Step 2: Build team hierarchy for zonal/ops managers ──
-  setOv(true,'Loading team data…');
+  // ?? Step 2: Build team hierarchy for zonal/ops managers ??
+  setOv(true,'Loading team data...');
   try{ await buildTeamHierarchy(doc.id); }catch(e){ console.warn('Team hierarchy failed:',e); }
 
-  // ── Sidebar user info ──
+  // ?? Sidebar user info ??
   const initials=user.displayName
     ?user.displayName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()
     :user.email[0].toUpperCase();
@@ -880,14 +877,14 @@ async function loadUserProfile(user){
   document.getElementById('sbName').textContent=user.displayName||user.email;
   document.getElementById('sbRole').textContent=currentRole.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
 
-  // ── Apply nav visibility ──
+  // ?? Apply nav visibility ??
   applyNavVisibility();
 
-  // ── Show app ──
+  // ?? Show app ??
   document.getElementById('mainApp').style.display='flex';
   setOv(false);
 
-  // ── Login tracking ──
+  // ?? Login tracking ??
   try{
     const now=new Date();
     const prev7d=data.loginsLast7Days||0;
@@ -901,9 +898,9 @@ async function loadUserProfile(user){
   await loadData();
 }
 
-// ── Fetch Sales Mapping and Ops Mapping sheets ──────────────────────────────
-let SALES_MAP = {}; // email → salesRepName
-let OPS_MAP   = {}; // email → opsRepName
+// ?? Fetch Sales Mapping and Ops Mapping sheets ??????????????????????????????
+let SALES_MAP = {}; // email -> salesRepName
+let OPS_MAP   = {}; // email -> opsRepName
 
 async function fetchMappings(email){
   // Sales Mapping: col A=raw name, col B=mapped name, col C=email
@@ -931,13 +928,13 @@ async function fetchMappings(email){
   }catch(e){ console.warn('Ops mapping error:',e); }
 }
 
-// ── Build team hierarchy recursively from Firestore ────────────────────────
+// ?? Build team hierarchy recursively from Firestore ????????????????????????
 async function buildTeamHierarchy(userDocId){
   teamMemberEmails=[];
   teamSalesReps=[];
   teamOpsReps=[];
 
-  // Only matters for zonal manager, ops manager — others either see all or just self
+  // Only matters for zonal manager, ops manager -- others either see all or just self
   if(!isZonalManager() && !isOpsManager()) return;
 
   // Recursively get all reportees
@@ -995,7 +992,7 @@ function applyNavVisibility(){
   // Admin-only tabs
   const showAdmin = (r==='admin');
   document.getElementById('admin-section-sep').style.display = showAdmin?'block':'none';
-  // Sales / Tradelane — hidden for pure ops roles
+  // Sales / Tradelane -- hidden for pure ops roles
   const showSales = canSeeSales();
   document.getElementById('nav-sales').style.display      = showSales?'flex':'none';
   document.getElementById('nav-tradelane').style.display  = showSales?'flex':'none';
@@ -1009,7 +1006,7 @@ function applyNavVisibility(){
   }
 }
 
-// ── ROLE CONSTANTS ──────────────────────────────────────────
+// ?? ROLE CONSTANTS ??????????????????????????????????????????
 const ROLE_FULL_ACCESS  = ['admin','regional manager','finance controller','finance manager','finance executive'];
 const ROLE_ZONAL        = ['zonal manager'];
 const ROLE_SALES_EXEC   = ['sales executive'];
@@ -1053,11 +1050,11 @@ function effectiveAllowedReps(){
   return allowedReps; // could be empty = "no one" (self-only, handled via currentUser email)
 }
 
-// lockRepFilter: removed — access now handled by getEffectiveRepFilter
+// lockRepFilter: removed -- access now handled by getEffectiveRepFilter
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // DATA CONFIG
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 const REP_MAP = {
   'Dijita Nomination':'Dijita Nagarkar','Aris':'Aris','Vinayak':'Vinayak Gaonkar',
   'Kiran Humbre':'Kiran Humbre','Jyoti Ranjane':'Jyoti Ranjane',
@@ -1072,7 +1069,7 @@ const REP_MAP = {
   'Mohammad Arshad':'Nomination Sales','Prashant Poojari':'Nomination Sales',
   'Lukman Fauzan':'Nomination Sales','Pooja Nomination':'Pooja Jain',
 };
-// Targets loaded LIVE from Sales Target sheet — not hardcoded
+// Targets loaded LIVE from Sales Target sheet -- not hardcoded
 let REP_TARGETS = {};         // populated by fetchTargets()
 let REP_WEEKLY_TARGETS = {};  // populated by fetchTargets()
 const ALL_REPS = ['Aris','Benoy Varghese','Daissy','Dijita Nagarkar','Geeta Dhuri',
@@ -1093,13 +1090,13 @@ const rc={};let ci=0;
 function rclr(n){if(!rc[n])rc[n]=AV[ci++%AV.length];return rc[n];}
 function ini(n){return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();}
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // STATE
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 let DATA={},GDATA={},WKDATA={},WKINFO={};
 let period='monthly',teuExp={},sidebarOpen=true;
 
-// ── PER-DASHBOARD FILTER MEMORY ──────────────────────────────
+// ?? PER-DASHBOARD FILTER MEMORY ??????????????????????????????
 // Each panel remembers its own: lob, rep, period, fromM, toM
 // panelFilters.rep default is set after login based on role
 var panelFilters = {
@@ -1110,15 +1107,15 @@ var panelFilters = {
 };
 var currentPanel = 'sales';
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // SELECTORS
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 function buildSelectors(){
   const f=document.getElementById('fromM'),t=document.getElementById('toM');
   if(f.options.length>0) return; // already built
   MONTHS.forEach(m=>{f.innerHTML+=`<option value="${m}">${MS[m]}</option>`;t.innerHTML+=`<option value="${m}">${MS[m]}</option>`;});
   f.value='April-2025';t.value='March-2026';
-  // Rep filter — full-access roles see All Reps; others see only their scope
+  // Rep filter -- full-access roles see All Reps; others see only their scope
   const rs=document.getElementById('repF');
   if(isFullAccess()){
     const allOpt=document.createElement('option');
@@ -1126,10 +1123,10 @@ function buildSelectors(){
     rs.appendChild(allOpt);
     ALL_REPS.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
   } else if(isOpsRole()){
-    // Ops roles: rep filter not relevant for sales — hide it
+    // Ops roles: rep filter not relevant for sales -- hide it
     rs.parentElement.style.display='none';
   } else {
-    // Zonal manager / Sales exec — reps will be set after mapping loads
+    // Zonal manager / Sales exec -- reps will be set after mapping loads
     // Show All Reps as placeholder; getEffectiveRepFilter will enforce at data level
     const allOpt=document.createElement('option');
     allOpt.value='all';allOpt.textContent='All Reps';
@@ -1159,14 +1156,14 @@ function getEffectiveRepFilter(repF){
   // Ops-only roles have no access to sales/TL data
   if(isOpsRole()) return [];
 
-  // Zonal Manager or Sales Executive — use teamRepNames
+  // Zonal Manager or Sales Executive -- use teamRepNames
   if(teamRepNames !== null){
     if(repF==='all') return teamRepNames.length>0 ? teamRepNames : [];
-    // Specific rep selected — only if in team
+    // Specific rep selected -- only if in team
     return teamRepNames.includes(repF) ? [repF] : [];
   }
 
-  // Fallback: no mapping found — show nothing
+  // Fallback: no mapping found -- show nothing
   return [];
 }
 
@@ -1197,9 +1194,9 @@ function getEffectiveOpsFilter(repF){
   return 'all'; // finance roles / regional manager
 }
 
-// ═══════════════════════════════════════════════
-// SHEETS API — uses OAuth token if available, else API key fallback
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
+// SHEETS API -- uses OAuth token if available, else API key fallback
+// ???????????????????????????????????????????????
 async function apiFetch(url){
   // Try OAuth token first, fall back to API key
   if(oauthToken){
@@ -1207,7 +1204,7 @@ async function apiFetch(url){
       const r=await fetch(url,{headers:{'Authorization':'Bearer '+oauthToken}});
       const j=await r.json();
       if(!j.error) return j;
-      // Token expired or invalid — fall through to API key
+      // Token expired or invalid -- fall through to API key
       console.warn('OAuth token failed, falling back to API key');
     }catch(e){console.warn('OAuth fetch failed',e);}
   }
@@ -1223,24 +1220,24 @@ function batchUrl(sheet,cols){
   return`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?${cols.map(c=>`ranges=${encodeURIComponent(`${sheet}!${c}:${c}`)}`).join('&')}&valueRenderOption=UNFORMATTED_VALUE`;
 }
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // LOAD DATA
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 async function loadData(){
-  setOv(true,'Fetching Shipment Detail…');
+  setOv(true,'Fetching Shipment Detail...');
   document.getElementById('rbtn').classList.add('spinning');
   hideErr();
   DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;PEND_RAW=[];opsInited=false;finInited=false;
   try{
-    setOv(true,'Loading mappings…');
+    setOv(true,'Loading mappings...');
     await fetchMappings();
-    setOv(true,'Fetching Sales Targets…');
+    setOv(true,'Fetching Sales Targets...');
     await fetchTargets();
-    setOv(true,'Fetching Role Mappings…');
+    setOv(true,'Fetching Role Mappings...');
     await fetchRoleMappings();
-    setOv(true,'Fetching Shipment Detail…');
+    setOv(true,'Fetching Shipment Detail...');
     await fetchShipment();
-    setOv(true,'Fetching General Job Detail…');
+    setOv(true,'Fetching General Job Detail...');
     await fetchGeneral();
     buildWeekEndSelector();
     document.getElementById('rts').textContent='Updated '+new Date().toLocaleTimeString();
@@ -1255,7 +1252,7 @@ async function fetchShipment(){
   const cols=['BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW','BG','BH'];
   const j=await apiFetch(batchUrl('Shipment Detail',cols));
   const [repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC]=j.valueRanges.map(v=>v.values||[]);
-  // Use max of ALL columns — revenue/GP rows may extend beyond rep/month rows
+  // Use max of ALL columns -- revenue/GP rows may extend beyond rep/month rows
   const len=Math.max(repC.length,monC.length,revC.length,gpC.length);
   TL_RAW=[]; // reset tradelane raw data
   for(let i=1;i<len;i++){
@@ -1327,9 +1324,9 @@ async function fetchGeneral(){
   }
 }
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // FETCH TARGETS LIVE FROM SALES TARGET SHEET
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 async function fetchTargets(){
   // Sales Target sheet: B=SalesRep, G=MonthlyTarget3x, H=WeeklyTarget
   const cols=['B','G','H'];
@@ -1361,9 +1358,9 @@ async function fetchTargets(){
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ROLE MAPPING — Sales Mapping & Ops Mapping sheets
-// ═══════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????
+// ROLE MAPPING -- Sales Mapping & Ops Mapping sheets
+// ???????????????????????????????????????????????????????????
 // SALES_MAP declared above
 // OPS_MAP declared above
 
@@ -1415,7 +1412,7 @@ async function buildTeamScope(){
   const r = (currentRole||'').toLowerCase();
 
   if(isFullAccess()){
-    // Admin / Regional Manager / Finance roles — no restriction
+    // Admin / Regional Manager / Finance roles -- no restriction
     return;
   }
 
@@ -1494,9 +1491,9 @@ async function getTeamEmails(managerUID){
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// UPDATED getEffectiveRepFilter — uses new role system
-// ═══════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????
+// UPDATED getEffectiveRepFilter -- uses new role system
+// ???????????????????????????????????????????????????????????
 
 // Week key helpers
 function makeWeekKey(rawDate,rawWk,mon){
@@ -1509,7 +1506,7 @@ function makeWeekKey(rawDate,rawWk,mon){
   const key=`${year}-${String(wkNum).padStart(2,'0')}`;
   if(!WKINFO[key]){
     const d=isoWeekToDate(year,wkNum);
-    WKINFO[key]={label:`Week ${wkNum} (${shortFmt(d.start)} – ${shortFmt(d.end)})`,start:fmtDate(d.start),end:fmtDate(d.end),sortKey:year*100+wkNum,startDate:d.start,endDate:d.end};
+    WKINFO[key]={label:`Week ${wkNum} (${shortFmt(d.start)} - ${shortFmt(d.end)})`,start:fmtDate(d.start),end:fmtDate(d.end),sortKey:year*100+wkNum,startDate:d.start,endDate:d.end};
   }
   return key;
 }
@@ -1535,9 +1532,9 @@ function getLast5Weeks(){
   return eligible.slice(0,5).reverse();
 }
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // RENDER
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 function render(){
   try{
     var tlPanel=document.getElementById('p-tradelane');
@@ -1649,8 +1646,8 @@ function updateKPIs(data,months){
   setText('k-gp','$'+Math.round(gp).toLocaleString());
   setText('k-gppct',(rev>0?gp/rev*100:0).toFixed(1)+'%');
   setText('k-teu',fT(tf+tt));
-  setText('k-teu-sub',fT(tf)+' FCL · '+fT(tt)+' Tank');
-  setText('k-tons',tons>0?tons.toFixed(2):'—');
+  setText('k-teu-sub',fT(tf)+' FCL ? '+fT(tt)+' Tank');
+  setText('k-tons',tons>0?tons.toFixed(2):'--');
 }
 function updateKPIsWeekly(data,weeks){
   let rev=0,gp=0,tf=0,tt=0,tons=0;
@@ -1666,11 +1663,11 @@ function updateKPIsWeekly(data,weeks){
   setText('k-gp','$'+Math.round(gp).toLocaleString());
   setText('k-gppct',(rev>0?gp/rev*100:0).toFixed(1)+'%');
   setText('k-teu',fT(tf+tt));
-  setText('k-teu-sub',fT(tf)+' FCL · '+fT(tt)+' Tank');
-  setText('k-tons',tons>0?tons.toFixed(2):'—');
+  setText('k-teu-sub',fT(tf)+' FCL ? '+fT(tt)+' Tank');
+  setText('k-tons',tons>0?tons.toFixed(2):'--');
 }
 
-// ── TABLE ──
+// ?? TABLE ??
 const MROWS=[
   {id:'teu',lbl:'TEUs',cls:'m-teu',sub:false,teu:true},
   {id:'teuFCL',lbl:'TEUs (FCL)',cls:'m-fcl',sub:true},
@@ -1683,9 +1680,9 @@ const MROWS=[
 ];
 
 function renderTable(data,months,from,to){
-  const lbl=period==='yearly'?'FY 2025-26':`${MS[from]||from} – ${MS[to]||to}`;
+  const lbl=period==='yearly'?'FY 2025-26':`${MS[from]||from} - ${MS[to]||to}`;
   const pLabel={'monthly':'Monthly','yearly':'Yearly','custom':'Custom'}[period]||period;
-  setText('tbl-sub',pLabel+' · USD');setText('tbl-meta',lbl);
+  setText('tbl-sub',pLabel+' ? USD');setText('tbl-meta',lbl);
   const reps=Object.keys(data).sort();
   const grand={};months.forEach(m=>grand[m]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
   reps.forEach(rep=>months.forEach(m=>{const c=data[rep][m];grand[m].teuFCL+=c.teuFCL;grand[m].teuTank+=c.teuTank;grand[m].tons+=c.tons;grand[m].rev+=c.rev;grand[m].gp+=c.gp;}));
@@ -1703,7 +1700,7 @@ function renderTable(data,months,from,to){
 }
 
 function renderTableWeekly(data,weeks){
-  setText('tbl-sub','Weekly · USD');
+  setText('tbl-sub','Weekly ? USD');
   if(!weeks.length){document.getElementById('twrap').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">No week data available for selected date</div>';return;}
   setText('tbl-meta',`Last 5 weeks ending ${WKINFO[weeks[weeks.length-1]]?.end||''}`);
   const reps=Object.keys(data).sort();
@@ -1734,7 +1731,7 @@ function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly,visibleReps){
     html+=`<tr class="${rc2}">`;
     if(mi===0){html+=`<td class="c-rep" rowspan="${rows.length}" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="${avBg}">${isGrand?'GT':ini(repName)}</div><span style="font-weight:700;font-size:12px">${repName}</span></div></td>`;}
     let lbl=mr.lbl;
-    if(mr.teu)lbl=`<button class="teubtn${exp?' open':''}" onclick="toggleTEU('${repName}')"><span class="arr">${exp?'▼':'▶'}</span> TEUs</button>`;
+    if(mr.teu)lbl=`<button class="teubtn${exp?' open':''}" onclick="toggleTEU('${repName}')"><span class="arr">${exp?'?':'?'}</span> TEUs</button>`;
     html+=`<td class="c-metric${mr.sub?' sub':''}">${lbl}</td>`;
     const periodTgt=totalTgt; // totalTgt already correctly scoped to visible reps
     const fv=cVal(mr,totF,totT,totTons,totRev,totGP,isGrand?periodTgt:totalTgt,totVar,hasTgt,isGrand);
@@ -1760,30 +1757,30 @@ function toggleTEU(r){teuExp[r]=!teuExp[r];render();}
 function cVal(mr,f,t,tons,rev,gp,tgt,varPct,hasTgt,isGrand){
   switch(mr.id){
     case'teu':return{v:fT(f+t)};case'teuFCL':return{v:fT(f)};case'teuTank':return{v:fT(t)};
-    case'tons':return{v:tons>0?tons.toFixed(2):'—'};
+    case'tons':return{v:tons>0?tons.toFixed(2):'--'};
     case'rev':return{v:'$'+Math.round(rev).toLocaleString()};
     case'gp':return{v:'$'+Math.round(gp).toLocaleString()};
     case'target':return{v:'$'+Math.round(tgt).toLocaleString()};
-    case'var':if(varPct===null||(!hasTgt&&!isGrand))return{v:'—'};return{v:(varPct>=0?'+':'')+varPct.toFixed(1)+'%',x:varPct>=0?'pos':'neg'};
+    case'var':if(varPct===null||(!hasTgt&&!isGrand))return{v:'--'};return{v:(varPct>=0?'+':'')+varPct.toFixed(1)+'%',x:varPct>=0?'pos':'neg'};
   }
 }
 function cMonthVal(mr,c,perTgt,mVar,hasTgt){
   const teu=(c.teuFCL||0)+(c.teuTank||0);
   switch(mr.id){
-    case'teu':return{v:teu>0?fT(teu):'—'};case'teuFCL':return{v:(c.teuFCL||0)>0?fT(c.teuFCL):'—'};
-    case'teuTank':return{v:(c.teuTank||0)>0?fT(c.teuTank):'—'};
-    case'tons':return{v:(c.tons||0)>0?c.tons.toFixed(2):'—'};
-    case'rev':return{v:(c.rev||0)!==0?'$'+Math.round(c.rev||0).toLocaleString():'—'};
-    case'gp':return{v:(c.gp||0)!==0?'$'+Math.round(c.gp||0).toLocaleString():'—'};
+    case'teu':return{v:teu>0?fT(teu):'--'};case'teuFCL':return{v:(c.teuFCL||0)>0?fT(c.teuFCL):'--'};
+    case'teuTank':return{v:(c.teuTank||0)>0?fT(c.teuTank):'--'};
+    case'tons':return{v:(c.tons||0)>0?c.tons.toFixed(2):'--'};
+    case'rev':return{v:(c.rev||0)!==0?'$'+Math.round(c.rev||0).toLocaleString():'--'};
+    case'gp':return{v:(c.gp||0)!==0?'$'+Math.round(c.gp||0).toLocaleString():'--'};
     case'target':return{v:'$'+Math.round(perTgt).toLocaleString()};
-    case'var':if(mVar===null||!hasTgt)return{v:'—'};return{v:(mVar>=0?'+':'')+mVar.toFixed(1)+'%',x:mVar>=0?'pos':'neg'};
+    case'var':if(mVar===null||!hasTgt)return{v:'--'};return{v:(mVar>=0?'+':'')+mVar.toFixed(1)+'%',x:mVar>=0?'pos':'neg'};
   }
 }
 function fT(n){if(!n||n===0)return'0';const r=Math.round(n*10)/10;return Number.isInteger(r)?r.toLocaleString():r.toFixed(1);}
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // PERIOD / PANEL / SIDEBAR
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 function setPeriod(p,el){
   period=p;
   document.querySelectorAll('.tog').forEach(b=>b.classList.remove('active'));
@@ -1805,18 +1802,22 @@ function showPanel(name,el){
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
 
-  // ── SAVE current panel's filter state before leaving ────────────
+  // ?? SAVE current panel's filter state before leaving ????????????
   saveCurrentPanelFilters();
 
-  // ── SWITCH panel display ─────────────────────────────────────────
+  // ?? SWITCH panel display ?????????????????????????????????????????
   ['sales','tradelane','ops','finance','admin','teams'].forEach(p=>{
     const e=document.getElementById('p-'+p);
     if(e)e.style.display=p===name?'flex':'none';
   });
 
+  // ?? Hide topbar filter row on Admin/Teams (not needed there) ?????
+  const tb2=document.querySelector('.tb2');
+  if(tb2) tb2.style.display=(name==='admin'||name==='teams')?'none':'flex';
+
   currentPanel = name;
 
-  // ── RESTORE saved filter state for the new panel ─────────────────
+  // ?? RESTORE saved filter state for the new panel ?????????????????
   restorePanelFilters(name);
 
   if(name==='admin')    loadAdminUsers();
@@ -1845,13 +1846,13 @@ function restorePanelFilters(name){
   var saved = panelFilters[name];
   if(!saved) return;
 
-  // Restore LOB and Rep — swap options based on panel
+  // Restore LOB and Rep -- swap options based on panel
   var lobEl = document.getElementById('lobF');
   var repEl = document.getElementById('repF');
   var repLbl = document.getElementById('repFLabel');
   if(lobEl) lobEl.value = saved.lob || 'all';
 
-  // safeRep: always use 'all' — getEffectiveRepFilter enforces restrictions at data level
+  // safeRep: always use 'all' -- getEffectiveRepFilter enforces restrictions at data level
   var safeRep = saved.rep || 'all';
 
   if(name === 'ops'){
@@ -1905,13 +1906,13 @@ function restorePanelFilters(name){
   }
 }
 
-// resetTopbarFilters removed — replaced by saveCurrentPanelFilters/restorePanelFilters
+// resetTopbarFilters removed -- replaced by saveCurrentPanelFilters/restorePanelFilters
 
 function toggleSidebar(){sidebarOpen=!sidebarOpen;document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen);}
 
-// ═══════════════════════════════════════════════
-// ADMIN PANEL — USER MANAGEMENT
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
+// ADMIN PANEL -- USER MANAGEMENT
+// ???????????????????????????????????????????????
 let editingDocId = null;
 
 // Role config
@@ -1944,7 +1945,7 @@ function switchAdminTab(tab){
 
 async function loadAdminUsers(){
   const wrap=document.getElementById('userCardsWrap');
-  wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Loading users…</div>';
+  wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Loading users...</div>';
   try{
     const snap=await db.collection('users').get();
     if(snap.empty){wrap.innerHTML='<div style="padding:20px;color:var(--text3)">No users found. Add your first user.</div>';return;}
@@ -2003,7 +2004,7 @@ async function loadAdminUsers(){
 
 async function loadAnalytics(){
   const wrap=document.getElementById('analyticsTableWrap');
-  wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Loading analytics…</div>';
+  wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Loading analytics...</div>';
   try{
     const snap=await db.collection('users').get();
     const now=Date.now();
@@ -2037,7 +2038,7 @@ async function loadAnalytics(){
     users.forEach((u,idx)=>{
       const initials=u.name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
       const bg=avatarColor(u.name);
-      const lastStr=u.lastLogin?u.lastLogin.toLocaleString('en-GB',{day:'numeric',month:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
+      const lastStr=u.lastLogin?u.lastLogin.toLocaleString('en-GB',{day:'numeric',month:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'--';
       const barW=Math.round((u.logins/maxLogins)*100);
       const isSelf=(currentUser&&u.email.toLowerCase()===currentUser.email.toLowerCase());
       const actColor=u.active?'var(--green)':'var(--text3)';
@@ -2053,7 +2054,7 @@ async function loadAnalytics(){
         <td><span class="user-card-badge" style="${roleStyle(u.role)}">${u.role}</span></td>
         <td><div style="font-weight:700;font-family:var(--mono)">${u.logins}</div>
           <div class="login-bar"><div class="login-bar-fill" style="width:${barW}%"></div></div></td>
-        <td><span style="background:${loginBadgeBg};color:${loginBadgeColor};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${u.loginsRecent>0?u.loginsRecent:'—'}</span></td>
+        <td><span style="background:${loginBadgeBg};color:${loginBadgeColor};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${u.loginsRecent>0?u.loginsRecent:'--'}</span></td>
         <td style="font-size:11.5px;color:var(--text2)">${lastStr}</td>
         <td><span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:${actColor}">
           <span class="active-dot" style="background:${actColor}"></span>${u.active?'Active':'Inactive'}
@@ -2065,7 +2066,7 @@ async function loadAnalytics(){
   }catch(e){wrap.innerHTML=`<div style="padding:20px;color:var(--red)">Error: ${e.message}</div>`;}
 }
 
-// ── all users cache for reporting manager dropdown ──
+// ?? all users cache for reporting manager dropdown ??
 var allUsersCache = [];
 
 async function openAddUser(){
@@ -2116,24 +2117,40 @@ async function buildReportingManagerDropdown(currentMgrId, excludeDocId){
 }
 
 async function saveUser(){
-  const name=document.getElementById('mName').value.trim();
-  const email=document.getElementById('mEmail').value.trim().toLowerCase();
-  const phone=document.getElementById('mPhone').value.trim();
-  const role=document.getElementById('mRole').value;
-  const active=document.getElementById('mActive').value==='true';
-  const reportingMgr=document.getElementById('mReportingManager').value||null;
-  if(!name||!email||!role){alert('Please fill in Name, Email and Role');return;}
-  const userData={Name:name,Email:email,Phone:phone,Role:role,
-    ReportingManager:reportingMgr,Active:active};
+  const name    = (document.getElementById('mName').value||'').trim();
+  const email   = (document.getElementById('mEmail').value||'').trim().toLowerCase();
+  const phone   = (document.getElementById('mPhone').value||'').trim();
+  const role    = (document.getElementById('mRole').value||'').trim();
+  const active  = document.getElementById('mActive').value==='true';
+  const mgrVal  = (document.getElementById('mReportingManager').value||'').trim();
+  const reportingMgr = mgrVal || null;
+
+  if(!name){ alert('Please enter Full Name'); return; }
+  if(!email){ alert('Please enter Email'); return; }
+  if(!role){ alert('Please select a Role'); return; }
+
+  const userData = {
+    Name: name, Email: email, Phone: phone, Role: role,
+    ReportingManager: reportingMgr, Active: active,
+  };
+
+  const btn = document.querySelector('#userModal .btn-save');
+  if(btn){ btn.disabled=true; btn.textContent='Saving...'; }
+
   try{
     if(editingDocId){
       await db.collection('users').doc(editingDocId).update(userData);
-    }else{
+    } else {
       await db.collection('users').add(userData);
     }
     closeModal();
-    loadAdminUsers();
-  }catch(e){alert('Error saving user: '+e.message);}
+    await loadAdminUsers();
+  } catch(e){
+    console.error('saveUser error:', e);
+    alert('Error saving user: ' + e.message + '\n\nCheck Firestore rules allow write.');
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='Save User'; }
+  }
 }
 
 async function deleteUser(docId,name){
@@ -2146,11 +2163,11 @@ async function deleteUser(docId,name){
 
 function closeModal(){document.getElementById('userModal').classList.remove('show');}
 
-// ── TEAMS / ORG CHART ────────────────────────────────────────
+// ?? TEAMS / ORG CHART ????????????????????????????????????????
 async function loadTeams(){
   const wrap=document.getElementById('teams-wrap');
   const meta=document.getElementById('teams-meta');
-  wrap.innerHTML='<div style="padding:30px;text-align:center;color:var(--text3)">Loading org chart…</div>';
+  wrap.innerHTML='<div style="padding:30px;text-align:center;color:var(--text3)">Loading org chart...</div>';
   try{
     const snap=await db.collection('users').get();
     const users={};
@@ -2215,18 +2232,18 @@ async function loadTeams(){
   }
 }
 
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 // HELPERS
-// ═══════════════════════════════════════════════
+// ???????????????????????????????????????????????
 function ensure(obj,rep,key){if(!obj[rep])obj[rep]={};if(!obj[rep][key])obj[rep][key]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};}
 function g(a,i){if(!a[i]||a[i][0]===undefined||a[i][0]===null||a[i][0]==='')return '';const v=a[i][0];return typeof v==='string'?v.trim():v;}
 function pf(s){return parseFloat(s)||0;}
 function pu(s){if(typeof s==='number') return s;return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
 function pusd(s){if(typeof s==='number') return s;return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
 
-// ═══════════════════════════════════════════════════════════════
-// TRADELANE MODULE — clean rebuild
-// ═══════════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????????
+// TRADELANE MODULE -- clean rebuild
+// ???????????????????????????????????????????????????????????????
 var TL_RAW  = [];
 var TL_DATA = {};
 var tlView  = 'pivot';
@@ -2282,7 +2299,7 @@ function aggregateTLData(){
   });
 }
 
-// Toggle handlers — called from HTML onclick or JS
+// Toggle handlers -- called from HTML onclick or JS
 function tlSetView(v){
   tlView = v;
   var pivot   = document.getElementById('tl-view-pivot');
@@ -2307,15 +2324,15 @@ function renderTL(){
   var wrap = document.getElementById('tl-twrap');
   if(!wrap) return;
   if(TL_RAW.length === 0){
-    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Data loading — please wait and try Refresh.</div>';
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Data loading -- please wait and try Refresh.</div>';
     return;
   }
   if(!tlInited){ aggregateTLData(); tlInited = true; }
 
-  // Use main topbar FROM/TO (date range shared — only dates, not LOB/Rep)
+  // Use main topbar FROM/TO (date range shared -- only dates, not LOB/Rep)
   var from = (document.getElementById('fromM') || {}).value || 'April-2025';
   var to   = (document.getElementById('toM')   || {}).value || 'March-2026';
-  // Use TL's own LOB filter — completely independent from Sales Performance
+  // Use TL's own LOB filter -- completely independent from Sales Performance
   var tlLob = (document.getElementById('lobF') || {}).value || 'all';
   var fi = MONTHS_ORDER.indexOf(from);
   var ti = MONTHS_ORDER.indexOf(to);
@@ -2323,9 +2340,9 @@ function renderTL(){
 
   var fromShort = MS[from] || from;
   var toShort   = MS[to]   || to;
-  var periodLbl = fromShort + ' – ' + toShort;
+  var periodLbl = fromShort + ' - ' + toShort;
 
-  // Get LOB from shared topbar — defined ONCE here for entire renderTL scope
+  // Get LOB from shared topbar -- defined ONCE here for entire renderTL scope
   var tlLobF = (document.getElementById('lobF')||{}).value||'all';
 
   // Sort tradelanes by GP descending
@@ -2347,8 +2364,8 @@ function renderTL(){
   setText('tl-k-rev',   '$'+Math.round(kRev).toLocaleString());
   setText('tl-k-gp',    '$'+Math.round(kGP).toLocaleString());
   setText('tl-k-gppct', (kRev > 0 ? (kGP/kRev*100).toFixed(1) : '0') + '%');
-  setText('tl-tbl-meta','Indonesia → All · ' + periodLbl);
-  setText('tl-tbl-sub', (tlView === 'pivot' ? 'Pivot' : 'Monthly') + ' · USD');
+  setText('tl-tbl-meta','Indonesia -> All ? ' + periodLbl);
+  setText('tl-tbl-sub', (tlView === 'pivot' ? 'Pivot' : 'Monthly') + ' ? USD');
 
   if(tlView === 'pivot'){
     renderTLPivot(tradelanes, months, periodLbl);
@@ -2372,7 +2389,7 @@ function tlGetTotal(tl, months, field){
 }
 
 // Apply LOB filter to TL data
-// Note: TL_RAW stores LOB info — we need to re-aggregate with LOB filter
+// Note: TL_RAW stores LOB info -- we need to re-aggregate with LOB filter
 // Since TL_DATA doesn't store LOB breakdown, we filter from TL_RAW directly
 function tlGetTotalFiltered(tl, months, field, lob, cargo){
   var repF = (document.getElementById('repF')||{}).value||'all';
@@ -2411,7 +2428,7 @@ function tlGetCargoMonthVal(tl, cargo, month, field){
   return cell ? (cell[field] || 0) : 0;
 }
 
-// ── PIVOT VIEW ──────────────────────────────────────────────────
+// ?? PIVOT VIEW ??????????????????????????????????????????????????
 function renderTLPivot(tradelanes, months, periodLbl){
   var tlLobF = (document.getElementById('lobF')||{}).value||'all';
   var gShp=0,gTeu=0,gRev=0,gGP=0;
@@ -2433,7 +2450,7 @@ function renderTLPivot(tradelanes, months, periodLbl){
     + '<th style="text-align:right;min-width:65px">GP %</th>'
     + '</tr></thead><tbody>');
 
-  // Grand total built separately — added at BOTTOM after all tradelane rows
+  // Grand total built separately -- added at BOTTOM after all tradelane rows
   var grandRow = (function(){
     var gColor = gPct>=9.43 ? 'var(--green)' : 'var(--red)';
     return '<tr class="grand-sep"><td colspan="6"></td></tr>'
@@ -2457,7 +2474,7 @@ function renderTLPivot(tradelanes, months, periodLbl){
     var showSubs = (tlCargo === 'all');
     var pctColor = pct>=9.43 ? 'var(--green)' : 'var(--red)';
 
-    // Build row — use data attribute for safe tl name passing
+    // Build row -- use data attribute for safe tl name passing
     var tr = document.createElement('tr');
     tr.className = 'r-rep';
     if(showSubs){ tr.style.cursor='pointer'; tr.setAttribute('data-tlname', tl); tr.onclick = function(){ tlToggleRow(this.getAttribute('data-tlname')); }; }
@@ -2494,7 +2511,7 @@ function renderTLPivot(tradelanes, months, periodLbl){
         var cPctColor = cPct>=9.43 ? 'var(--green)' : 'var(--red)';
         var label = cargo === 'Nomination Sales' ? 'Nomination' : cargo;
         rows.push('<tr class="r-rep" style="background:#fafbfd">'
-          + '<td class="c-rep" style="padding-left:28px;font-size:11px;color:var(--text2);font-weight:400;font-style:italic">↳ '+label+'</td>'
+          + '<td class="c-rep" style="padding-left:28px;font-size:11px;color:var(--text2);font-weight:400;font-style:italic">? '+label+'</td>'
           + '<td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--text3)">'+Math.round(cShp).toLocaleString()+'</td>'
           + '<td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--teal)">'+fT(cTeu)+'</td>'
           + '<td style="text-align:right;font-family:var(--mono);font-size:11px">$'+Math.round(cRev).toLocaleString()+'</td>'
@@ -2515,7 +2532,7 @@ function tlToggleRow(tlName){
   renderTL();
 }
 
-// ── MONTHLY VIEW ────────────────────────────────────────────────
+// ?? MONTHLY VIEW ????????????????????????????????????????????????
 function renderTLMonthly(tradelanes, months, periodLbl){
   var nCols = 2 + months.length;
 
@@ -2584,7 +2601,7 @@ function buildTLMonthlySection(tl, allTL, months, isGrand, lobFilter){
     // Monthly cells
     months.forEach(function(m){
       var v = getVal(m, mr.id);
-      var vFmt = v===0 ? '—' : mr.id==='shp' ? Math.round(v).toLocaleString() : mr.id==='teu' ? fT(v) : '$'+Math.round(v).toLocaleString();
+      var vFmt = v===0 ? '--' : mr.id==='shp' ? Math.round(v).toLocaleString() : mr.id==='teu' ? fT(v) : '$'+Math.round(v).toLocaleString();
       html += '<td style="text-align:right;font-family:var(--mono);font-size:11.5px;border-right:1px solid #f0f2f8;color:' + (v===0?'#d1d5db':mr.color) + '">' + vFmt + '</td>';
     });
     html += '</tr>';
@@ -2628,7 +2645,7 @@ function swapRepFilter(mode){
         var o=document.createElement('option'); o.value=o.textContent=r; repEl.appendChild(o);
       });
     } else {
-      // Restricted user: ONLY show their allowed reps — no "All Reps" option
+      // Restricted user: ONLY show their allowed reps -- no "All Reps" option
       allowedReps.forEach(function(r){
         var o=document.createElement('option'); o.value=o.textContent=r; repEl.appendChild(o);
       });
@@ -2640,15 +2657,15 @@ function swapRepFilter(mode){
 
 function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
 function setOv(show,msg){document.getElementById('overlay').style.display=show?'flex':'none';if(msg)document.getElementById('ovtxt').textContent=msg;}
-function showErr(msg){const e=document.getElementById('ebar');e.textContent='⚠ '+msg;e.style.display='block';}
+function showErr(msg){const e=document.getElementById('ebar');e.textContent='? '+msg;e.style.display='block';}
 function hideErr(){document.getElementById('ebar').style.display='none';}
 
 
 
 
-// ═══════════════════════════════════════════════════════════════
-// PENDENCY MODULE — Ops & Finance
-// ═══════════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????????
+// PENDENCY MODULE -- Ops & Finance
+// ???????????????????????????????????????????????????????????????
 
 // Populate the Sales Rep filter in Ops/Finance panels
 // Shows: All Reps + reportees for Zonal Manager, or all reps for full-access
@@ -2658,7 +2675,7 @@ function populatePendRepFilter(selectId){
   sel.innerHTML = '';
 
   if(isSalesExec()){
-    // Sales exec sees only themselves — no filter needed, hide it
+    // Sales exec sees only themselves -- no filter needed, hide it
     sel.parentElement.style.display='none';
     return;
   }
@@ -2700,7 +2717,7 @@ var MONTHS_LIST = [
   'January-2026','February-2026','March-2026'
 ];
 
-// ── OPS PENDENCY ─────────────────────────────────────────────────────────────
+// ?? OPS PENDENCY ?????????????????????????????????????????????????????????????
 // Open  = INV / WRK (ops not locked)
 // Closed = CMP (ops locked, finance pending)
 // Total  = CLS + CMP + INV + WRK (all non-blank)
@@ -2755,7 +2772,7 @@ function renderOps(){
   var wrap=document.getElementById('ops-twrap'); if(!wrap) return;
   var f=getPendFilters();
   var lob=f.lob, months=f.months;
-  var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
+  var fromShort=(MS[f.from]||f.from)+' - '+(MS[f.to]||f.to);
 
   // Sales Rep filter (inside ops panel)
   var opsSalesRep=(document.getElementById('ops-repF')||{}).value||'all';
@@ -2810,8 +2827,8 @@ function renderOpsPivot(allRows, openRows, closedRows){
   // Grand Total
   html += '<tr class="r-grand">'
     + '<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'—')+'</td>'
-    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'—')+'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'--')+'</td>'
+    + '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'--')+'</td>'
     + '<td style="text-align:right;font-family:var(--mono);font-weight:700">'+gTotal+'</td>'
     + '</tr><tr class="grand-sep"><td colspan="4"></td></tr>';
 
@@ -2820,8 +2837,8 @@ function renderOpsPivot(allRows, openRows, closedRows){
     var initl=op.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
     html += '<tr class="r-rep">'
       + '<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(op)+'">'+initl+'</div><span>'+op+'</span></div></td>'
-      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'—')+'</td>'
-      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'—')+'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'--')+'</td>'
+      + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'--')+'</td>'
       + '<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
       + '</tr>';
     html += '<tr style="height:3px"><td colspan="4" style="background:var(--border-l);padding:0"></td></tr>';
@@ -2832,7 +2849,7 @@ function renderOpsPivot(allRows, openRows, closedRows){
 }
 
 function renderOpsMonthly(allRows, months, periodLbl){
-  // Group by operator × month
+  // Group by operator ? month
   var operators = {};
   allRows.forEach(function(r){
     if(!operators[r.operator]) operators[r.operator]={};
@@ -2888,17 +2905,17 @@ function buildPendSection(name, operators, allOps, months, ROWS, isGrand){
     if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">'+initl+'</div><span style="font-weight:700;font-size:12px">'+name+'</span></div></td>';
     html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
     var tot=getTot(mr.id);
-    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'—')+'</td>';
+    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'--')+'</td>';
     months.forEach(function(m){
       var v=getVal(m,mr.id);
-      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'—')+'</td>';
+      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'--')+'</td>';
     });
     html+='</tr>';
   });
   return html;
 }
 
-// ── FINANCE PENDENCY ─────────────────────────────────────────────────────────
+// ?? FINANCE PENDENCY ?????????????????????????????????????????????????????????
 // Open   = CMP (finance pending)
 // Closed = CLS (finance locked)
 // Total  = all non-blank
@@ -2907,7 +2924,7 @@ function renderFin(){
   var wrap=document.getElementById('fin-twrap'); if(!wrap) return;
   var f=getPendFilters();
   var lob=f.lob, months=f.months;
-  var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
+  var fromShort=(MS[f.from]||f.from)+' - '+(MS[f.to]||f.to);
 
   // Sales Rep filter (inside finance panel)
   var finSalesRep=(document.getElementById('fin-repF')||{}).value||'all';
@@ -2933,7 +2950,7 @@ function renderFin(){
 }
 
 function renderFinPivot(allRows, openRows, closedRows){
-  // Group by sales rep (not job operator — finance view)
+  // Group by sales rep (not job operator -- finance view)
   var reps = {};
   allRows.forEach(function(r){
     if(!reps[r.rep]) reps[r.rep]={open:0,closed:0,total:0};
@@ -2954,8 +2971,8 @@ function renderFinPivot(allRows, openRows, closedRows){
 
   html+='<tr class="r-grand">'
     +'<td class="c-rep" style="font-weight:700;color:var(--blue)">Grand Total</td>'
-    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'—')+'</td>'
-    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'—')+'</td>'
+    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">'+(gOpen||'--')+'</td>'
+    +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">'+(gClosed||'--')+'</td>'
     +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+gTotal+'</td>'
     +'</tr><tr class="grand-sep"><td colspan="4"></td></tr>';
 
@@ -2964,8 +2981,8 @@ function renderFinPivot(allRows, openRows, closedRows){
     var initl=rep.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
     html+='<tr class="r-rep">'
       +'<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(rep)+'">'+initl+'</div><span>'+rep+'</span></div></td>'
-      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'—')+'</td>'
-      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'—')+'</td>'
+      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'--')+'</td>'
+      +'<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'--')+'</td>'
       +'<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
       +'</tr>';
     html+='<tr style="height:3px"><td colspan="4" style="background:var(--border-l);padding:0"></td></tr>';
@@ -3005,10 +3022,10 @@ function renderFinMonthly(allRows, months, periodLbl){
     if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">TG</div><span style="font-weight:700;font-size:12px">Trupti Gore</span></div></td>';
     html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
     var tot=getTot(mr.id);
-    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'—')+'</td>';
+    html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'--')+'</td>';
     months.forEach(function(m){
       var v=getVal(m,mr.id);
-      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'—')+'</td>';
+      html+='<td style="text-align:right;font-family:var(--mono);font-size:11.5px;color:'+(v>0?mr.color:'#d1d5db')+'">'+(v>0?v:'--')+'</td>';
     });
     html+='</tr>';
   });
@@ -3016,13 +3033,13 @@ function renderFinMonthly(allRows, months, periodLbl){
   html+='</tbody></table>';
   document.getElementById('fin-twrap').innerHTML=html;
 }
-// ════════════════════════════════════════════════════════════════
+// ????????????????????????????????????????????????????????????????
 
 
 
-// ═══════════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????????
 // ROLE-BASED SIDEBAR & PANEL ACCESS
-// ═══════════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????????
 function setupSidebarForRole(){
   const r = currentRole;
   const isOpsRole = ['operation head','operation manager','operation executive'].includes(r);
@@ -3040,7 +3057,7 @@ function setupSidebarForRole(){
     if(el) el.style.display=show?'flex':'none';
   });
 
-  // Admin section (Admin Panel + Teams) — admin only
+  // Admin section (Admin Panel + Teams) -- admin only
   const adminSec=document.getElementById('admin-section');
   if(adminSec) adminSec.style.display=isAdm?'block':'none';
 
@@ -3057,9 +3074,9 @@ function setupSidebarForRole(){
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MAPPING SHEETS FETCH — Sales rep & Ops rep by email
-// ═══════════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????????
+// MAPPING SHEETS FETCH -- Sales rep & Ops rep by email
+// ???????????????????????????????????????????????????????????????
 async function buildTeamLists(){
   if(!currentUserDoc) return;
   teamRepNames  = selfSalesRep ? [selfSalesRep] : [];
@@ -3098,9 +3115,9 @@ async function buildTeamLists(){
   console.log('Team reps:',teamRepNames,'Team ops:',teamOpsNames);
 }
 
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
 // Override getEffectiveRepFilter to use new role system
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
 function renderOrgChart(users, wrap){
   // Build tree: find roots (no ReportingManager or manager not found)
   const byId={};
@@ -3155,7 +3172,7 @@ function renderOrgNode(user, children, byId, depth){
       <div style="width:32px;height:32px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:13px">${name}${isSelf?'<span class="you-badge">You</span>':''}</div>
-        <div style="font-size:10.5px;color:var(--text3);margin-top:1px">${role}${kids.length?` · ${kids.length} direct`+' report'+(kids.length>1?'s':''):''}</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:1px">${role}${kids.length?` ? ${kids.length} direct`+' report'+(kids.length>1?'s':''):''}</div>
       </div>
       <button onclick="openEditUser('${user.id}')" style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text2);white-space:nowrap">Edit</button>
     </div>`;
@@ -3177,9 +3194,9 @@ async function handleOrgDrop(sourceId, targetId){
   }catch(e){ alert('Error updating hierarchy: '+e.message); }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// UPDATED ADMIN FUNCTIONS — new schema (no AllowedReps)
-// ═══════════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????????
+// UPDATED ADMIN FUNCTIONS -- new schema (no AllowedReps)
+// ???????????????????????????????????????????????????????????????
 
 async function populateManagerDropdown(selectedId){
   const sel=document.getElementById('mManager');
@@ -3199,35 +3216,11 @@ async function populateManagerDropdown(selectedId){
   }catch(e){ console.warn('Manager dropdown failed:',e); }
 }
 
-async function saveUser(){
-  const name   = document.getElementById('mName').value.trim();
-  const email  = document.getElementById('mEmail').value.trim().toLowerCase();
-  const phone  = document.getElementById('mPhone').value.trim();
-  const role   = document.getElementById('mRole').value;
-  const active = document.getElementById('mActive').value==='true';
-  const manager= document.getElementById('mManager').value||null;
 
-  if(!name||!email||!role){ alert('Please fill in Name, Email and Role'); return; }
 
-  const userData={
-    Name:name, Email:email, Phone:phone||'',
-    Role:role, Active:active,
-    ReportingManager:manager,
-  };
-  try{
-    if(editingDocId){
-      await db.collection('users').doc(editingDocId).update(userData);
-    } else {
-      await db.collection('users').add(userData);
-    }
-    closeModal();
-    loadAdminUsers();
-  }catch(e){ alert('Error saving user: '+e.message); }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// UPDATED showPanel — handle teams panel + ops-only roles
-// ═══════════════════════════════════════════════════════════════
+// ???????????????????????????????????????????????????????????????
+// UPDATED showPanel -- handle teams panel + ops-only roles
+// ???????????????????????????????????????????????????????????????
 
 </script>
 </html>
