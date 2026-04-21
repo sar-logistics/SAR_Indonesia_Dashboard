@@ -293,6 +293,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 .active-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
 
 @media(max-width:800px){.kpis{grid-template-columns:repeat(3,1fr)}}
+.org-node.drag-over{border-color:var(--blue)!important;box-shadow:0 0 0 2px #bfdbfe;}
 </style>
 </head>
 <body>
@@ -355,10 +356,18 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         Finance Pendency
       </div>
-      <!-- Admin Panel — only shown to admin -->
-      <div class="nav" id="nav-admin" style="display:none" onclick="showPanel('admin',this)">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        Admin Panel
+      <!-- Admin-only section separator -->
+      <div id="admin-section-sep" style="display:none">
+        <div style="height:1px;background:var(--border);margin:8px 10px"></div>
+        <div class="sb-lbl">Admin</div>
+        <div class="nav" id="nav-admin" onclick="showPanel('admin',this)">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Admin Panel
+        </div>
+        <div class="nav" id="nav-teams" onclick="showPanel('teams',this)">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Teams
+        </div>
       </div>
     </div>
     <div class="sb-foot">
@@ -514,6 +523,31 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         </div>
       </div>
       <!-- OPS PENDENCY PANEL -->
+      <!-- TEAMS PANEL -->
+      <div id="p-teams" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div>
+            <div style="font-size:14px;font-weight:700">👥 Teams</div>
+            <div style="font-size:11.5px;color:var(--text3);margin-top:2px">Reporting hierarchy & org chart</div>
+          </div>
+        </div>
+        <div class="tcard" style="flex:1">
+          <div class="thead-bar">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="live-dot" style="background:var(--blue)"></span>
+              <span style="font-size:12.5px;font-weight:700">Org Chart</span>
+            </div>
+            <button class="rb-top" onclick="loadTeams()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+          <div class="twrap" id="teams-wrap" style="padding:16px">
+            <div style="text-align:center;color:var(--text3);padding:40px">Loading org chart…</div>
+          </div>
+        </div>
+      </div>
+
       <div id="p-ops" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
         <!-- OPS KPI CARDS -->
         <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
@@ -521,11 +555,17 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="ops-k-closed">—</div><div class="kpi-sub">Ops locked · CMP</div></div>
           <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="ops-k-total">—</div><div class="kpi-sub">All valid records</div></div>
         </div>
-        <!-- OPS VIEW TOGGLE -->
-        <div style="display:flex;align-items:center;flex-shrink:0">
+        <!-- OPS VIEW TOGGLE + SALES REP FILTER -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div class="toggles">
             <button class="tog active" id="ops-view-pivot">Pivot</button>
             <button class="tog" id="ops-view-monthly">Monthly</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="flbl">Sales Rep</span>
+            <select class="fsel" id="ops-repF" onchange="renderOps()" style="min-width:120px">
+              <option value="all">All Reps</option>
+            </select>
           </div>
         </div>
         <!-- OPS TABLE CARD -->
@@ -542,6 +582,32 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         </div>
       </div>
       <!-- FINANCE PENDENCY PANEL -->
+      <!-- TEAMS PANEL -->
+      <div id="p-teams" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div>
+            <div style="font-size:14px;font-weight:700">Teams</div>
+            <div style="font-size:11.5px;color:var(--text3);margin-top:2px">Reporting hierarchy · Org chart</div>
+          </div>
+          <button class="rb-top" onclick="loadTeams()">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="tcard" style="flex:1">
+          <div class="thead-bar">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="live-dot" style="background:var(--blue)"></div>
+              <h2>Org Chart</h2>
+            </div>
+            <div class="thead-meta" id="teams-meta">—</div>
+          </div>
+          <div style="overflow-y:auto;flex:1;padding:20px" id="teams-wrap">
+            <div style="padding:30px;text-align:center;color:var(--text3)">Loading org chart…</div>
+          </div>
+        </div>
+      </div>
+
       <div id="p-finance" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
         <!-- FINANCE KPI CARDS -->
         <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
@@ -549,7 +615,15 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           <div class="kpi kg"><div class="kpi-lbl">Total Closed Jobs</div><div class="kpi-val" id="fin-k-closed">—</div><div class="kpi-sub">Finance locked · CLS</div></div>
           <div class="kpi kb"><div class="kpi-lbl">Total Jobs</div><div class="kpi-val" id="fin-k-total">—</div><div class="kpi-sub">All valid records</div></div>
         </div>
-        <!-- FINANCE VIEW: Monthly only -->
+        <!-- FINANCE VIEW: Monthly only — Sales Rep filter -->
+        <div style="display:flex;align-items:center;justify-content:flex-end;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:6px" id="fin-rep-row">
+            <span class="flbl">Sales Rep</span>
+            <select class="fsel" id="fin-repF" onchange="renderFin()" style="min-width:120px">
+              <option value="all">All Reps</option>
+            </select>
+          </div>
+        </div>
         <!-- FINANCE TABLE CARD -->
         <div class="tcard" style="flex:1">
           <div class="thead-bar">
@@ -603,45 +677,90 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           <div id="analyticsTableWrap"><div style="padding:30px;text-align:center;color:var(--text3)">Loading analytics…</div></div>
         </div>
       </div>
+      <!-- TEAMS PANEL -->
+      <div id="p-teams" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div>
+            <div style="font-size:15px;font-weight:700">Teams</div>
+            <div style="font-size:11.5px;color:var(--text3);margin-top:2px">Reporting hierarchy and org chart</div>
+          </div>
+          <button class="rb-top" onclick="loadTeams()">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="tcard" style="flex:1">
+          <div class="thead-bar">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></div>
+              <h2>Org Chart</h2>
+            </div>
+          </div>
+          <div style="overflow-y:auto;flex:1;padding:20px" id="orgChartWrap">
+            <div style="padding:40px;text-align:center;color:var(--text3)">Loading org chart…</div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
 
 <!-- ADD/EDIT USER MODAL -->
 <div class="modal-bg" id="userModal">
-  <div class="modal">
-    <h3 id="modalTitle">Add New User</h3>
-    <p id="modalDesc">Fill in the details to grant dashboard access</p>
+  <div class="modal" style="max-width:500px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <h3 id="modalTitle" style="margin:0">Add User</h3>
+      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">×</button>
+    </div>
+    <p id="modalDesc" style="margin-bottom:18px">Create or edit a dashboard user</p>
     <div class="form-row">
-      <label>Full Name</label>
-      <input type="text" id="mName" placeholder="e.g. John Smith">
+      <label>Full Name *</label>
+      <input type="text" id="mName" placeholder="Full name">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row">
+        <label>Role *</label>
+        <select id="mRole">
+          <option value="">Select…</option>
+          <option value="Admin">Admin</option>
+          <option value="Regional Manager">Regional Manager</option>
+          <option value="Zonal Manager">Zonal Manager</option>
+          <option value="Operation Head">Operation Head</option>
+          <option value="Operation Manager">Operation Manager</option>
+          <option value="Operation Executive">Operation Executive</option>
+          <option value="Finance Controller">Finance Controller</option>
+          <option value="Finance Manager">Finance Manager</option>
+          <option value="Finance Executive">Finance Executive</option>
+          <option value="Sales Executive">Sales Executive</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Email *</label>
+        <input type="email" id="mEmail" placeholder="work email">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row">
+        <label>Phone</label>
+        <input type="tel" id="mPhone" placeholder="10-digit">
+      </div>
+      <div class="form-row">
+        <label>Status</label>
+        <select id="mActive">
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
     </div>
     <div class="form-row">
-      <label>Google Email</label>
-      <input type="email" id="mEmail" placeholder="name@sarlogisolutions.com">
-    </div>
-    <div class="form-row">
-      <label>Role</label>
-      <select id="mRole" onchange="toggleRepSelect()">
-        <option value="admin">Admin — full access</option>
-        <option value="manager" selected>Manager — specific reps</option>
-        <option value="viewer">Viewer — read only</option>
-      </select>
-    </div>
-    <div class="form-row" id="repSelectRow">
-      <label>Allowed Sales Reps <span style="font-weight:400;text-transform:none;color:var(--text3)">(leave blank = all reps)</span></label>
-      <div class="rep-checkboxes" id="repCheckboxes"></div>
-    </div>
-    <div class="form-row">
-      <label>Status</label>
-      <select id="mActive">
-        <option value="true">Active</option>
-        <option value="false">Inactive</option>
+      <label>Reporting Manager</label>
+      <select id="mReportingManager">
+        <option value="">None / Self</option>
       </select>
     </div>
     <div class="modal-footer">
+      <button class="btn-save" onclick="saveUser()">✓ Save User</button>
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-save" onclick="saveUser()">Save User</button>
     </div>
   </div>
 </div>
@@ -671,10 +790,15 @@ const SHEET_ID = '1H610k9P24-3iUXlrl-RhqrH-7Iy5zYoJ4IjsuKapg84';
 // ═══════════════════════════════════════════════
 // USER STATE
 // ═══════════════════════════════════════════════
-let currentUser   = null;
-let currentRole   = null;
-let allowedReps   = [];   // empty = all reps
-let oauthToken    = null; // used for Sheets API calls
+let currentUser      = null;
+let currentRole      = null;
+let allowedReps      = [];      // legacy - kept for compat
+let oauthToken       = null;
+let currentUserUID   = null;    // Firestore doc ID
+let teamRepNames     = null;    // null=all, []=none, ['Aris',...]= specific reps (Sales Perf + TL)
+let teamOpsNames     = null;    // null=all, []=none, ['Eka Pratiwi',...]= specific ops (Ops Pendency)
+let selfSalesRep     = null;    // mapped sales rep name from Sales Mapping sheet
+let selfOpsRep       = null;    // mapped ops rep name from Ops Mapping sheet
 
 // ═══════════════════════════════════════════════
 // AUTH FLOW
@@ -717,74 +841,137 @@ async function signInWithGoogle(){
 }
 
 async function loadUserProfile(user){
-  // SECURITY: Only users whose email exists in Firestore get access.
-  // Try both capitalized and lowercase field names (handles both formats).
   let doc = null;
   try{
-    const snap1 = await db.collection('users').where('Email','==',user.email).limit(1).get();
-    if(!snap1.empty) doc = snap1.docs[0];
+    const s1=await db.collection('users').where('Email','==',user.email).limit(1).get();
+    if(!s1.empty) doc=s1.docs[0];
   }catch(e){}
   if(!doc){
     try{
-      const snap2 = await db.collection('users').where('email','==',user.email).limit(1).get();
-      if(!snap2.empty) doc = snap2.docs[0];
+      const s2=await db.collection('users').where('email','==',user.email).limit(1).get();
+      if(!s2.empty) doc=s2.docs[0];
     }catch(e){}
   }
-
-  // Not in Firestore = no access, regardless of Google account
   if(!doc){ showAccessDenied(user.email); setOv(false); return; }
 
-  const data = doc.data();
-
-  // Inactive users = no access
-  const active = data.Active ?? data.active ?? true;
+  const data=doc.data();
+  const active=data.Active??data.active??true;
   if(!active){ showAccessDenied(user.email); setOv(false); return; }
 
-  // Set user state
-  currentUser = user;
-  currentRole = (data.Role || data.role || 'viewer').toLowerCase();
-  allowedReps = data.AllowedReps || data.allowedReps || [];
+  currentUser    = user;
+  currentRole    = (data.Role||data.role||'viewer').toLowerCase();
+  currentUserDoc = {id:doc.id,...data};
+  currentUserUID = doc.id;
+  allowedReps    = []; // not used in v8
 
-  // Sidebar user info
-  const initials = user.displayName
-    ? user.displayName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()
-    : user.email[0].toUpperCase();
-  document.getElementById('sbAvatar').textContent = initials;
-  document.getElementById('sbName').textContent   = user.displayName || user.email;
-  document.getElementById('sbRole').textContent   = currentRole.charAt(0).toUpperCase()+currentRole.slice(1);
+  // ── Step 1: Fetch mapping sheets to get salesRepName and opsRepName ──
+  setOv(true,'Loading user mappings…');
+  try{ await fetchMappings(user.email); }catch(e){ console.warn('Mapping fetch failed:',e); }
 
-  // Admin nav — only visible to admin
-  if(currentRole==='admin'){
-    document.getElementById('nav-admin').style.display='flex';
-  }
+  // ── Step 2: Build team hierarchy for zonal/ops managers ──
+  setOv(true,'Loading team data…');
+  try{ await buildTeamHierarchy(doc.id); }catch(e){ console.warn('Team hierarchy failed:',e); }
 
-  // Lock rep filter to allowed reps
-  lockRepFilter();
+  // ── Sidebar user info ──
+  const initials=user.displayName
+    ?user.displayName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()
+    :user.email[0].toUpperCase();
+  document.getElementById('sbAvatar').textContent=initials;
+  document.getElementById('sbName').textContent=user.displayName||user.email;
+  document.getElementById('sbRole').textContent=currentRole.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
 
-  // Show main app
+  // ── Apply nav visibility ──
+  applyNavVisibility();
+
+  // ── Show app ──
   document.getElementById('mainApp').style.display='flex';
   setOv(false);
 
-  // Track login in Firestore
+  // ── Login tracking ──
   try{
-    const snap2=await db.collection('users').where('Email','==',user.email).limit(1).get();
-    if(!snap2.empty){
-      const docRef=snap2.docs[0].ref;
-      const now=new Date();
-      const d=snap2.docs[0].data();
-      const prev7dLogins=d.loginsLast7Days||0;
-      const lastLogin=d.lastLogin?d.lastLogin.toDate?d.lastLogin.toDate():new Date(d.lastLogin):null;
-      const sevenDaysAgo=new Date(now.getTime()-7*24*60*60*1000);
-      // Reset 7d counter if last login was >7 days ago
-      const new7d=(lastLogin&&lastLogin>sevenDaysAgo)?prev7dLogins+1:1;
-      await docRef.update({loginCount:(d.loginCount||0)+1,lastLogin:now,loginsLast7Days:new7d});
-    }
+    const now=new Date();
+    const prev7d=data.loginsLast7Days||0;
+    const lastLogin=data.lastLogin?data.lastLogin.toDate?data.lastLogin.toDate():new Date(data.lastLogin):null;
+    const sevenDaysAgo=new Date(now.getTime()-7*24*60*60*1000);
+    const new7d=(lastLogin&&lastLogin>sevenDaysAgo)?prev7d+1:1;
+    await doc.ref.update({loginCount:(data.loginCount||0)+1,lastLogin:now,loginsLast7Days:new7d});
   }catch(e){console.warn('Login tracking failed:',e);}
 
-  // Build selectors then load live data
   buildSelectors();
   await loadData();
 }
+
+// ── Fetch Sales Mapping and Ops Mapping sheets ──────────────────────────────
+let SALES_MAP = {}; // email → salesRepName
+let OPS_MAP   = {}; // email → opsRepName
+
+async function fetchMappings(email){
+  // Sales Mapping: col A=raw name, col B=mapped name, col C=email
+  try{
+    const smUrl=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?ranges=${encodeURIComponent('Sales Mapping!A:C')}&valueRenderOption=UNFORMATTED_VALUE`;
+    const smJ=await apiFetch(smUrl);
+    const rows=(smJ.valueRanges&&smJ.valueRanges[0]&&smJ.valueRanges[0].values)||[];
+    rows.forEach(row=>{
+      if(row[2]) SALES_MAP[String(row[2]).toLowerCase().trim()]=String(row[1]||row[0]||'').trim();
+    });
+    salesRepName=SALES_MAP[email.toLowerCase()]||null;
+    console.log('Sales rep name:',salesRepName);
+  }catch(e){ console.warn('Sales mapping error:',e); }
+
+  // Ops Mapping: col A=raw operator, col B=mapped name, col C=email
+  try{
+    const omUrl=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?ranges=${encodeURIComponent('Operations Mapping!A:C')}&valueRenderOption=UNFORMATTED_VALUE`;
+    const omJ=await apiFetch(omUrl);
+    const rows=(omJ.valueRanges&&omJ.valueRanges[0]&&omJ.valueRanges[0].values)||[];
+    rows.forEach(row=>{
+      if(row[2]) OPS_MAP[String(row[2]).toLowerCase().trim()]=String(row[1]||row[0]||'').trim();
+    });
+    opsRepName=OPS_MAP[email.toLowerCase()]||null;
+    console.log('Ops rep name:',opsRepName);
+  }catch(e){ console.warn('Ops mapping error:',e); }
+}
+
+// ── Build team hierarchy recursively from Firestore ────────────────────────
+async function buildTeamHierarchy(userDocId){
+  teamMemberEmails=[];
+  teamSalesReps=[];
+  teamOpsReps=[];
+
+  // Only matters for zonal manager, ops manager — others either see all or just self
+  if(!isZonalManager() && !isOpsManager()) return;
+
+  // Recursively get all reportees
+  const visited=new Set();
+  async function collectReportees(managerUid){
+    if(visited.has(managerUid)) return;
+    visited.add(managerUid);
+    try{
+      const snap=await db.collection('users').where('ReportingManager','==',managerUid).get();
+      for(const d of snap.docs){
+        const email=(d.data().Email||d.data().email||'').toLowerCase();
+        if(email){
+          teamMemberEmails.push(email);
+          // Map to sales/ops rep names
+          const sr=SALES_MAP[email];
+          const or_=OPS_MAP[email];
+          if(sr) teamSalesReps.push(sr);
+          if(or_) teamOpsReps.push(or_);
+        }
+        await collectReportees(d.id);
+      }
+    }catch(e){ console.warn('Hierarchy fetch error:',e); }
+  }
+  await collectReportees(userDocId);
+
+  // Also include self
+  const selfEmail=(currentUser.email||'').toLowerCase();
+  if(salesRepName && !teamSalesReps.includes(salesRepName)) teamSalesReps.push(salesRepName);
+  if(opsRepName   && !teamOpsReps.includes(opsRepName))     teamOpsReps.push(opsRepName);
+
+  console.log('Team sales reps:',teamSalesReps);
+  console.log('Team ops reps:',teamOpsReps);
+}
+
 
 function showAccessDenied(email){
   document.getElementById('loginScreen').style.display='none';
@@ -797,15 +984,63 @@ function showAccessDenied(email){
 function doSignOut(){
   auth.signOut().then(()=>{
     currentUser=null;currentRole=null;allowedReps=[];oauthToken=null;
-    DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;PEND_RAW=[];opsInited=false;finInited=false;
+    currentUserUID=null;teamRepNames=null;teamOpsNames=null;selfSalesRep=null;selfOpsRep=null;
+    DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;PEND_RAW=[];opsInited=false;finInited=false;SALES_MAP={};OPS_MAP={};
     location.reload();
   });
 }
 
-// Returns true only for roles that can see ALL reps
+function applyNavVisibility(){
+  const r=(currentRole||'').toLowerCase();
+  // Admin-only tabs
+  const showAdmin = (r==='admin');
+  document.getElementById('admin-section-sep').style.display = showAdmin?'block':'none';
+  // Sales / Tradelane — hidden for pure ops roles
+  const showSales = canSeeSales();
+  document.getElementById('nav-sales').style.display      = showSales?'flex':'none';
+  document.getElementById('nav-tradelane').style.display  = showSales?'flex':'none';
+  // Ops Pendency
+  document.getElementById('nav-ops').style.display     = canSeeOps()?'flex':'none';
+  // Finance Pendency
+  document.getElementById('nav-finance').style.display = canSeeFin()?'flex':'none';
+  // Default panel: ops-only roles land on ops, others on sales
+  if(!showSales && canSeeOps()){
+    setTimeout(()=>showPanel('ops',document.getElementById('nav-ops')),100);
+  }
+}
+
+// ── ROLE CONSTANTS ──────────────────────────────────────────
+const ROLE_FULL_ACCESS  = ['admin','regional manager','finance controller','finance manager','finance executive'];
+const ROLE_ZONAL        = ['zonal manager'];
+const ROLE_SALES_EXEC   = ['sales executive'];
+const ROLE_OPS_HEAD     = ['operation head'];
+const ROLE_OPS_MANAGER  = ['operation manager'];
+const ROLE_OPS_EXEC     = ['operation executive'];
+const ROLE_OPS_ANY      = ['operation head','operation manager','operation executive'];
+const ROLE_FINANCE_ANY  = ['finance controller','finance manager','finance executive'];
+
 function isFullAccess(){
-  const r = (currentRole||'').toLowerCase();
-  return r === 'admin' || r === 'co-admin' || r === 'regional manager';
+  return ROLE_FULL_ACCESS.includes((currentRole||'').toLowerCase());
+}
+function isZonalManager(){ return ROLE_ZONAL.includes((currentRole||'').toLowerCase()); }
+function isSalesExec(){     return ROLE_SALES_EXEC.includes((currentRole||'').toLowerCase()); }
+function isOpsRole(){       return ROLE_OPS_ANY.includes((currentRole||'').toLowerCase()); }
+function isOpsHead(){       return ROLE_OPS_HEAD.includes((currentRole||'').toLowerCase()); }
+function isOpsManager(){    return ROLE_OPS_MANAGER.includes((currentRole||'').toLowerCase()); }
+function isOpsExec(){       return ROLE_OPS_EXEC.includes((currentRole||'').toLowerCase()); }
+
+// Can this role see Sales Performance & Tradelane?
+function canSeeSales(){
+  const r=(currentRole||'').toLowerCase();
+  return isFullAccess() || isZonalManager() || isSalesExec();
+}
+// Can this role see Ops Pendency?
+function canSeeOps(){
+  return canSeeSales() || isOpsRole();
+}
+// Can this role see Finance Pendency?
+function canSeeFin(){
+  return canSeeSales() || ROLE_FINANCE_ANY.includes((currentRole||'').toLowerCase());
 }
 
 // Returns the effective allowed reps for this user:
@@ -818,18 +1053,7 @@ function effectiveAllowedReps(){
   return allowedReps; // could be empty = "no one" (self-only, handled via currentUser email)
 }
 
-function lockRepFilter(){
-  const sel = document.getElementById('repF');
-  if(isFullAccess()) return; // admin/regional manager — no restrictions
-
-  // Restricted users: remove "All Reps" — they never see aggregate data
-  Array.from(sel.options).forEach(o=>{
-    if(o.value==='all'){ o.remove(); return; }
-    if(allowedReps.length>0 && !allowedReps.includes(o.value)) o.remove();
-  });
-
-  if(sel.options.length>0) sel.value=sel.options[0].value;
-}
+// lockRepFilter: removed — access now handled by getEffectiveRepFilter
 
 // ═══════════════════════════════════════════════
 // DATA CONFIG
@@ -894,72 +1118,83 @@ function buildSelectors(){
   if(f.options.length>0) return; // already built
   MONTHS.forEach(m=>{f.innerHTML+=`<option value="${m}">${MS[m]}</option>`;t.innerHTML+=`<option value="${m}">${MS[m]}</option>`;});
   f.value='April-2025';t.value='March-2026';
-  // Rep filter — only full-access roles see "All Reps"
+  // Rep filter — full-access roles see All Reps; others see only their scope
   const rs=document.getElementById('repF');
   if(isFullAccess()){
-    // Admin / co-admin / regional manager: All Reps + individual selection
     const allOpt=document.createElement('option');
     allOpt.value='all';allOpt.textContent='All Reps';
     rs.appendChild(allOpt);
     ALL_REPS.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
-  } else if(allowedReps.length>0){
-    // Manager/Viewer with specific reps assigned: only those reps
-    allowedReps.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
-    if(rs.options.length>0) rs.value=rs.options[0].value;
+  } else if(isOpsRole()){
+    // Ops roles: rep filter not relevant for sales — hide it
+    rs.parentElement.style.display='none';
   } else {
-    // Manager/Viewer with NO reps assigned: only their own name
-    // We match their display name to a sales rep via email name part
-    const selfRep = getSelfRep();
-    if(selfRep){
-      const o=document.createElement('option');o.value=o.textContent=selfRep;rs.appendChild(o);
-    } else {
-      // Fallback: show all reps but enforce restriction at data level
-      ALL_REPS.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
-    }
-    if(rs.options.length>0) rs.value=rs.options[0].value;
+    // Zonal manager / Sales exec — reps will be set after mapping loads
+    // Show All Reps as placeholder; getEffectiveRepFilter will enforce at data level
+    const allOpt=document.createElement('option');
+    allOpt.value='all';allOpt.textContent='All Reps';
+    rs.appendChild(allOpt);
+    ALL_REPS.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
   }
-  // Initialise all panelFilter rep defaults now that dropdown is built
-  const defaultRep = isFullAccess() ? 'all' : (rs.options.length>0 ? rs.options[0].value : 'all');
+  // Initialise panelFilter rep defaults
+  const defaultRep = isFullAccess()?'all':'all';
   Object.keys(panelFilters).forEach(p=>{
     if(panelFilters[p].rep==='__INIT__') panelFilters[p].rep=defaultRep;
   });
 }
 
-// Get the sales rep name that matches the current logged-in user
-// Used for manager/viewer with no reps assigned — they see only themselves
+// getSelfRep: now uses SALES_MAP email lookup (populated by fetchRoleMappings)
 function getSelfRep(){
+  if(selfSalesRep) return selfSalesRep;
   if(!currentUser) return null;
-  const name=(currentUser.displayName||'').toLowerCase().trim();
-  const email=(currentUser.email||'').toLowerCase();
-  // Try to match display name to a known rep
-  for(const rep of ALL_REPS){
-    if(name.includes(rep.toLowerCase()) || rep.toLowerCase().includes(name.split(' ')[0])) return rep;
-  }
-  // Try email prefix
-  const prefix=email.split('@')[0].replace(/[._]/g,' ');
-  for(const rep of ALL_REPS){
-    if(prefix.includes(rep.toLowerCase().split(' ')[0])) return rep;
-  }
-  return null;
+  return SALES_MAP[(currentUser.email||'').toLowerCase()] || null;
 }
 
 // Returns the effective rep filter based on role + repF selection
+// Returns: 'all' = no restriction, or [] = no data, or ['Rep1',...] = specific reps
 function getEffectiveRepFilter(repF){
-  // Returns: 'all' = no restriction, or array of permitted rep names
-  if(isFullAccess()){
-    // Admin / co-admin / regional manager: full access
-    return repF==='all' ? 'all' : [repF];
+  // Full access roles: admin, regional manager, finance roles
+  if(isFullAccess()) return repF==='all' ? 'all' : [repF];
+
+  // Ops-only roles have no access to sales/TL data
+  if(isOpsRole()) return [];
+
+  // Zonal Manager or Sales Executive — use teamRepNames
+  if(teamRepNames !== null){
+    if(repF==='all') return teamRepNames.length>0 ? teamRepNames : [];
+    // Specific rep selected — only if in team
+    return teamRepNames.includes(repF) ? [repF] : [];
   }
-  // Non-full-access: manager/viewer
-  const selfRep = getSelfRep();
-  const permitted = allowedReps.length>0 ? allowedReps : (selfRep ? [selfRep] : []);
-  if(repF==='all'){
-    // Return permitted list (never 'all' for restricted users)
-    return permitted.length>0 ? permitted : [];
+
+  // Fallback: no mapping found — show nothing
+  return [];
+}
+
+// Returns effective ops filter for pendency dashboards
+// Returns: 'all', [] or ['OperatorName',...]
+function getEffectiveOpsFilter(repF){
+  if(isFullAccess() || isOpsHead()) return repF==='all'?'all':[repF];
+
+  // Sales exec: filter by their sales rep name (Job Sales Rep in data)
+  // The ops dashboard shows ops data but filtered by sales rep column
+  if(isSalesExec()){
+    // selfSalesRep is used to filter r.rep in PEND_RAW
+    return 'sales_self'; // special signal handled in renderOps/renderFin
   }
-  // Specific rep selected — only if in permitted list
-  if(permitted.length===0 || permitted.includes(repF)) return [repF];
-  return permitted; // fallback: their permitted reps
+
+  // Ops manager / exec: use teamOpsNames
+  if(teamOpsNames !== null){
+    if(repF==='all') return teamOpsNames.length>0 ? teamOpsNames : [];
+    return teamOpsNames.includes(repF) ? [repF] : [];
+  }
+
+  // Zonal manager: use teamOpsNames
+  if(isZonalManager() && teamOpsNames !== null){
+    if(repF==='all') return teamOpsNames;
+    return teamOpsNames.includes(repF) ? [repF] : [];
+  }
+
+  return 'all'; // finance roles / regional manager
 }
 
 // ═══════════════════════════════════════════════
@@ -997,8 +1232,12 @@ async function loadData(){
   hideErr();
   DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;PEND_RAW=[];opsInited=false;finInited=false;
   try{
+    setOv(true,'Loading mappings…');
+    await fetchMappings();
     setOv(true,'Fetching Sales Targets…');
     await fetchTargets();
+    setOv(true,'Fetching Role Mappings…');
+    await fetchRoleMappings();
     setOv(true,'Fetching Shipment Detail…');
     await fetchShipment();
     setOv(true,'Fetching General Job Detail…');
@@ -1121,6 +1360,143 @@ async function fetchTargets(){
     ALL_REPS.forEach(r=>{REP_TARGETS[r]=0;REP_WEEKLY_TARGETS[r]=0;});
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// ROLE MAPPING — Sales Mapping & Ops Mapping sheets
+// ═══════════════════════════════════════════════════════════
+// SALES_MAP declared above
+// OPS_MAP declared above
+
+async function fetchRoleMappings(){
+  // Only fetch if user has a mapped role
+  try{
+    // Sales Mapping: col A=raw name, col B=mapped name, col C=email
+    const jS = await apiFetch(batchUrl('Sales Mapping',['A','B','C']));
+    const [rawC,mapC,emailC] = jS.valueRanges.map(v=>v.values||[]);
+    const lenS = Math.max(rawC.length,emailC.length);
+    for(let i=1;i<lenS;i++){
+      const email = g(emailC,i);
+      const mapped = g(mapC,i)||g(rawC,i);
+      if(email && mapped) SALES_MAP[email.toLowerCase().trim()] = mapped;
+    }
+    console.log('Sales map loaded:', Object.keys(SALES_MAP).length, 'entries');
+  }catch(e){ console.warn('Sales Mapping sheet not found yet:', e.message); }
+
+  try{
+    // Ops Mapping: col A=job operator, col B=mapped name, col C=email
+    const jO = await apiFetch(batchUrl('Operations Mapping',['A','B','C']));
+    const [opA,opB,opC] = jO.valueRanges.map(v=>v.values||[]);
+    const lenO = Math.max(opA.length,opC.length);
+    for(let i=1;i<lenO;i++){
+      const email = g(opC,i);
+      const mapped = g(opB,i)||g(opA,i);
+      if(email && mapped) OPS_MAP[email.toLowerCase().trim()] = mapped;
+    }
+    console.log('Ops map loaded:', Object.keys(OPS_MAP).length, 'entries');
+  }catch(e){ console.warn('Operations Mapping sheet not found yet:', e.message); }
+
+  // Resolve current user's rep names
+  if(currentUser){
+    const email = currentUser.email.toLowerCase();
+    selfSalesRep = SALES_MAP[email] || null;
+    selfOpsRep   = OPS_MAP[email]   || null;
+    console.log('Self sales rep:', selfSalesRep, '| Self ops rep:', selfOpsRep);
+  }
+
+  // Build team scope for Zonal Manager, Ops Manager
+  await buildTeamScope();
+}
+
+// Build teamRepNames and teamOpsNames based on reporting hierarchy
+async function buildTeamScope(){
+  teamRepNames = null;  // null = no restriction
+  teamOpsNames = null;
+
+  const r = (currentRole||'').toLowerCase();
+
+  if(isFullAccess()){
+    // Admin / Regional Manager / Finance roles — no restriction
+    return;
+  }
+
+  if(isZonalManager()){
+    // Get all users who report to this user (directly or indirectly)
+    const teamEmails = await getTeamEmails(currentUserUID);
+    teamEmails.push(currentUser.email.toLowerCase()); // include self
+    // Map emails to sales rep names
+    const repNames = [];
+    teamEmails.forEach(em=>{
+      const rep = SALES_MAP[em];
+      if(rep) repNames.push(rep);
+    });
+    teamRepNames = repNames.length>0 ? repNames : [];
+    // Also map to ops names for pendency
+    const opsNames = [];
+    teamEmails.forEach(em=>{
+      const op = OPS_MAP[em];
+      if(op) opsNames.push(op);
+    });
+    teamOpsNames = opsNames.length>0 ? opsNames : null;
+    console.log('Zonal team reps:', teamRepNames, '| ops:', teamOpsNames);
+    return;
+  }
+
+  if(isSalesExec()){
+    // Only self
+    teamRepNames = selfSalesRep ? [selfSalesRep] : [];
+    // In pendency: filter by sales rep name (Job Sales Rep column)
+    teamOpsNames = null; // ops filter handled separately via selfSalesRep
+    return;
+  }
+
+  if(isOpsHead()){
+    // Sees ALL ops data
+    teamOpsNames = null;
+    return;
+  }
+
+  if(isOpsManager()){
+    // Team ops reps
+    const teamEmails = await getTeamEmails(currentUserUID);
+    teamEmails.push(currentUser.email.toLowerCase());
+    const opsNames = [];
+    teamEmails.forEach(em=>{ const op=OPS_MAP[em]; if(op) opsNames.push(op); });
+    teamOpsNames = opsNames.length>0 ? opsNames : (selfOpsRep?[selfOpsRep]:[]);
+    return;
+  }
+
+  if(isOpsExec()){
+    // Only self ops
+    teamOpsNames = selfOpsRep ? [selfOpsRep] : [];
+    return;
+  }
+}
+
+// Fetch all users who report (directly or transitively) to a given UID
+async function getTeamEmails(managerUID){
+  try{
+    const snap = await db.collection('users').where('ReportingManager','==',managerUID).get();
+    const emails = [];
+    const subPromises = [];
+    snap.forEach(doc=>{
+      const d = doc.data();
+      const email = (d.Email||d.email||'').toLowerCase();
+      if(email) emails.push(email);
+      // Recursively get their reports
+      subPromises.push(getTeamEmails(doc.id));
+    });
+    const subResults = await Promise.all(subPromises);
+    subResults.forEach(sub=>emails.push(...sub));
+    return emails;
+  }catch(e){
+    console.warn('getTeamEmails error:', e.message);
+    return [];
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// UPDATED getEffectiveRepFilter — uses new role system
+// ═══════════════════════════════════════════════════════════
 
 // Week key helpers
 function makeWeekKey(rawDate,rawWk,mon){
@@ -1433,7 +1809,7 @@ function showPanel(name,el){
   saveCurrentPanelFilters();
 
   // ── SWITCH panel display ─────────────────────────────────────────
-  ['sales','tradelane','ops','finance','admin'].forEach(p=>{
+  ['sales','tradelane','ops','finance','admin','teams'].forEach(p=>{
     const e=document.getElementById('p-'+p);
     if(e)e.style.display=p===name?'flex':'none';
   });
@@ -1444,6 +1820,7 @@ function showPanel(name,el){
   restorePanelFilters(name);
 
   if(name==='admin')    loadAdminUsers();
+  if(name==='teams')     setTimeout(loadTeams,50);
   if(name==='tradelane') setTimeout(function(){ if(typeof initTL==='function') initTL(); }, 50);
   if(name==='ops')       setTimeout(function(){ if(typeof initOps==='function') initOps(); }, 50);
   if(name==='finance')   setTimeout(function(){ if(typeof initFin==='function') initFin(); }, 50);
@@ -1454,13 +1831,7 @@ function saveCurrentPanelFilters(){
   var panel = currentPanel;
   if(!panelFilters[panel]) return;
   panelFilters[panel].lob    = (document.getElementById('lobF')||{}).value||'all';
-  var _savedRep=(document.getElementById('repF')||{}).value||'all';
-  // Security: only full-access roles can save 'all'
-  if(_savedRep==='all' && !isFullAccess()){
-    var _repElS=document.getElementById('repF');
-    _savedRep=(_repElS&&_repElS.options.length>0)?_repElS.options[0].value:(allowedReps.length>0?allowedReps[0]:(getSelfRep()||'all'));
-  }
-  panelFilters[panel].rep = _savedRep;
+  panelFilters[panel].rep = (document.getElementById('repF')||{}).value||'all';
   panelFilters[panel].from   = (document.getElementById('fromM')||{}).value||'April-2025';
   panelFilters[panel].to     = (document.getElementById('toM')||{}).value||'March-2026';
   panelFilters[panel].period = period;
@@ -1480,13 +1851,8 @@ function restorePanelFilters(name){
   var repLbl = document.getElementById('repFLabel');
   if(lobEl) lobEl.value = saved.lob || 'all';
 
-  // SECURITY: only full-access roles can restore to 'all'
+  // safeRep: always use 'all' — getEffectiveRepFilter enforces restrictions at data level
   var safeRep = saved.rep || 'all';
-  if(safeRep === 'all' && !isFullAccess()){
-    // Non-full-access: default to first available rep in dropdown
-    var repElTmp=document.getElementById('repF');
-    safeRep = (repElTmp && repElTmp.options.length>0) ? repElTmp.options[0].value : (allowedReps.length>0?allowedReps[0]:(getSelfRep()||'all'));
-  }
 
   if(name === 'ops'){
     // Swap to Job Operators
@@ -1699,57 +2065,66 @@ async function loadAnalytics(){
   }catch(e){wrap.innerHTML=`<div style="padding:20px;color:var(--red)">Error: ${e.message}</div>`;}
 }
 
-function openAddUser(){
+// ── all users cache for reporting manager dropdown ──
+var allUsersCache = [];
+
+async function openAddUser(){
   editingDocId=null;
-  document.getElementById('modalTitle').textContent='Add New User';
-  document.getElementById('modalDesc').textContent='Fill in the details to grant dashboard access';
+  document.getElementById('modalTitle').textContent='Add User';
+  document.getElementById('modalDesc').textContent='Create or edit a dashboard user';
   document.getElementById('mName').value='';
   document.getElementById('mEmail').value='';
-  document.getElementById('mRole').value='manager';
+  document.getElementById('mPhone').value='';
+  document.getElementById('mRole').value='';
   document.getElementById('mActive').value='true';
-  buildRepCheckboxes([]);
-  toggleRepSelect();
+  await buildReportingManagerDropdown(null);
   document.getElementById('userModal').classList.add('show');
 }
 
 async function openEditUser(docId){
   editingDocId=docId;
-  const doc=await db.collection('users').doc(docId).get();
-  const d=doc.data();
+  const docSnap=await db.collection('users').doc(docId).get();
+  const d=docSnap.data();
   document.getElementById('modalTitle').textContent='Edit User';
-  document.getElementById('modalDesc').textContent='Update access settings for this user';
+  document.getElementById('modalDesc').textContent='Update user settings';
   document.getElementById('mName').value=d.Name||d.name||'';
   document.getElementById('mEmail').value=d.Email||d.email||'';
-  document.getElementById('mRole').value=(d.Role||d.role||'viewer').toLowerCase();
+  document.getElementById('mPhone').value=d.Phone||d.phone||'';
+  document.getElementById('mRole').value=d.Role||d.role||'';
   document.getElementById('mActive').value=String(d.Active??d.active??true);
-  buildRepCheckboxes(d.AllowedReps||d.allowedReps||[]);
-  toggleRepSelect();
+  await buildReportingManagerDropdown(d.ReportingManager||null, docId);
   document.getElementById('userModal').classList.add('show');
 }
 
-function buildRepCheckboxes(selected){
-  const box=document.getElementById('repCheckboxes');
-  box.innerHTML=ALL_REPS.map(r=>`
-    <label class="rep-check">
-      <input type="checkbox" value="${r}" ${selected.includes(r)?'checked':''}>
-      ${r}
-    </label>`).join('');
-}
-
-function toggleRepSelect(){
-  const role=document.getElementById('mRole').value;
-  document.getElementById('repSelectRow').style.display=role==='admin'?'none':'block';
+async function buildReportingManagerDropdown(currentMgrId, excludeDocId){
+  const sel=document.getElementById('mReportingManager');
+  sel.innerHTML='<option value="">None / Self</option>';
+  try{
+    const snap=await db.collection('users').get();
+    snap.forEach(doc=>{
+      if(doc.id===excludeDocId) return; // can't report to self
+      const d=doc.data();
+      const name=d.Name||d.name||d.Email||d.email||'?';
+      const role=d.Role||d.role||'';
+      const o=document.createElement('option');
+      o.value=doc.id;
+      o.textContent=name+(role?` (${role})`:'');
+      if(doc.id===currentMgrId) o.selected=true;
+      sel.appendChild(o);
+    });
+  }catch(e){console.warn('Could not load users for dropdown');}
 }
 
 async function saveUser(){
   const name=document.getElementById('mName').value.trim();
   const email=document.getElementById('mEmail').value.trim().toLowerCase();
+  const phone=document.getElementById('mPhone').value.trim();
   const role=document.getElementById('mRole').value;
   const active=document.getElementById('mActive').value==='true';
-  if(!name||!email){alert('Please fill in Name and Email');return;}
-  const checkboxes=document.querySelectorAll('#repCheckboxes input:checked');
-  const allowedRepsArr=Array.from(checkboxes).map(c=>c.value);
-  const userData={Name:name,Email:email,Role:role,AllowedReps:role==='admin'?[]:allowedRepsArr,Active:active};
+  const reportingMgr=document.getElementById('mReportingManager').value||null;
+  if(!name||!email||!role){alert('Please fill in Name, Email and Role');return;}
+  const userData={Name:name,Email:email,Phone:phone,Role:role,
+    ReportingManager:reportingMgr,Active:active};
   try{
     if(editingDocId){
       await db.collection('users').doc(editingDocId).update(userData);
@@ -1770,6 +2145,75 @@ async function deleteUser(docId,name){
 }
 
 function closeModal(){document.getElementById('userModal').classList.remove('show');}
+
+// ── TEAMS / ORG CHART ────────────────────────────────────────
+async function loadTeams(){
+  const wrap=document.getElementById('teams-wrap');
+  const meta=document.getElementById('teams-meta');
+  wrap.innerHTML='<div style="padding:30px;text-align:center;color:var(--text3)">Loading org chart…</div>';
+  try{
+    const snap=await db.collection('users').get();
+    const users={};
+    snap.forEach(doc=>{
+      const d=doc.data();
+      users[doc.id]={id:doc.id,name:d.Name||d.name||'?',email:d.Email||d.email||'',
+        role:d.Role||d.role||'',phone:d.Phone||d.phone||'',
+        mgr:d.ReportingManager||null,active:d.Active??d.active??true};
+    });
+    const total=Object.keys(users).length;
+    if(meta) meta.textContent=total+' users';
+
+    // Build tree: find roots (no manager or manager not in list)
+    const roots=Object.values(users).filter(u=>!u.mgr||!users[u.mgr]);
+    // Sort roots by role priority
+    const roleRank={'Admin':0,'Regional Manager':1,'Finance Controller':2,'Finance Manager':3,
+      'Operation Head':4,'Zonal Manager':5,'Operation Manager':6,'Finance Executive':7,
+      'Sales Executive':8,'Operation Executive':9};
+    roots.sort((a,b)=>(roleRank[a.role]||99)-(roleRank[b.role]||99));
+
+    function renderNode(user,depth){
+      const bg=avatarColor(user.name);
+      const initials=user.name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+      const children=Object.values(users).filter(u=>u.mgr===user.id);
+      const childCount=children.length;
+      const isSelf=(currentUser&&user.email.toLowerCase()===currentUser.email.toLowerCase());
+      const rStyle=roleStyle(user.role);
+      let html=`<div style="display:flex;flex-direction:column;align-items:flex-start;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);
+          border-radius:10px;padding:10px 14px;min-width:220px;max-width:320px;
+          ${isSelf?'border-color:var(--blue);background:var(--blue-bg)':''}">
+          <div style="width:34px;height:34px;border-radius:50%;background:${bg};display:flex;
+            align-items:center;justify-content:center;font-size:12px;font-weight:700;
+            color:#fff;flex-shrink:0">${initials}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13px">${user.name}${isSelf?'<span class="you-badge">You</span>':''}</div>
+            <div><span class="user-card-badge" style="${rStyle};font-size:10px">${user.role}</span></div>
+            ${childCount>0?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${childCount} direct report${childCount>1?'s':''}</div>`:''}
+          </div>
+          <button class="icon-btn edit" title="Edit" onclick="openEditUser('${user.id}')">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>`;
+
+      if(children.length>0){
+        children.sort((a,b)=>(roleRank[a.role]||99)-(roleRank[b.role]||99));
+        html+=`<div style="display:flex;gap:12px;margin-top:6px;margin-left:24px;
+          padding-left:16px;border-left:2px solid var(--border-l);flex-wrap:wrap">`;
+        children.forEach(child=>{ html+=renderNode(child,depth+1); });
+        html+=`</div>`;
+      }
+      html+=`</div>`;
+      return html;
+    }
+
+    let html='<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">';
+    roots.forEach(r=>{ html+=renderNode(r,0); });
+    html+='</div>';
+    wrap.innerHTML=html;
+  }catch(e){
+    wrap.innerHTML=`<div style="padding:20px;color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
 
 // ═══════════════════════════════════════════════
 // HELPERS
@@ -2205,6 +2649,45 @@ function hideErr(){document.getElementById('ebar').style.display='none';}
 // ═══════════════════════════════════════════════════════════════
 // PENDENCY MODULE — Ops & Finance
 // ═══════════════════════════════════════════════════════════════
+
+// Populate the Sales Rep filter in Ops/Finance panels
+// Shows: All Reps + reportees for Zonal Manager, or all reps for full-access
+function populatePendRepFilter(selectId){
+  var sel = document.getElementById(selectId);
+  if(!sel) return;
+  sel.innerHTML = '';
+
+  if(isSalesExec()){
+    // Sales exec sees only themselves — no filter needed, hide it
+    sel.parentElement.style.display='none';
+    return;
+  }
+  sel.parentElement.style.display='flex';
+
+  var allOpt=document.createElement('option');
+  allOpt.value='all'; allOpt.textContent='All Reps';
+  sel.appendChild(allOpt);
+
+  if(isFullAccess()){
+    // Full access: show all known sales reps from PEND_RAW
+    var salesReps=[...new Set(PEND_RAW.map(function(r){return r.rep;}))].filter(Boolean).sort();
+    salesReps.forEach(function(rep){
+      var o=document.createElement('option'); o.value=o.textContent=rep; sel.appendChild(o);
+    });
+  } else if(isZonalManager() && teamRepNames && teamRepNames.length>0){
+    // Zonal Manager: only their reportees
+    teamRepNames.slice().sort().forEach(function(rep){
+      var o=document.createElement('option'); o.value=o.textContent=rep; sel.appendChild(o);
+    });
+  } else if(teamRepNames && teamRepNames.length>0){
+    // Other restricted managers
+    teamRepNames.slice().sort().forEach(function(rep){
+      var o=document.createElement('option'); o.value=o.textContent=rep; sel.appendChild(o);
+    });
+  }
+  // Default to 'all'
+  sel.value='all';
+}
 var PEND_RAW   = [];
 var opsInited  = false;
 var finInited  = false;
@@ -2231,12 +2714,13 @@ function initOps(){
   if(moBtn) moBtn.className='tog'+(opsView==='monthly'?' active':'');
   document.getElementById('ops-view-pivot').onclick=function(){ opsView='pivot'; panelFilters['ops'].opsView='pivot'; this.className='tog active'; document.getElementById('ops-view-monthly').className='tog'; renderOps(); };
   document.getElementById('ops-view-monthly').onclick=function(){ opsView='monthly'; panelFilters['ops'].opsView='monthly'; this.className='tog active'; document.getElementById('ops-view-pivot').className='tog'; renderOps(); };
+  populatePendRepFilter('ops-repF');
   renderOps();
 }
 
 function initFin(){
-  // Finance pendency is monthly view only — no pivot
   finView = 'monthly';
+  populatePendRepFilter('fin-repF');
   renderFin();
 }
 
@@ -2250,10 +2734,20 @@ function getPendFilters(){
   return {lob:lob, operator:operator, months:months, from:from, to:to};
 }
 
-function pendFilter(row, lob, months, operator){
+function pendFilter(row, lob, months, opsEff){
   if(months.indexOf(row.month)<0) return false;
   if(lob!=='all' && row.lob!==lob) return false;
-  if(operator && operator!=='all' && row.operator!==operator) return false;
+  if(opsEff === 'all') return true;
+  if(opsEff === 'sales_self'){
+    // Sales exec: filter by their sales rep name
+    return selfSalesRep ? row.rep === selfSalesRep : false;
+  }
+  if(Array.isArray(opsEff)){
+    // Ops manager/exec/zonal: filter by operator name
+    return opsEff.length===0 ? false : opsEff.includes(row.operator);
+  }
+  // Specific operator from dropdown
+  if(typeof opsEff==='string' && opsEff!=='all') return row.operator===opsEff;
   return true;
 }
 
@@ -2263,9 +2757,18 @@ function renderOps(){
   var lob=f.lob, months=f.months;
   var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
 
-  // All non-blank rows in date range
-  var operator = f.operator;
-  var allRows = PEND_RAW.filter(function(r){ return pendFilter(r,lob,months,operator); });
+  // Sales Rep filter (inside ops panel)
+  var opsSalesRep=(document.getElementById('ops-repF')||{}).value||'all';
+
+  var opsEff = getEffectiveOpsFilter(f.operator);
+  var allRows = PEND_RAW.filter(function(r){
+    if(!pendFilter(r,lob,months,opsEff)) return false;
+    // Additional Sales Rep filter
+    if(opsSalesRep!=='all' && r.rep!==opsSalesRep) return false;
+    // Sales exec: always filter to self
+    if(isSalesExec() && selfSalesRep && r.rep!==selfSalesRep) return false;
+    return true;
+  });
   var openRows   = allRows.filter(function(r){ return r.status==='INV'||r.status==='WRK'; });
   var closedRows = allRows.filter(function(r){ return r.status==='CMP'; });
 
@@ -2406,7 +2909,16 @@ function renderFin(){
   var lob=f.lob, months=f.months;
   var fromShort=(MS[f.from]||f.from)+' – '+(MS[f.to]||f.to);
 
-  var allRows    = PEND_RAW.filter(function(r){ return pendFilter(r,lob,months,null); });
+  // Sales Rep filter (inside finance panel)
+  var finSalesRep=(document.getElementById('fin-repF')||{}).value||'all';
+
+  var allRows = PEND_RAW.filter(function(r){
+    if(!pendFilter(r,lob,months,'all')) return false;
+    if(finSalesRep!=='all' && r.rep!==finSalesRep) return false;
+    if(isSalesExec() && selfSalesRep && r.rep!==selfSalesRep) return false;
+    return true;
+  });
+
   var openRows   = allRows.filter(function(r){ return r.status==='CMP'; });
   var closedRows = allRows.filter(function(r){ return r.status==='CLS'; });
 
@@ -2506,4 +3018,216 @@ function renderFinMonthly(allRows, months, periodLbl){
 }
 // ════════════════════════════════════════════════════════════════
 
+
+
+// ═══════════════════════════════════════════════════════════════
+// ROLE-BASED SIDEBAR & PANEL ACCESS
+// ═══════════════════════════════════════════════════════════════
+function setupSidebarForRole(){
+  const r = currentRole;
+  const isOpsRole = ['operation head','operation manager','operation executive'].includes(r);
+  const isAdm     = r === 'admin';
+
+  // Show/hide nav items based on role
+  const navMap = {
+    'nav-sales':     !isOpsRole,
+    'nav-tradelane': !isOpsRole,
+    'nav-ops':       true,
+    'nav-finance':   !isOpsRole,
+  };
+  Object.entries(navMap).forEach(([id,show])=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=show?'flex':'none';
+  });
+
+  // Admin section (Admin Panel + Teams) — admin only
+  const adminSec=document.getElementById('admin-section');
+  if(adminSec) adminSec.style.display=isAdm?'block':'none';
+
+  // Auto-navigate to first visible panel
+  if(isOpsRole){
+    // Show ops as default for ops roles
+    setTimeout(()=>showPanel('ops',document.getElementById('nav-ops')),50);
+  }
+  // Hide topbar filters not relevant to ops-only
+  if(isOpsRole){
+    document.getElementById('tb2').style.display='none';
+  } else {
+    document.getElementById('tb2').style.display='flex';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAPPING SHEETS FETCH — Sales rep & Ops rep by email
+// ═══════════════════════════════════════════════════════════════
+async function buildTeamLists(){
+  if(!currentUserDoc) return;
+  teamRepNames  = selfSalesRep ? [selfSalesRep] : [];
+  teamOpsNames  = selfOpsRep   ? [selfOpsRep]   : [];
+
+  // Find all users who report to this user
+  try{
+    const snap=await db.collection('users')
+      .where('ReportingManager','==',currentUserDoc.id).get();
+
+    // Also fetch their mapping emails
+    const emails=snap.docs.map(d=>((d.data().Email||d.data().email)||'').toLowerCase());
+    if(emails.length===0) return;
+
+    // Fetch full mappings to get their rep names
+    const smj=await apiFetch(batchUrl('Sales Mapping',['B','C']));
+    const [smB,smC]=smj.valueRanges.map(v=>v.values||[]);
+    for(let i=1;i<smC.length;i++){
+      const em=g(smC,i);
+      if(em&&emails.includes(String(em).toLowerCase().trim())){
+        const rep=g(smB,i);
+        if(rep&&!teamRepNames.includes(rep)) teamRepNames.push(rep);
+      }
+    }
+
+    const omj=await apiFetch(batchUrl('Operations Mapping',['B','C']));
+    const [omB,omC]=omj.valueRanges.map(v=>v.values||[]);
+    for(let i=1;i<omC.length;i++){
+      const em=g(omC,i);
+      if(em&&emails.includes(String(em).toLowerCase().trim())){
+        const op=g(omB,i);
+        if(op&&!teamOpsNames.includes(op)) teamOpsNames.push(op);
+      }
+    }
+  }catch(e){ console.warn('Team list build failed:',e.message); }
+  console.log('Team reps:',teamRepNames,'Team ops:',teamOpsNames);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Override getEffectiveRepFilter to use new role system
+// ─────────────────────────────────────────────────────────────
+function renderOrgChart(users, wrap){
+  // Build tree: find roots (no ReportingManager or manager not found)
+  const byId={};
+  users.forEach(u=>byId[u.id]=u);
+  const roots=users.filter(u=>!u.ReportingManager||!byId[u.ReportingManager]);
+  const children={};
+  users.forEach(u=>{
+    if(u.ReportingManager&&byId[u.ReportingManager]){
+      if(!children[u.ReportingManager]) children[u.ReportingManager]=[];
+      children[u.ReportingManager].push(u);
+    }
+  });
+
+  let html='<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Drag a user card to reassign their reporting manager</div>';
+  html+='<div id="org-tree" style="display:flex;flex-direction:column;gap:12px">';
+
+  roots.forEach(root=>{
+    html+=renderOrgNode(root, children, byId, 0);
+  });
+
+  html+='</div>';
+  wrap.innerHTML=html;
+
+  // Wire drag/drop
+  wrap.querySelectorAll('.org-node').forEach(node=>{
+    node.addEventListener('dragstart', e=>{ dragSourceId=node.dataset.uid; node.style.opacity='0.5'; });
+    node.addEventListener('dragend',   e=>{ node.style.opacity='1'; });
+    node.addEventListener('dragover',  e=>{ e.preventDefault(); node.classList.add('drag-over'); });
+    node.addEventListener('dragleave', e=>{ node.classList.remove('drag-over'); });
+    node.addEventListener('drop', async e=>{
+      e.preventDefault(); node.classList.remove('drag-over');
+      const targetId=node.dataset.uid;
+      if(dragSourceId && dragSourceId!==targetId){
+        await handleOrgDrop(dragSourceId, targetId);
+      }
+    });
+  });
+}
+
+function renderOrgNode(user, children, byId, depth){
+  const name=user.Name||user.name||'?';
+  const role=user.Role||user.role||'?';
+  const initials=name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const bg=avatarColor(name);
+  const kids=children[user.id]||[];
+  const isSelf=(currentUser&&((user.Email||user.email)||'').toLowerCase()===currentUser.email.toLowerCase());
+  const indent=depth*24;
+
+  let html=`<div style="margin-left:${indent}px">
+    <div class="org-node" data-uid="${user.id}" draggable="true"
+      style="display:inline-flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;cursor:grab;transition:box-shadow .13s;min-width:220px;margin-bottom:4px">
+      <div style="width:32px;height:32px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px">${name}${isSelf?'<span class="you-badge">You</span>':''}</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:1px">${role}${kids.length?` · ${kids.length} direct`+' report'+(kids.length>1?'s':''):''}</div>
+      </div>
+      <button onclick="openEditUser('${user.id}')" style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text2);white-space:nowrap">Edit</button>
+    </div>`;
+
+  if(kids.length>0){
+    html+=`<div style="border-left:2px solid var(--border-l);margin-left:15px;padding-left:10px;margin-top:2px">`;
+    kids.forEach(k=>{ html+=renderOrgNode(k,children,byId,0); });
+    html+=`</div>`;
+  }
+  html+=`</div>`;
+  return html;
+}
+
+async function handleOrgDrop(sourceId, targetId){
+  // Set source user's ReportingManager = targetId
+  try{
+    await db.collection('users').doc(sourceId).update({ReportingManager: targetId});
+    loadTeams(); // refresh
+  }catch(e){ alert('Error updating hierarchy: '+e.message); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UPDATED ADMIN FUNCTIONS — new schema (no AllowedReps)
+// ═══════════════════════════════════════════════════════════════
+
+async function populateManagerDropdown(selectedId){
+  const sel=document.getElementById('mManager');
+  sel.innerHTML='<option value="">None / Self</option>';
+  try{
+    const snap=await db.collection('users').get();
+    snap.forEach(doc=>{
+      if(doc.id===editingDocId) return; // can't report to self
+      const d=doc.data();
+      const name=d.Name||d.name||'?';
+      const role=d.Role||d.role||'';
+      const o=document.createElement('option');
+      o.value=doc.id; o.textContent=`${name} (${role})`;
+      if(doc.id===selectedId) o.selected=true;
+      sel.appendChild(o);
+    });
+  }catch(e){ console.warn('Manager dropdown failed:',e); }
+}
+
+async function saveUser(){
+  const name   = document.getElementById('mName').value.trim();
+  const email  = document.getElementById('mEmail').value.trim().toLowerCase();
+  const phone  = document.getElementById('mPhone').value.trim();
+  const role   = document.getElementById('mRole').value;
+  const active = document.getElementById('mActive').value==='true';
+  const manager= document.getElementById('mManager').value||null;
+
+  if(!name||!email||!role){ alert('Please fill in Name, Email and Role'); return; }
+
+  const userData={
+    Name:name, Email:email, Phone:phone||'',
+    Role:role, Active:active,
+    ReportingManager:manager,
+  };
+  try{
+    if(editingDocId){
+      await db.collection('users').doc(editingDocId).update(userData);
+    } else {
+      await db.collection('users').add(userData);
+    }
+    closeModal();
+    loadAdminUsers();
+  }catch(e){ alert('Error saving user: '+e.message); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UPDATED showPanel — handle teams panel + ops-only roles
+// ═══════════════════════════════════════════════════════════════
+
 </script>
+</html>
