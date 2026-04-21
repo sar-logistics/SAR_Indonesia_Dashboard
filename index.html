@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAR Indonesia ? Sales Dashboard</title>
+<title>SAR Indonesia · Sales Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- Firebase SDK -->
@@ -29,7 +29,7 @@
 }
 html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px}
 
-/* ?? LOGIN SCREEN ?? */
+/* LOGIN SCREEN */
 #loginScreen{
   position:fixed;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#1e1b4b 50%,#312e81 100%);
   display:flex;align-items:center;justify-content:center;z-index:9999;
@@ -59,7 +59,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .login-err{margin-top:14px;font-size:12px;color:var(--red);display:none;background:#fef2f2;padding:8px 12px;border-radius:6px}
 .login-footer{margin-top:20px;font-size:11px;color:var(--text3)}
 
-/* ?? ACCESS DENIED ?? */
+/* ACCESS DENIED */
 #accessDenied{
   position:fixed;inset:0;background:var(--bg);
   display:none;align-items:center;justify-content:center;z-index:9998;
@@ -71,14 +71,14 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .denied-email{font-size:11.5px;color:var(--text2);background:var(--bg);padding:6px 12px;border-radius:6px;margin:10px 0;font-family:var(--mono)}
 .so-btn{margin-top:14px;padding:8px 20px;border-radius:7px;border:none;background:var(--red);color:#fff;font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer}
 
-/* ?? LOADING OVERLAY ?? */
+/* LOADING OVERLAY */
 .overlay{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
 .spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .65s linear infinite}
 .ov-txt{font-size:13px;font-weight:500;color:var(--text2)}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ?? APP ?? */
+/* APP */
 .app{display:flex;height:100vh;overflow:hidden}
 
 /* SIDEBAR */
@@ -211,7 +211,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 .coming h3{font-size:16px;font-weight:700;color:var(--text2);margin:12px 0 6px}
 .coming p{font-size:12px;color:var(--text3)}
 
-/* ?? ADMIN PANEL ?? */
+/* ADMIN PANEL */
 .admin-wrap{flex:1;overflow-y:auto;padding:4px 0}
 .admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .admin-header h2{font-size:15px;font-weight:700}
@@ -256,7 +256,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 .btn-save:hover{opacity:.85}
 .admin-note{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:7px;padding:10px 14px;font-size:11.5px;color:var(--blue);margin-bottom:16px}
 
-/* ?? ADMIN REDESIGN ?? */
+/* ADMIN REDESIGN */
 .admin-tabs{display:flex;gap:6px;margin-bottom:18px;flex-shrink:0}
 .admin-tab{padding:7px 18px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
 .admin-tab.active{background:var(--blue-bg);border-color:#bfdbfe;color:var(--blue)}
@@ -318,7 +318,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 <!-- ACCESS DENIED -->
 <div id="accessDenied" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9998;align-items:center;justify-content:center;flex-direction:column">
   <div class="denied-card">
-    <div style="font-size:36px">?</div>
+    <div style="font-size:36px">&#128274;</div>
     <h2>Access Denied</h2>
     <p>Your account is not authorised to access this dashboard.</p>
     <div class="denied-email" id="deniedEmail"></div>
@@ -372,7 +372,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
     </div>
     <div class="sb-foot">
       <div class="sb-user">
-        <div class="sb-avatar-placeholder" id="sbAvatar">?</div>
+        <div class="sb-avatar-placeholder" id="sbAvatar">--</div>
         <div>
           <div class="sb-uname" id="sbName">--</div>
           <div class="sb-urole" id="sbRole">--</div>
@@ -470,7 +470,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
             <div style="display:flex;align-items:center;gap:8px">
               <h2>Sales Performance</h2>
               <span style="color:var(--border);font-size:13px;font-weight:300">|</span>
-              <span id="tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Monthly ? USD</span>
+              <span id="tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Monthly · USD</span>
             </div>
             <div class="thead-meta" id="tbl-meta">--</div>
           </div>
@@ -527,7 +527,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <div id="p-teams" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div>
-            <div style="font-size:14px;font-weight:700">? Teams</div>
+            <div style="font-size:14px;font-weight:700">Teams</div>
             <div style="font-size:11.5px;color:var(--text3);margin-top:2px">Reporting hierarchy & org chart</div>
           </div>
         </div>
@@ -585,8 +585,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <div id="p-teams" style="display:none;flex:1;flex-direction:column;min-height:0;gap:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div>
-            <div style="font-size:14px;font-weight:700">Teams</div>
-            <div style="font-size:11.5px;color:var(--text3);margin-top:2px">Reporting hierarchy ? Org chart</div>
+<!-- Teams header removed - shown in sidebar -->
           </div>
           <button class="rb-top" onclick="loadTeams()">
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
@@ -628,7 +627,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
               <h2>Finance Pendency</h2>
               <span style="color:var(--border);font-size:13px">|</span>
               <span id="fin-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot</span>
-              <span style="font-size:11px;color:var(--text3)">? Finance Rep: <strong style="color:var(--text)">Trupti Gore</strong></span>
+              <span style="font-size:11px;color:var(--text3)">Finance Rep: <strong style="color:var(--text)">Trupti Gore</strong></span>
             </div>
             <div class="thead-meta" id="fin-tbl-meta">--</div>
           </div>
@@ -638,12 +637,8 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 
       <!-- ADMIN PANEL -->
       <div id="p-admin" style="display:none;flex:1;flex-direction:column;min-height:0;gap:0">
-        <!-- Admin Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:15px">?</span>
-            <span style="font-size:14px;font-weight:700;color:var(--text)">Admin Panel</span>
-          </div>
+        <!-- Admin Header - just the Add User button, no redundant title -->
+        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:14px;flex-shrink:0">
           <button class="add-user-btn" onclick="openAddUser()">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             + Add User
@@ -707,7 +702,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
   <div class="modal" style="max-width:500px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <h3 id="modalTitle" style="margin:0">Add User</h3>
-      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">?</button>
+      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1">&times;</button>
     </div>
     <p id="modalDesc" style="margin-bottom:18px">Create or edit a dashboard user</p>
     <div class="form-row">
@@ -756,7 +751,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       </select>
     </div>
     <div class="modal-footer">
-      <button class="btn-save" onclick="saveUser()">Save User</button>
+      <button class="btn-save" onclick="saveUser()">&#10003; Save User</button>
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
     </div>
   </div>
@@ -1646,7 +1641,7 @@ function updateKPIs(data,months){
   setText('k-gp','$'+Math.round(gp).toLocaleString());
   setText('k-gppct',(rev>0?gp/rev*100:0).toFixed(1)+'%');
   setText('k-teu',fT(tf+tt));
-  setText('k-teu-sub',fT(tf)+' FCL ? '+fT(tt)+' Tank');
+  setText('k-teu-sub',fT(tf)+' FCL · '+fT(tt)+' Tank');
   setText('k-tons',tons>0?tons.toFixed(2):'--');
 }
 function updateKPIsWeekly(data,weeks){
@@ -1663,7 +1658,7 @@ function updateKPIsWeekly(data,weeks){
   setText('k-gp','$'+Math.round(gp).toLocaleString());
   setText('k-gppct',(rev>0?gp/rev*100:0).toFixed(1)+'%');
   setText('k-teu',fT(tf+tt));
-  setText('k-teu-sub',fT(tf)+' FCL ? '+fT(tt)+' Tank');
+  setText('k-teu-sub',fT(tf)+' FCL · '+fT(tt)+' Tank');
   setText('k-tons',tons>0?tons.toFixed(2):'--');
 }
 
@@ -1682,7 +1677,7 @@ const MROWS=[
 function renderTable(data,months,from,to){
   const lbl=period==='yearly'?'FY 2025-26':`${MS[from]||from} - ${MS[to]||to}`;
   const pLabel={'monthly':'Monthly','yearly':'Yearly','custom':'Custom'}[period]||period;
-  setText('tbl-sub',pLabel+' ? USD');setText('tbl-meta',lbl);
+  setText('tbl-sub',pLabel+' · USD');setText('tbl-meta',lbl);
   const reps=Object.keys(data).sort();
   const grand={};months.forEach(m=>grand[m]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0});
   reps.forEach(rep=>months.forEach(m=>{const c=data[rep][m];grand[m].teuFCL+=c.teuFCL;grand[m].teuTank+=c.teuTank;grand[m].tons+=c.tons;grand[m].rev+=c.rev;grand[m].gp+=c.gp;}));
@@ -1700,7 +1695,7 @@ function renderTable(data,months,from,to){
 }
 
 function renderTableWeekly(data,weeks){
-  setText('tbl-sub','Weekly ? USD');
+  setText('tbl-sub','Weekly · USD');
   if(!weeks.length){document.getElementById('twrap').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">No week data available for selected date</div>';return;}
   setText('tbl-meta',`Last 5 weeks ending ${WKINFO[weeks[weeks.length-1]]?.end||''}`);
   const reps=Object.keys(data).sort();
@@ -2364,8 +2359,8 @@ function renderTL(){
   setText('tl-k-rev',   '$'+Math.round(kRev).toLocaleString());
   setText('tl-k-gp',    '$'+Math.round(kGP).toLocaleString());
   setText('tl-k-gppct', (kRev > 0 ? (kGP/kRev*100).toFixed(1) : '0') + '%');
-  setText('tl-tbl-meta','Indonesia -> All ? ' + periodLbl);
-  setText('tl-tbl-sub', (tlView === 'pivot' ? 'Pivot' : 'Monthly') + ' ? USD');
+  setText('tl-tbl-meta','Indonesia · All · ' + periodLbl);
+  setText('tl-tbl-sub', (tlView === 'pivot' ? 'Pivot' : 'Monthly') + ' · USD');
 
   if(tlView === 'pivot'){
     renderTLPivot(tradelanes, months, periodLbl);
@@ -2511,7 +2506,7 @@ function renderTLPivot(tradelanes, months, periodLbl){
         var cPctColor = cPct>=9.43 ? 'var(--green)' : 'var(--red)';
         var label = cargo === 'Nomination Sales' ? 'Nomination' : cargo;
         rows.push('<tr class="r-rep" style="background:#fafbfd">'
-          + '<td class="c-rep" style="padding-left:28px;font-size:11px;color:var(--text2);font-weight:400;font-style:italic">? '+label+'</td>'
+          + '<td class="c-rep" style="padding-left:28px;font-size:11px;color:var(--text2);font-weight:400;font-style:italic">&#8250; '+label+'</td>'
           + '<td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--text3)">'+Math.round(cShp).toLocaleString()+'</td>'
           + '<td style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--teal)">'+fT(cTeu)+'</td>'
           + '<td style="text-align:right;font-family:var(--mono);font-size:11px">$'+Math.round(cRev).toLocaleString()+'</td>'
