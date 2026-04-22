@@ -294,6 +294,25 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 
 @media(max-width:800px){.kpis{grid-template-columns:repeat(3,1fr)}}
 .org-node.drag-over{border-color:var(--blue)!important;box-shadow:0 0 0 2px #bfdbfe;}
+
+/* Pendency detail modal */
+.pend-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;display:none;align-items:center;justify-content:center;padding:20px}
+.pend-modal-bg.show{display:flex}
+.pend-modal{background:#fff;border-radius:12px;width:100%;max-width:900px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden}
+.pend-modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.pend-modal-head h3{font-size:14px;font-weight:700;color:var(--text)}
+.pend-modal-head p{font-size:11.5px;color:var(--text3);margin-top:2px}
+.pend-modal-body{overflow-y:auto;flex:1;padding:0}
+.pend-modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#f8f9fc}
+.pend-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.pend-tbl th{background:#f4f6fa;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:1}
+.pend-tbl td{padding:8px 12px;border-bottom:1px solid var(--border-l);vertical-align:middle}
+.pend-tbl tr:hover td{background:#f8f9fc}
+.pend-tbl tr:last-child td{border-bottom:none}
+.status-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:600}
+.status-INV{background:#fef3c7;color:#d97706}
+.status-WRK{background:#dbeafe;color:#2563eb}
+.status-CMP{background:#fef2f2;color:#dc2626}
 </style>
 </head>
 <body>
@@ -575,7 +594,13 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
               <span style="color:var(--border);font-size:13px">|</span>
               <span id="ops-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot</span>
             </div>
-            <div class="thead-meta" id="ops-tbl-meta">--</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="thead-meta" id="ops-tbl-meta">--</div>
+              <button onclick="downloadOpenJobs('ops')" style="padding:4px 10px;border-radius:6px;border:1.5px solid var(--green);background:#f0fdf4;color:var(--green);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Open Jobs
+              </button>
+            </div>
           </div>
           <div class="twrap" id="ops-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div></div>
         </div>
@@ -626,10 +651,16 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
             <div style="display:flex;align-items:center;gap:8px">
               <h2>Finance Pendency</h2>
               <span style="color:var(--border);font-size:13px">|</span>
-              <span id="fin-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot</span>
+              <span id="fin-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Monthly</span>
               <span style="font-size:11px;color:var(--text3)">Finance Rep: <strong style="color:var(--text)">Trupti Gore</strong></span>
             </div>
-            <div class="thead-meta" id="fin-tbl-meta">--</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="thead-meta" id="fin-tbl-meta">--</div>
+              <button onclick="downloadOpenJobs('finance')" style="padding:4px 10px;border-radius:6px;border:1.5px solid var(--red);background:#fef2f2;color:var(--red);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Open Jobs
+              </button>
+            </div>
           </div>
           <div class="twrap" id="fin-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div></div>
         </div>
@@ -695,6 +726,41 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       </div>
     </div>
   </main>
+</div>
+
+<!-- PENDENCY DETAIL MODAL -->
+<div class="pend-modal-bg" id="pendDetailModal">
+  <div class="pend-modal">
+    <div class="pend-modal-head">
+      <div>
+        <h3 id="pendModalTitle">Open Jobs — Operator</h3>
+        <p id="pendModalSub">Showing open pendencies</p>
+      </div>
+      <button onclick="closePendModal()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;line-height:1">&times;</button>
+    </div>
+    <div class="pend-modal-body">
+      <table class="pend-tbl" id="pendDetailTable">
+        <thead><tr>
+          <th>Shipment ID</th>
+          <th>Booking Date</th>
+          <th>Job Operator</th>
+          <th>Sales Rep</th>
+          <th>Origin ETD</th>
+          <th>Dest. ETA</th>
+          <th>LOB</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody id="pendDetailBody"></tbody>
+      </table>
+    </div>
+    <div class="pend-modal-foot">
+      <span id="pendModalCount" style="font-size:12px;color:var(--text3)">0 records</span>
+      <button id="pendDownloadBtn" onclick="downloadPendDetail()" style="padding:7px 16px;border-radius:7px;border:none;background:var(--blue);color:#fff;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download CSV
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- ADD/EDIT USER MODAL -->
@@ -1143,19 +1209,52 @@ function buildSelectors(){
   } else if(isOpsRole()){
     // Ops roles: rep filter not relevant for sales -- hide it
     rs.parentElement.style.display='none';
+  } else if(isOpsRole()){
+    // Ops roles: hide rep filter (not relevant)
+    var repLblEl=document.getElementById('repFLabel');
+    if(repLblEl) repLblEl.style.display='none';
+    rs.style.display='none';
   } else {
-    // Zonal manager / Sales exec -- reps will be set after mapping loads
-    // Show All Reps as placeholder; getEffectiveRepFilter will enforce at data level
+    // Zonal manager / Sales exec: show "Loading..." placeholder
+    // refreshSalesRepDropdown() corrects this after mappings load
     const allOpt=document.createElement('option');
-    allOpt.value='all';allOpt.textContent='All Reps';
+    allOpt.value='all';allOpt.textContent='Loading...';
     rs.appendChild(allOpt);
-    ALL_REPS.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
   }
   // Initialise panelFilter rep defaults
-  const defaultRep = isFullAccess()?'all':'all';
   Object.keys(panelFilters).forEach(p=>{
-    if(panelFilters[p].rep==='__INIT__') panelFilters[p].rep=defaultRep;
+    if(panelFilters[p].rep==='__INIT__') panelFilters[p].rep='all';
   });
+}
+
+// Rebuild the topbar Sales Rep dropdown after teamRepNames is loaded
+function refreshSalesRepDropdown(){
+  const rs = document.getElementById('repF');
+  if(!rs) return;
+  if(isFullAccess()) return; // already correct
+  if(isOpsRole()) return;    // hidden, not needed
+  rs.innerHTML = ''; // clear placeholder
+
+  if(isZonalManager()){
+    if(teamRepNames && teamRepNames.length > 0){
+      // Only their team — no "All Reps"
+      teamRepNames.slice().sort().forEach(function(rep){
+        const o=document.createElement('option'); o.value=o.textContent=rep; rs.appendChild(o);
+      });
+      rs.value = rs.options[0].value;
+    } else {
+      const o=document.createElement('option'); o.value='all'; o.textContent='All Reps'; rs.appendChild(o);
+    }
+  } else if(isSalesExec()){
+    if(selfSalesRep){
+      const o=document.createElement('option'); o.value=o.textContent=selfSalesRep; rs.appendChild(o);
+    } else {
+      const o=document.createElement('option'); o.value='all'; o.textContent='My Data'; rs.appendChild(o);
+    }
+  }
+  // Update panelFilters defaults
+  const newDef = rs.options.length>0 ? rs.options[0].value : 'all';
+  Object.keys(panelFilters).forEach(function(p){ panelFilters[p].rep = newDef; });
 }
 
 // getSelfRep: now uses SALES_MAP email lookup (populated by fetchRoleMappings)
@@ -1190,26 +1289,35 @@ function getEffectiveRepFilter(repF){
 function getEffectiveOpsFilter(repF){
   if(isFullAccess() || isOpsHead()) return repF==='all'?'all':[repF];
 
-  // Sales exec: filter by their sales rep name (Job Sales Rep in data)
-  // The ops dashboard shows ops data but filtered by sales rep column
+  // Sales exec: only their own jobs
   if(isSalesExec()){
-    // selfSalesRep is used to filter r.rep in PEND_RAW
-    return 'sales_self'; // special signal handled in renderOps/renderFin
+    return 'sales_self'; // filter by r.rep === selfSalesRep in pendFilter
   }
 
-  // Ops manager / exec: use teamOpsNames
-  if(teamOpsNames !== null){
-    if(repF==='all') return teamOpsNames.length>0 ? teamOpsNames : [];
-    return teamOpsNames.includes(repF) ? [repF] : [];
+  // Zonal Manager: filter by r.rep matching their team sales reps
+  // (reportees are sales execs, not ops execs - so filter by sales rep column)
+  if(isZonalManager()){
+    if(teamRepNames !== null && teamRepNames.length > 0){
+      return 'team_reps'; // special signal: filter r.rep against teamRepNames
+    }
+    return 'sales_self'; // fallback to self only
   }
 
-  // Zonal manager: use teamOpsNames
-  if(isZonalManager() && teamOpsNames !== null){
-    if(repF==='all') return teamOpsNames;
-    return teamOpsNames.includes(repF) ? [repF] : [];
+  // Ops Manager: use teamOpsNames (operators who report to them)
+  if(isOpsManager()){
+    if(teamOpsNames !== null){
+      if(repF==='all') return teamOpsNames.length>0 ? teamOpsNames : [];
+      return teamOpsNames.includes(repF) ? [repF] : [];
+    }
+    return selfOpsRep ? [selfOpsRep] : [];
   }
 
-  return 'all'; // finance roles / regional manager
+  // Ops Exec: only self ops
+  if(isOpsExec()){
+    return selfOpsRep ? [selfOpsRep] : [];
+  }
+
+  return 'all';
 }
 
 // ???????????????????????????????????????????????
@@ -1269,9 +1377,9 @@ async function loadData(){
 
 async function fetchShipment(){
   // Added EG=Tradelane, EW=Freehand/Nomination for Tradelane module
-  const cols=['BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW','BG','BH'];
+  const cols=['A','BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW','BG','BH','C','Z','AB']; // A=ShipID C=BookingDate Z=ETD AB=ETA
   const j=await apiFetch(batchUrl('Shipment Detail',cols));
-  const [repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC]=j.valueRanges.map(v=>v.values||[]);
+  const [shipIdC,repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC,bookDateC,etdC,etaC]=j.valueRanges.map(v=>v.values||[]);
   // Use max of ALL columns -- revenue/GP rows may extend beyond rep/month rows
   const len=Math.max(repC.length,monC.length,revC.length,gpC.length);
   TL_RAW=[]; // reset tradelane raw data
@@ -1305,7 +1413,11 @@ async function fetchShipment(){
     // Ops & Finance pendency raw rows (non-blank status only)
     const jobStatus=g(statusC,i), jobOp=g(opC,i);
     if(jobStatus){
-      const pendRow={status:jobStatus,operator:jobOp||'Unknown',month:mon,lob:mode||'Dry Freight',rep:REP_MAP[rawRep]||'Nomination Sales'};
+      const shipId   = g(shipIdC,i)||'';
+      const bookDate  = g(bookDateC,i)||'';
+      const etd       = g(etdC,i)||'';
+      const eta       = g(etaC,i)||'';
+      const pendRow={shipId,bookDate,etd,eta,status:jobStatus,operator:jobOp||'Unknown',month:mon,lob:mode||'Dry Freight',rep:REP_MAP[rawRep]||'Nomination Sales'};
       PEND_RAW.push(pendRow);
     }
     const rawDate=g(dateC,i),rawWk=g(wkC,i);
@@ -1422,6 +1534,8 @@ async function fetchRoleMappings(){
 
   // Build team scope for Zonal Manager, Ops Manager
   await buildTeamScope();
+  // Now that teamRepNames is built, update the sales rep dropdown
+  refreshSalesRepDropdown();
 }
 
 // Build teamRepNames and teamOpsNames based on reporting hierarchy
@@ -2827,14 +2941,20 @@ function pendFilter(row, lob, months, opsEff){
   if(lob!=='all' && row.lob!==lob) return false;
   if(opsEff === 'all') return true;
   if(opsEff === 'sales_self'){
-    // Sales exec: filter by their sales rep name
+    // Sales exec: only their own jobs (matched by sales rep column)
     return selfSalesRep ? row.rep === selfSalesRep : false;
   }
+  if(opsEff === 'team_reps'){
+    // Zonal Manager: show jobs where the sales rep is in their team
+    return teamRepNames && teamRepNames.length > 0
+      ? teamRepNames.indexOf(row.rep) >= 0
+      : false;
+  }
   if(Array.isArray(opsEff)){
-    // Ops manager/exec/zonal: filter by operator name
+    // Ops manager/exec: filter by operator name
     return opsEff.length===0 ? false : opsEff.includes(row.operator);
   }
-  // Specific operator from dropdown
+  // Specific operator selected from dropdown
   if(typeof opsEff==='string' && opsEff!=='all') return row.operator===opsEff;
   return true;
 }
@@ -2906,8 +3026,9 @@ function renderOpsPivot(allRows, openRows, closedRows){
   opList.forEach(function(op){
     var d=operators[op];
     var initl=op.split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
-    html += '<tr class="r-rep">'
-      + '<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(op)+'">'+initl+'</div><span>'+op+'</span></div></td>'
+    var safeOp=op.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html += '<tr class="r-rep" style="cursor:pointer" onclick="openPendDetail(\''+safeOp+'\',\'ops\')" title="View open jobs">'
+      + '<td class="c-rep"><div class="ravcell"><div class="rav" style="background:'+rclr(op)+'">'+initl+'</div><span style="color:var(--blue);text-decoration:underline;text-decoration-style:dotted">'+op+'</span></div></td>'
       + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--red)">'+(d.open>0?d.open:'--')+'</td>'
       + '<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--green)">'+(d.closed>0?d.closed:'--')+'</td>'
       + '<td style="text-align:right;font-family:var(--mono);font-size:12px">'+d.total+'</td>'
@@ -2940,7 +3061,7 @@ function renderOpsMonthly(allRows, months, periodLbl){
   var ROWS=[{id:'open',lbl:'Open Jobs',color:'var(--red)'},{id:'closed',lbl:'Closed Jobs',color:'var(--green)'},{id:'total',lbl:'Total Jobs',color:'var(--text)'}];
 
   var html='<table><thead><tr>'
-    +'<th class="h-rep">Job Operator</th>'
+    +'<th class="h-rep">Job Operator <span style="font-size:9px;font-weight:400;color:var(--blue);font-style:italic">(click to view open jobs)</span></th>'
     +'<th class="h-metric">Metric</th>'
     +'<th class="h-total">Total<br><span style="font-size:9px;font-weight:400;color:var(--orange)">'+periodLbl+'</span></th>'
     +months.map(function(m){return '<th style="text-align:right;min-width:80px">'+(MS[m]||m)+'</th>';}).join('')
@@ -2970,10 +3091,11 @@ function buildPendSection(name, operators, allOps, months, ROWS, isGrand){
   }
   function getTot(field){return months.reduce(function(s,m){return s+getVal(m,field);},0);}
 
+  var nameDisplay = isGrand ? name : '<span style="color:var(--blue);cursor:pointer;text-decoration:underline;text-decoration-style:dotted" onclick="openPendDetail(\''+name.replace(/\'/g,"\\'")+'\'\,\'ops\')" >'+name+'</span>';
   var html='';
   ROWS.forEach(function(mr,mi){
     html+='<tr class="'+rc+'">';
-    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">'+initl+'</div><span style="font-weight:700;font-size:12px">'+name+'</span></div></td>';
+    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">'+initl+'</div><span style="font-weight:700;font-size:12px">'+nameDisplay+'</span></div></td>';
     html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
     var tot=getTot(mr.id);
     html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'--')+'</td>';
@@ -3292,6 +3414,177 @@ async function populateManagerDropdown(selectedId){
 // ???????????????????????????????????????????????????????????????
 // UPDATED showPanel -- handle teams panel + ops-only roles
 // ???????????????????????????????????????????????????????????????
+
+// ================================================================
+// DOWNLOAD OPEN JOBS AS CSV
+// ================================================================
+function downloadOpenJobs(panel){
+  var f = getPendFilters();
+  var lob = f.lob, months = f.months;
+  var salesRep = panel==='ops'
+    ? (document.getElementById('ops-repF')||{}).value||'all'
+    : (document.getElementById('fin-repF')||{}).value||'all';
+
+  // Determine open status per panel
+  var openStatuses = panel==='ops' ? ['INV','WRK'] : ['CMP'];
+  var opsEff = getEffectiveOpsFilter((document.getElementById('repF')||{}).value||'all');
+
+  // Filter PEND_RAW to open jobs only, respecting all current filters
+  var rows = PEND_RAW.filter(function(r){
+    // Must be open status
+    if(openStatuses.indexOf(r.status) < 0) return false;
+    // Date range + LOB
+    if(!pendFilter(r, lob, months, opsEff)) return false;
+    // Sales rep filter (panel-level)
+    if(salesRep !== 'all' && r.rep !== salesRep) return false;
+    // Sales exec: only self
+    if(isSalesExec() && selfSalesRep && r.rep !== selfSalesRep) return false;
+    // Zonal manager: team scope
+    if(isZonalManager() && teamRepNames && teamRepNames.length > 0){
+      if(teamRepNames.indexOf(r.rep) < 0) return false;
+    }
+    return true;
+  });
+
+  if(rows.length === 0){
+    alert('No open jobs found for the current filters.');
+    return;
+  }
+
+  // Build CSV
+  var headers = ['Shipment ID','Month','LOB','Job Status','Job Operator','Sales Rep'];
+  var csvRows = [headers.join(',')];
+  rows.forEach(function(r){
+    csvRows.push([
+      '"'+(r.shipId||'').replace(/"/g,'""')+'"',
+      '"'+(r.month||'')+'"',
+      '"'+(r.lob||'')+'"',
+      '"'+(r.status||'')+'"',
+      '"'+(r.operator||'').replace(/"/g,'""')+'"',
+      '"'+(r.rep||'').replace(/"/g,'""')+'"'
+    ].join(','));
+  });
+
+  var csv = csvRows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  var panelName = panel==='ops' ? 'Ops' : 'Finance';
+  var dateStr = new Date().toISOString().split('T')[0];
+  a.download = 'SAR_'+panelName+'_OpenJobs_'+dateStr+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
+// ================================================================
+// PENDENCY DETAIL MODAL — click operator to see open jobs
+// ================================================================
+var _pendDetailRows = [];  // current modal data for download
+
+function openPendDetail(operatorName, panel){
+  var f = getPendFilters();
+  var lob = f.lob, months = f.months;
+  var salesRepF = panel==='ops'
+    ? (document.getElementById('ops-repF')||{}).value||'all'
+    : (document.getElementById('fin-repF')||{}).value||'all';
+
+  // Open statuses: INV/WRK for ops, CMP for finance
+  var openStatuses = panel==='finance' ? ['CMP'] : ['INV','WRK'];
+
+  // Filter to this operator's open jobs
+  _pendDetailRows = PEND_RAW.filter(function(r){
+    if(openStatuses.indexOf(r.status) < 0) return false;
+    if(r.operator !== operatorName) return false;
+    if(months.indexOf(r.month) < 0) return false;
+    if(lob !== 'all' && r.lob !== lob) return false;
+    if(salesRepF !== 'all' && r.rep !== salesRepF) return false;
+    // Role-based: zonal manager sees only team reps
+    if(isZonalManager() && teamRepNames && teamRepNames.length > 0){
+      if(teamRepNames.indexOf(r.rep) < 0) return false;
+    }
+    // Sales exec: own jobs only
+    if(isSalesExec() && selfSalesRep && r.rep !== selfSalesRep) return false;
+    return true;
+  });
+
+  // Sort by month
+  _pendDetailRows.sort(function(a,b){ return a.month.localeCompare(b.month) || a.shipId.localeCompare(b.shipId); });
+
+  // Set modal title
+  var statusLabel = panel==='finance' ? 'CMP (Finance Pending)' : 'INV / WRK (Ops Open)';
+  document.getElementById('pendModalTitle').textContent = operatorName + ' — Open Jobs';
+  document.getElementById('pendModalSub').textContent =
+    _pendDetailRows.length + ' open records · Status: ' + statusLabel + ' · ' +
+    (MS[f.from]||f.from) + ' – ' + (MS[f.to]||f.to);
+  document.getElementById('pendModalCount').textContent = _pendDetailRows.length + ' records';
+
+  // Build table
+  var tbody = document.getElementById('pendDetailBody');
+  tbody.innerHTML = '';
+  if(_pendDetailRows.length === 0){
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">No open jobs found for this operator with current filters.</td></tr>';
+  } else {
+    _pendDetailRows.forEach(function(r){
+      var tr = document.createElement('tr');
+      var statusClass = 'status-'+r.status;
+      tr.innerHTML =
+        '<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(r.shipId||'—')+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+(r.bookDate||'—')+'</td>'+
+        '<td style="font-weight:600;font-size:11.5px">'+(r.operator||'—')+'</td>'+
+        '<td style="font-size:11.5px">'+(r.rep||'—')+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+(r.etd||'—')+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+(r.eta||'—')+'</td>'+
+        '<td><span style="font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-weight:600">'+(r.lob||'—')+'</span></td>'+
+        '<td><span class="status-pill '+statusClass+'">'+(r.status||'—')+'</span></td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('pendDetailModal').classList.add('show');
+}
+
+function closePendModal(){
+  document.getElementById('pendDetailModal').classList.remove('show');
+  _pendDetailRows = [];
+}
+
+function downloadPendDetail(){
+  if(_pendDetailRows.length === 0){ alert('No data to download.'); return; }
+  var headers = ['Shipment ID','Booking Received Date','Job Operator','Sales Rep','Origin ETD','Destination ETA','LOB','Job Status'];
+  var rows = [headers.join(',')];
+  _pendDetailRows.forEach(function(r){
+    rows.push([
+      '"'+(r.shipId||'').replace(/"/g,'""')+'"',
+      '"'+(r.bookDate||'').replace(/"/g,'""')+'"',
+      '"'+(r.operator||'').replace(/"/g,'""')+'"',
+      '"'+(r.rep||'').replace(/"/g,'""')+'"',
+      '"'+(r.etd||'').replace(/"/g,'""')+'"',
+      '"'+(r.eta||'').replace(/"/g,'""')+'"',
+      '"'+(r.lob||'').replace(/"/g,'""')+'"',
+      '"'+(r.status||'').replace(/"/g,'""')+'"'
+    ].join(','));
+  });
+  var csv = rows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  var dateStr = new Date().toISOString().split('T')[0];
+  var opName = (_pendDetailRows[0]&&_pendDetailRows[0].operator||'Operator').replace(/[^a-zA-Z0-9]/g,'_');
+  a.download = 'OpenJobs_'+opName+'_'+dateStr+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+// Close modal on background click
+document.addEventListener('click', function(e){
+  if(e.target.id==='pendDetailModal') closePendModal();
+});
 
 </script>
 </html>
