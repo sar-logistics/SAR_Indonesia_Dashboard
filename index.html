@@ -1261,6 +1261,8 @@ async function loadData(){
     document.getElementById('rts').textContent='Updated '+new Date().toLocaleTimeString();
     setOv(false);
     render();
+    // Populate pendency dropdowns NOW that PEND_RAW is full
+    refreshPendencyDropdowns();
   }catch(e){setOv(false);showErr('Failed: '+e.message);console.error(e);}
   document.getElementById('rbtn').classList.remove('spinning');
 }
@@ -2647,11 +2649,13 @@ function swapRepFilter(mode){
   if(mode === 'operator'){
     if(repLbl) repLbl.textContent = 'Operator';
     repEl.innerHTML = '<option value="all">All Operators</option>';
-    // Get unique operators from PEND_RAW
-    var ops = [...new Set(PEND_RAW.map(function(r){return r.operator;}))].filter(Boolean).sort();
-    ops.forEach(function(op){
-      var o=document.createElement('option'); o.value=o.textContent=op; repEl.appendChild(o);
-    });
+    // Only populate if PEND_RAW is loaded; otherwise refreshPendencyDropdowns() handles it
+    if(PEND_RAW.length > 0){
+      var ops = [...new Set(PEND_RAW.map(function(r){return r.operator;}))].filter(Boolean).sort();
+      ops.forEach(function(op){
+        var o=document.createElement('option'); o.value=o.textContent=op; repEl.appendChild(o);
+      });
+    }
   } else {
     // Sales reps
     if(repLbl) repLbl.textContent = 'Rep';
@@ -2739,6 +2743,56 @@ var MONTHS_LIST = [
 // Closed = CMP (ops locked, finance pending)
 // Total  = CLS + CMP + INV + WRK (all non-blank)
 
+// Rebuild pendency dropdowns after PEND_RAW is loaded
+// Called both after loadData() and when switching to ops/finance panels
+function refreshPendencyDropdowns(){
+  // Rebuild topbar Operator dropdown (repF when on ops panel)
+  var repEl = document.getElementById('repF');
+  var repLbl = document.getElementById('repFLabel');
+  if(repEl && (currentPanel === 'ops')){
+    repEl.style.display = '';
+    if(repLbl) repLbl.style.display = '';
+    repEl.innerHTML = '<option value="all">All Operators</option>';
+    var ops = [...new Set(PEND_RAW.map(function(r){return r.operator;}))].filter(Boolean).sort();
+    ops.forEach(function(op){
+      var o = document.createElement('option'); o.value = o.textContent = op; repEl.appendChild(o);
+    });
+  }
+  // Rebuild ops-repF (Sales Rep inside ops panel)
+  var opsRepEl = document.getElementById('ops-repF');
+  if(opsRepEl){
+    var curVal = opsRepEl.value;
+    opsRepEl.innerHTML = '<option value="all">All Reps</option>';
+    var repsToShow = [];
+    if(isFullAccess() || isOpsRole()){
+      repsToShow = [...new Set(PEND_RAW.map(function(r){return r.rep;}))].filter(Boolean).sort();
+    } else if(teamRepNames && teamRepNames.length > 0){
+      repsToShow = teamRepNames.slice().sort();
+    }
+    repsToShow.forEach(function(rep){
+      var o = document.createElement('option'); o.value = o.textContent = rep; opsRepEl.appendChild(o);
+    });
+    // Restore selection if still valid
+    if(curVal && [...opsRepEl.options].some(function(o){return o.value===curVal;})) opsRepEl.value = curVal;
+  }
+  // Rebuild fin-repF (Sales Rep inside finance panel)
+  var finRepEl = document.getElementById('fin-repF');
+  if(finRepEl && !isSalesExec()){
+    var curFinVal = finRepEl.value;
+    finRepEl.innerHTML = '<option value="all">All Reps</option>';
+    var finReps = [];
+    if(isFullAccess() || isOpsRole()){
+      finReps = [...new Set(PEND_RAW.map(function(r){return r.rep;}))].filter(Boolean).sort();
+    } else if(teamRepNames && teamRepNames.length > 0){
+      finReps = teamRepNames.slice().sort();
+    }
+    finReps.forEach(function(rep){
+      var o = document.createElement('option'); o.value = o.textContent = rep; finRepEl.appendChild(o);
+    });
+    if(curFinVal && [...finRepEl.options].some(function(o){return o.value===curFinVal;})) finRepEl.value = curFinVal;
+  }
+}
+
 function initOps(){
   var saved = panelFilters['ops']||{};
   opsView = saved.opsView||'pivot';
@@ -2748,13 +2802,13 @@ function initOps(){
   if(moBtn) moBtn.className='tog'+(opsView==='monthly'?' active':'');
   document.getElementById('ops-view-pivot').onclick=function(){ opsView='pivot'; panelFilters['ops'].opsView='pivot'; this.className='tog active'; document.getElementById('ops-view-monthly').className='tog'; renderOps(); };
   document.getElementById('ops-view-monthly').onclick=function(){ opsView='monthly'; panelFilters['ops'].opsView='monthly'; this.className='tog active'; document.getElementById('ops-view-pivot').className='tog'; renderOps(); };
-  populatePendRepFilter('ops-repF');
+  refreshPendencyDropdowns(); // Populate from live PEND_RAW
   renderOps();
 }
 
 function initFin(){
   finView = 'monthly';
-  populatePendRepFilter('fin-repF');
+  refreshPendencyDropdowns(); // Populate from live PEND_RAW
   renderFin();
 }
 
