@@ -872,9 +872,6 @@ async function loadUserProfile(user){
   document.getElementById('sbName').textContent=user.displayName||user.email;
   document.getElementById('sbRole').textContent=currentRole.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
 
-  // ?? Apply nav visibility ??
-  applyNavVisibility();
-
   // ?? Show app ??
   document.getElementById('mainApp').style.display='flex';
   setOv(false);
@@ -889,7 +886,8 @@ async function loadUserProfile(user){
     await doc.ref.update({loginCount:(data.loginCount||0)+1,lastLogin:now,loginsLast7Days:new7d});
   }catch(e){console.warn('Login tracking failed:',e);}
 
-  buildSelectors();
+  buildSelectors();      // Build dropdowns FIRST
+  applyNavVisibility();  // THEN set nav (may auto-navigate to ops panel)
   await loadData();
 }
 
@@ -903,11 +901,17 @@ async function fetchMappings(email){
     const smUrl=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?ranges=${encodeURIComponent('Sales Mapping!A:C')}&valueRenderOption=UNFORMATTED_VALUE`;
     const smJ=await apiFetch(smUrl);
     const rows=(smJ.valueRanges&&smJ.valueRanges[0]&&smJ.valueRanges[0].values)||[];
-    rows.forEach(row=>{
-      if(row[2]) SALES_MAP[String(row[2]).toLowerCase().trim()]=String(row[1]||row[0]||'').trim();
+    rows.forEach(function(row){
+      if(!row) return;
+      var emailCell = row[2];
+      var nameCell  = row[1] || row[0];
+      if(emailCell && nameCell){
+        SALES_MAP[String(emailCell).toLowerCase().trim()] = String(nameCell).trim();
+      }
     });
-    salesRepName=SALES_MAP[email.toLowerCase()]||null;
-    console.log('Sales rep name:',salesRepName);
+    salesRepName = SALES_MAP[(email||'').toLowerCase().trim()] || null;
+    console.log('Sales map loaded:', Object.keys(SALES_MAP).length, 'entries');
+    console.log('Self sales rep:', salesRepName);
   }catch(e){ 
     if(e.message&&e.message.includes('parse range')){
       console.log('Sales Mapping sheet not created yet');
@@ -921,10 +925,16 @@ async function fetchMappings(email){
     const omUrl=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?ranges=${encodeURIComponent('Operations Mapping!A:C')}&valueRenderOption=UNFORMATTED_VALUE`;
     const omJ=await apiFetch(omUrl);
     const rows=(omJ.valueRanges&&omJ.valueRanges[0]&&omJ.valueRanges[0].values)||[];
-    rows.forEach(row=>{
-      if(row[2]) OPS_MAP[String(row[2]).toLowerCase().trim()]=String(row[1]||row[0]||'').trim();
+    rows.forEach(function(row){
+      if(!row) return;
+      var emailCell = row[2];
+      var nameCell  = row[1] || row[0];
+      if(emailCell && nameCell){
+        OPS_MAP[String(emailCell).toLowerCase().trim()] = String(nameCell).trim();
+      }
     });
-    opsRepName=OPS_MAP[email.toLowerCase()]||null;
+    opsRepName=OPS_MAP[(email||'').toLowerCase().trim()]||null;
+    console.log('Ops map loaded:',Object.keys(OPS_MAP).length,'entries | Self ops rep:',opsRepName);
     console.log('Ops rep name:',opsRepName);
   }catch(e){ console.warn('Ops mapping error:',e); }
 }
@@ -1003,7 +1013,14 @@ function applyNavVisibility(){
   document.getElementById('nav-finance').style.display = canSeeFin()?'flex':'none';
   // Default panel: ops-only roles land on ops, others on sales
   if(!showSales && canSeeOps()){
-    setTimeout(()=>showPanel('ops',document.getElementById('nav-ops')),100);
+    setTimeout(function(){
+      // Ensure topbar is visible before showing ops panel
+      var tb2el = document.querySelector('.tb2');
+      if(tb2el) tb2el.style.display = 'flex';
+      showPanel('ops', document.getElementById('nav-ops'));
+      var tb2 = document.querySelector('.tb2');
+      if(tb2) tb2.style.display = 'flex';
+    }, 150);
   }
 }
 
@@ -2679,7 +2696,7 @@ function populatePendRepFilter(selectId){
   sel.innerHTML = '';
 
   if(isSalesExec()){
-    // Sales exec sees only themselves -- no filter needed, hide it
+    // Sales exec: hide filter, their data is auto-filtered to self
     sel.parentElement.style.display='none';
     return;
   }
@@ -2689,24 +2706,20 @@ function populatePendRepFilter(selectId){
   allOpt.value='all'; allOpt.textContent='All Reps';
   sel.appendChild(allOpt);
 
-  if(isFullAccess()){
-    // Full access: show all known sales reps from PEND_RAW
-    var salesReps=[...new Set(PEND_RAW.map(function(r){return r.rep;}))].filter(Boolean).sort();
-    salesReps.forEach(function(rep){
-      var o=document.createElement('option'); o.value=o.textContent=rep; sel.appendChild(o);
-    });
+  // Determine which sales reps to show in dropdown
+  var repsToShow = [];
+  if(isFullAccess() || isOpsRole()){
+    // Full access + ops roles: all reps from PEND_RAW
+    repsToShow = [...new Set(PEND_RAW.map(function(r){return r.rep;}))].filter(Boolean).sort();
   } else if(isZonalManager() && teamRepNames && teamRepNames.length>0){
-    // Zonal Manager: only their reportees
-    teamRepNames.slice().sort().forEach(function(rep){
-      var o=document.createElement('option'); o.value=o.textContent=rep; sel.appendChild(o);
-    });
+    repsToShow = teamRepNames.slice().sort();
   } else if(teamRepNames && teamRepNames.length>0){
-    // Other restricted managers
-    teamRepNames.slice().sort().forEach(function(rep){
-      var o=document.createElement('option'); o.value=o.textContent=rep; sel.appendChild(o);
-    });
+    repsToShow = teamRepNames.slice().sort();
   }
-  // Default to 'all'
+
+  repsToShow.forEach(function(rep){
+    var o=document.createElement('option'); o.value=o.textContent=rep; sel.appendChild(o);
+  });
   sel.value='all';
 }
 var PEND_RAW   = [];
