@@ -596,10 +596,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <div class="thead-meta" id="ops-tbl-meta">--</div>
-              <button onclick="downloadOpenJobs('ops')" style="padding:4px 10px;border-radius:6px;border:1.5px solid var(--green);background:#f0fdf4;color:var(--green);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download Open Jobs
-              </button>
+
             </div>
           </div>
           <div class="twrap" id="ops-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div></div>
@@ -656,10 +653,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <div class="thead-meta" id="fin-tbl-meta">--</div>
-              <button onclick="downloadOpenJobs('finance')" style="padding:4px 10px;border-radius:6px;border:1.5px solid var(--red);background:#fef2f2;color:var(--red);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download Open Jobs
-              </button>
+
             </div>
           </div>
           <div class="twrap" id="fin-twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div></div>
@@ -1237,13 +1231,16 @@ function refreshSalesRepDropdown(){
 
   if(isZonalManager()){
     if(teamRepNames && teamRepNames.length > 0){
-      // Only their team — no "All Reps"
+      // "All (Team)" combined view + individual team members only
+      const allTeamOpt=document.createElement('option');
+      allTeamOpt.value='all'; allTeamOpt.textContent='All (Team)';
+      rs.appendChild(allTeamOpt);
       teamRepNames.slice().sort().forEach(function(rep){
         const o=document.createElement('option'); o.value=o.textContent=rep; rs.appendChild(o);
       });
-      rs.value = rs.options[0].value;
+      rs.value = 'all'; // default to team combined view
     } else {
-      const o=document.createElement('option'); o.value='all'; o.textContent='All Reps'; rs.appendChild(o);
+      const o=document.createElement('option'); o.value='all'; o.textContent='My Team'; rs.appendChild(o);
     }
   } else if(isSalesExec()){
     if(selfSalesRep){
@@ -1287,32 +1284,33 @@ function getEffectiveRepFilter(repF){
 // Returns effective ops filter for pendency dashboards
 // Returns: 'all', [] or ['OperatorName',...]
 function getEffectiveOpsFilter(repF){
-  if(isFullAccess() || isOpsHead()) return repF==='all'?'all':[repF];
-
-  // Sales exec: only their own jobs
-  if(isSalesExec()){
-    return 'sales_self'; // filter by r.rep === selfSalesRep in pendFilter
+  // If a specific operator is selected from dropdown, always honour it
+  // (role restrictions are enforced by what appears IN the dropdown)
+  if(repF && repF !== 'all'){
+    return [repF]; // specific operator selected — show only them
   }
 
-  // Zonal Manager: filter by r.rep matching their team sales reps
-  // (reportees are sales execs, not ops execs - so filter by sales rep column)
+  // repF === 'all' from here down
+  if(isFullAccess() || isOpsHead()) return 'all';
+
+  if(isSalesExec()){
+    return 'sales_self';
+  }
+
   if(isZonalManager()){
     if(teamRepNames !== null && teamRepNames.length > 0){
-      return 'team_reps'; // special signal: filter r.rep against teamRepNames
+      return 'team_reps';
     }
-    return 'sales_self'; // fallback to self only
+    return 'sales_self';
   }
 
-  // Ops Manager: use teamOpsNames (operators who report to them)
   if(isOpsManager()){
-    if(teamOpsNames !== null){
-      if(repF==='all') return teamOpsNames.length>0 ? teamOpsNames : [];
-      return teamOpsNames.includes(repF) ? [repF] : [];
+    if(teamOpsNames !== null && teamOpsNames.length > 0){
+      return teamOpsNames; // all their team operators
     }
     return selfOpsRep ? [selfOpsRep] : [];
   }
 
-  // Ops Exec: only self ops
   if(isOpsExec()){
     return selfOpsRep ? [selfOpsRep] : [];
   }
@@ -2878,10 +2876,17 @@ function refreshPendencyDropdowns(){
     var curVal = opsRepEl.value;
     opsRepEl.innerHTML = '<option value="all">All Reps</option>';
     var repsToShow = [];
-    if(isFullAccess() || isOpsRole()){
+    if(isFullAccess() || isOpsHead()){
       repsToShow = [...new Set(PEND_RAW.map(function(r){return r.rep;}))].filter(Boolean).sort();
+    } else if(isOpsManager() || isOpsExec()){
+      // Ops roles: show all reps (they filter by operator, not sales rep)
+      repsToShow = [...new Set(PEND_RAW.map(function(r){return r.rep;}))].filter(Boolean).sort();
+    } else if(isZonalManager() && teamRepNames && teamRepNames.length > 0){
+      repsToShow = teamRepNames.slice().sort(); // only their team
     } else if(teamRepNames && teamRepNames.length > 0){
       repsToShow = teamRepNames.slice().sort();
+    } else if(isSalesExec() && selfSalesRep){
+      repsToShow = [selfSalesRep];
     }
     repsToShow.forEach(function(rep){
       var o = document.createElement('option'); o.value = o.textContent = rep; opsRepEl.appendChild(o);
@@ -2895,10 +2900,14 @@ function refreshPendencyDropdowns(){
     var curFinVal = finRepEl.value;
     finRepEl.innerHTML = '<option value="all">All Reps</option>';
     var finReps = [];
-    if(isFullAccess() || isOpsRole()){
+    if(isFullAccess()){
       finReps = [...new Set(PEND_RAW.map(function(r){return r.rep;}))].filter(Boolean).sort();
+    } else if(isZonalManager() && teamRepNames && teamRepNames.length > 0){
+      finReps = teamRepNames.slice().sort(); // only team members
     } else if(teamRepNames && teamRepNames.length > 0){
       finReps = teamRepNames.slice().sort();
+    } else if(isSalesExec() && selfSalesRep){
+      finReps = [selfSalesRep];
     }
     finReps.forEach(function(rep){
       var o = document.createElement('option'); o.value = o.textContent = rep; finRepEl.appendChild(o);
@@ -3124,8 +3133,14 @@ function renderFin(){
 
   var allRows = PEND_RAW.filter(function(r){
     if(!pendFilter(r,lob,months,'all')) return false;
+    // Sales rep filter
     if(finSalesRep!=='all' && r.rep!==finSalesRep) return false;
+    // Role-based scope: restrict to team even when "All Reps" selected
     if(isSalesExec() && selfSalesRep && r.rep!==selfSalesRep) return false;
+    if(isZonalManager() && teamRepNames && teamRepNames.length>0){
+      if(teamRepNames.indexOf(r.rep)<0) return false;
+    }
+    if(isOpsManager() || isOpsExec()) return false; // ops roles can't see finance
     return true;
   });
 
@@ -3212,7 +3227,7 @@ function renderFinMonthly(allRows, months, periodLbl){
   var avBg='background:linear-gradient(135deg,#0891b2,#0d9488)';
   ROWS.forEach(function(mr,mi){
     html+='<tr class="r-rep">';
-    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">TG</div><span style="font-weight:700;font-size:12px">Trupti Gore</span></div></td>';
+    if(mi===0) html+='<td class="c-rep" rowspan="'+ROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+avBg+'">TG</div><span style="font-weight:700;font-size:12px;color:var(--blue);cursor:pointer;text-decoration:underline;text-decoration-style:dotted" onclick="openFinPendDetail()">Trupti Gore</span></div></td>';
     html+='<td class="c-metric" style="color:'+mr.color+'">'+mr.lbl+'</td>';
     var tot=getTot(mr.id);
     html+='<td class="c-total" style="color:'+mr.color+';font-weight:700">'+(tot||'--')+'</td>';
@@ -3481,7 +3496,22 @@ function downloadOpenJobs(panel){
 
 
 // ================================================================
-// PENDENCY DETAIL MODAL — click operator to see open jobs
+// PENDENCY DETAIL MODAL
+
+// Convert Excel serial date to readable string (e.g. 46063 -> "15-Apr-25")
+function excelDateToStr(val){
+  if(!val || val === '' || val === '--') return '—';
+  var n = parseFloat(val);
+  if(isNaN(n) || n < 1) return val; // already a string date
+  // Excel epoch: Jan 1 1900 = serial 1 (with Lotus bug: serial 60 = Feb 29 1900 doesn't exist)
+  var d = new Date(Date.UTC(1899,11,30) + n * 86400000);
+  if(isNaN(d.getTime())) return val;
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var day = String(d.getUTCDate()).padStart(2,'0');
+  var mon = months[d.getUTCMonth()];
+  var yr  = String(d.getUTCFullYear()).slice(2);
+  return day+'-'+mon+'-'+yr;
+}
 // ================================================================
 var _pendDetailRows = [];  // current modal data for download
 
@@ -3533,17 +3563,65 @@ function openPendDetail(operatorName, panel){
       var statusClass = 'status-'+r.status;
       tr.innerHTML =
         '<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(r.shipId||'—')+'</td>'+
-        '<td style="white-space:nowrap;font-size:11.5px">'+(r.bookDate||'—')+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+excelDateToStr(r.bookDate)+'</td>'+
         '<td style="font-weight:600;font-size:11.5px">'+(r.operator||'—')+'</td>'+
         '<td style="font-size:11.5px">'+(r.rep||'—')+'</td>'+
-        '<td style="white-space:nowrap;font-size:11.5px">'+(r.etd||'—')+'</td>'+
-        '<td style="white-space:nowrap;font-size:11.5px">'+(r.eta||'—')+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+excelDateToStr(r.etd)+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+excelDateToStr(r.eta)+'</td>'+
         '<td><span style="font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-weight:600">'+(r.lob||'—')+'</span></td>'+
         '<td><span class="status-pill '+statusClass+'">'+(r.status||'—')+'</span></td>';
       tbody.appendChild(tr);
     });
   }
 
+  document.getElementById('pendDetailModal').classList.add('show');
+}
+
+// Open finance pendency detail for Trupti Gore (CMP = finance open)
+function openFinPendDetail(){
+  var f = getPendFilters();
+  var lob = f.lob, months = f.months;
+  var salesRepF = (document.getElementById('fin-repF')||{}).value||'all';
+
+  _pendDetailRows = PEND_RAW.filter(function(r){
+    if(r.status !== 'CMP') return false;
+    if(months.indexOf(r.month) < 0) return false;
+    if(lob !== 'all' && r.lob !== lob) return false;
+    if(salesRepF !== 'all' && r.rep !== salesRepF) return false;
+    if(isZonalManager() && teamRepNames && teamRepNames.length > 0){
+      if(teamRepNames.indexOf(r.rep) < 0) return false;
+    }
+    if(isSalesExec() && selfSalesRep && r.rep !== selfSalesRep) return false;
+    return true;
+  });
+
+  _pendDetailRows.sort(function(a,b){ return a.month.localeCompare(b.month)||a.shipId.localeCompare(b.shipId); });
+
+  document.getElementById('pendModalTitle').textContent = 'Trupti Gore — Finance Open Jobs';
+  document.getElementById('pendModalSub').textContent =
+    _pendDetailRows.length + ' open records · Status: CMP (Finance Pending) · ' +
+    (MS[f.from]||f.from) + ' – ' + (MS[f.to]||f.to);
+  document.getElementById('pendModalCount').textContent = _pendDetailRows.length + ' records';
+
+  var tbody = document.getElementById('pendDetailBody');
+  tbody.innerHTML = '';
+  if(_pendDetailRows.length === 0){
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">No finance open jobs found with current filters.</td></tr>';
+  } else {
+    _pendDetailRows.forEach(function(r){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(r.shipId||'—')+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+excelDateToStr(r.bookDate)+'</td>'+
+        '<td style="font-weight:600;font-size:11.5px">'+(r.operator||'—')+'</td>'+
+        '<td style="font-size:11.5px">'+(r.rep||'—')+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+excelDateToStr(r.etd)+'</td>'+
+        '<td style="white-space:nowrap;font-size:11.5px">'+excelDateToStr(r.eta)+'</td>'+
+        '<td><span style="font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-weight:600">'+(r.lob||'—')+'</span></td>'+
+        '<td><span class="status-pill status-CMP">'+(r.status||'—')+'</span></td>';
+      tbody.appendChild(tr);
+    });
+  }
   document.getElementById('pendDetailModal').classList.add('show');
 }
 
@@ -3559,11 +3637,11 @@ function downloadPendDetail(){
   _pendDetailRows.forEach(function(r){
     rows.push([
       '"'+(r.shipId||'').replace(/"/g,'""')+'"',
-      '"'+(r.bookDate||'').replace(/"/g,'""')+'"',
+      '"'+excelDateToStr(r.bookDate).replace(/"/g,'""')+'"',
       '"'+(r.operator||'').replace(/"/g,'""')+'"',
       '"'+(r.rep||'').replace(/"/g,'""')+'"',
-      '"'+(r.etd||'').replace(/"/g,'""')+'"',
-      '"'+(r.eta||'').replace(/"/g,'""')+'"',
+      '"'+excelDateToStr(r.etd).replace(/"/g,'""')+'"',
+      '"'+excelDateToStr(r.eta).replace(/"/g,'""')+'"',
       '"'+(r.lob||'').replace(/"/g,'""')+'"',
       '"'+(r.status||'').replace(/"/g,'""')+'"'
     ].join(','));
