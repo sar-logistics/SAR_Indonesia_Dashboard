@@ -1196,21 +1196,18 @@ function buildSelectors(){
   // Rep filter -- full-access roles see All Reps; others see only their scope
   const rs=document.getElementById('repF');
   if(isFullAccess()){
+    // Admin / Regional Manager / Finance: All Reps + every rep
     const allOpt=document.createElement('option');
     allOpt.value='all';allOpt.textContent='All Reps';
     rs.appendChild(allOpt);
     ALL_REPS.sort().forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;rs.appendChild(o);});
   } else if(isOpsRole()){
-    // Ops roles: rep filter not relevant for sales -- hide it
-    rs.parentElement.style.display='none';
-  } else if(isOpsRole()){
-    // Ops roles: hide rep filter (not relevant)
+    // Ops roles: rep filter hidden (they use operator filter instead)
     var repLblEl=document.getElementById('repFLabel');
     if(repLblEl) repLblEl.style.display='none';
     rs.style.display='none';
   } else {
-    // Zonal manager / Sales exec: show "Loading..." placeholder
-    // refreshSalesRepDropdown() corrects this after mappings load
+    // Zonal manager / Sales exec: show placeholder, refreshSalesRepDropdown() fills it
     const allOpt=document.createElement('option');
     allOpt.value='all';allOpt.textContent='Loading...';
     rs.appendChild(allOpt);
@@ -1225,9 +1222,24 @@ function buildSelectors(){
 function refreshSalesRepDropdown(){
   const rs = document.getElementById('repF');
   if(!rs) return;
-  if(isFullAccess()) return; // already correct
-  if(isOpsRole()) return;    // hidden, not needed
-  rs.innerHTML = ''; // clear placeholder
+  // Full access: rebuild All Reps + everyone (handles coming back from ops/finance panels)
+  if(isFullAccess()){
+    rs.innerHTML = '';
+    const allOpt=document.createElement('option');
+    allOpt.value='all'; allOpt.textContent='All Reps';
+    rs.appendChild(allOpt);
+    ALL_REPS.sort().forEach(function(r){
+      const o=document.createElement('option'); o.value=o.textContent=r; rs.appendChild(o);
+    });
+    rs.value = 'all';
+    // Ensure label and select are visible
+    var lbl=document.getElementById('repFLabel');
+    if(lbl){ lbl.style.display=''; lbl.textContent='Rep'; }
+    rs.style.display='';
+    return;
+  }
+  if(isOpsRole()) return; // hidden, not needed
+  rs.innerHTML = ''; // clear placeholder — safe now that full-access is handled above
 
   if(isZonalManager()){
     if(teamRepNames && teamRepNames.length > 0){
