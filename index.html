@@ -1984,8 +1984,10 @@ function restorePanelFilters(name){
   var repLbl = document.getElementById('repFLabel');
   if(lobEl) lobEl.value = saved.lob || 'all';
 
-  // safeRep: always use 'all' -- getEffectiveRepFilter enforces restrictions at data level
+  // safeRep: use saved value; for restricted roles 'all' means their team scope
   var safeRep = saved.rep || 'all';
+  // Don't override — refreshSalesRepDropdown already set the correct options
+  // safeRep='all' is fine for zonal manager (means "All (Team)")
 
   if(name === 'ops'){
     // Swap to Job Operators
@@ -2769,26 +2771,11 @@ function swapRepFilter(mode){
       });
     }
   } else {
-    // Sales reps
+    // Sales reps — always delegate to refreshSalesRepDropdown
+    // which correctly respects teamRepNames / selfSalesRep / full-access
     if(repLbl) repLbl.textContent = 'Rep';
-    repEl.innerHTML = '';
-
-    if(allowedReps.length===0){
-      // Admin/unrestricted: show "All Reps" + every rep
-      var allOpt=document.createElement('option');
-      allOpt.value='all'; allOpt.textContent='All Reps';
-      repEl.appendChild(allOpt);
-      ALL_REPS.forEach(function(r){
-        var o=document.createElement('option'); o.value=o.textContent=r; repEl.appendChild(o);
-      });
-    } else {
-      // Restricted user: ONLY show their allowed reps -- no "All Reps" option
-      allowedReps.forEach(function(r){
-        var o=document.createElement('option'); o.value=o.textContent=r; repEl.appendChild(o);
-      });
-      // Auto-select first rep so data always loads for a specific rep
-      if(repEl.options.length>0) repEl.value=repEl.options[0].value;
-    }
+    repEl.innerHTML = ''; // clear first
+    refreshSalesRepDropdown(); // rebuilds with correct scope
   }
 }
 
@@ -3061,6 +3048,10 @@ function renderOpsMonthly(allRows, months, periodLbl){
   });
 
   var opList = Object.keys(operators).sort(function(a,b){
+    // Sort by open jobs DESC (same as pivot view), then by total DESC
+    var openA=Object.values(operators[a]).reduce(function(s,v){return s+v.open;},0);
+    var openB=Object.values(operators[b]).reduce(function(s,v){return s+v.open;},0);
+    if(openB !== openA) return openB - openA;
     var ta=Object.values(operators[a]).reduce(function(s,v){return s+v.total;},0);
     var tb=Object.values(operators[b]).reduce(function(s,v){return s+v.total;},0);
     return tb-ta;
