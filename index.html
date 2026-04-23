@@ -455,9 +455,30 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <span class="wk-lbl">Week Ending</span>
         <input type="date" class="wk-date" id="wkDatePick" onchange="render()">
       </div>
-      <div class="fy-inline" id="fyInline" style="gap:6px">
-        <span class="wk-lbl">YTD</span>
-        <select class="wk-n" id="ytdMonth" onchange="render()" style="min-width:110px">
+      <div class="fy-inline" id="fyInline" style="gap:6px;align-items:center">
+        <span class="wk-lbl">FROM</span>
+        <select class="wk-n" id="yrFrom" onchange="render()" style="min-width:90px">
+          <option value="January-2025">Jan-25</option>
+          <option value="February-2025">Feb-25</option>
+          <option value="March-2025">Mar-25</option>
+          <option value="April-2025">Apr-25</option>
+          <option value="May-2025">May-25</option>
+          <option value="June-2025">Jun-25</option>
+          <option value="July-2025">Jul-25</option>
+          <option value="August-2025">Aug-25</option>
+          <option value="September-2025">Sep-25</option>
+          <option value="October-2025">Oct-25</option>
+          <option value="November-2025">Nov-25</option>
+          <option value="December-2025">Dec-25</option>
+          <option value="January-2026" selected>Jan-26</option>
+          <option value="February-2026">Feb-26</option>
+          <option value="March-2026">Mar-26</option>
+        </select>
+        <span class="wk-lbl">TO</span>
+        <select class="wk-n" id="yrTo" onchange="render()" style="min-width:90px">
+          <option value="January-2025" selected>Jan-25</option>
+          <option value="February-2025">Feb-25</option>
+          <option value="March-2025">Mar-25</option>
           <option value="April-2025">Apr-25</option>
           <option value="May-2025">May-25</option>
           <option value="June-2025">Jun-25</option>
@@ -469,9 +490,8 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           <option value="December-2025">Dec-25</option>
           <option value="January-2026">Jan-26</option>
           <option value="February-2026">Feb-26</option>
-          <option value="March-2026">Mar-26</option>
+          <option value="March-2026" selected>Mar-26</option>
         </select>
-        <span class="wk-lbl" style="color:var(--text3);font-size:10px" id="ytdLabel">Apr-24&#8594;Jul-24 vs Apr-25&#8594;Jul-25</span>
       </div>
       <div class="tb-div"></div>
       <span class="flbl">LOB</span>
@@ -1437,24 +1457,26 @@ async function fetchShipment(){
       const mappedRep = REP_MAP[rawRep]||'Nomination Sales';
       TL_RAW.push({tl,cargo,month:mon,teu,rev,gp,lob:mode||'all',rep:mappedRep});
     }
-    // Ops & Finance pendency raw rows (non-blank status only)
+    // Store ALL rows in SHIP_RAW (for custom date filter + rep detail view)
     const jobStatus=g(statusC,i), jobOp=g(opC,i);
+    const shipId   = g(shipIdC,i)||'';
+    const bookDate  = g(bookDateC,i)||'';
+    const etd       = g(etdC,i)||'';
+    const eta       = g(etaC,i)||'';
+    const recDateSerial=parseFloat(g(dateC,i))||0;
+    SHIP_RAW.push({shipId,recDate:recDateSerial,bookDate,etd,eta,
+      rep:REP_MAP[rawRep]||'Nomination Sales',operator:jobOp||'',
+      lob:mode||'Dry Freight',mon,
+      teuFCL:mode==='Dry Freight'?teu:0,teuTank:mode==='ISO Tank'?teu:0,
+      tons:mode==='Air'?tons:0,rev,gp,
+      customer:g(custC,i)||'',shipper:g(shipperC,i)||'',consignee:g(consigC,i)||'',
+      totCont:g(totContC,i)||'',other:g(otherC,i)||'',
+      c20F:g(c20FC,i)||'',c20R:g(c20RC,i)||'',c20H:g(c20HC,i)||'',
+      c40F:g(c40FC,i)||'',c40R:g(c40RC,i)||'',c40H:g(c40HC,i)||'',c45F:g(c45FC,i)||''});
+    // Ops & Finance pendency (only non-blank status rows)
     if(jobStatus){
-      const shipId   = g(shipIdC,i)||'';
-      const bookDate  = g(bookDateC,i)||'';
-      const etd       = g(etdC,i)||'';
-      const eta       = g(etaC,i)||'';
       const pendRow={shipId,bookDate,etd,eta,status:jobStatus,operator:jobOp||'Unknown',month:mon,lob:mode||'Dry Freight',rep:REP_MAP[rawRep]||'Nomination Sales'};
       PEND_RAW.push(pendRow);
-      // Store raw row for custom date + rep detail view
-      const recDateSerial=parseFloat(g(dateC,i))||0;
-      SHIP_RAW.push({shipId,recDate:recDateSerial,bookDate,etd,eta,
-        rep:REP_MAP[rawRep]||'Nomination Sales',operator:jobOp||'',
-        lob:mode||'Dry Freight',mon,
-        customer:g(custC,i)||'',shipper:g(shipperC,i)||'',consignee:g(consigC,i)||'',
-        totCont:g(totContC,i)||'',other:g(otherC,i)||'',
-        c20F:g(c20FC,i)||'',c20R:g(c20RC,i)||'',c20H:g(c20HC,i)||'',
-        c40F:g(c40FC,i)||'',c40R:g(c40RC,i)||'',c40H:g(c40HC,i)||'',c45F:g(c45FC,i)||''});
     }
     const rawDate=g(dateC,i),rawWk=g(wkC,i);
     if(rawDate&&rawWk){
@@ -2069,24 +2091,29 @@ function restorePanelFilters(name){
   if(toEl)   toEl.value   = saved.to   || 'March-2026';
 
   if(name === 'ops' || name === 'finance'){
-    // Ops/Finance: lock to Monthly only
+    // Ops/Finance: ONLY Monthly — lock all other toggles
     period = 'monthly';
     document.querySelectorAll('.tog').forEach(function(b){
       var t = b.textContent.trim();
-      if(t==='Weekly'||t==='Custom'){ b.classList.add('locked-tog'); b.classList.remove('active'); }
-      if(t==='Yearly'||t==='Monthly'){ b.classList.remove('locked-tog'); }
-      if(t==='Monthly') b.classList.add('active');
+      b.classList.remove('active');
+      if(t==='Monthly'){ b.classList.remove('locked-tog'); b.classList.add('active'); }
+      else { b.classList.add('locked-tog'); }
     });
   } else if(name === 'tradelane'){
-    // Tradelane: lock Weekly/Custom, allow Monthly+Yearly
-    period = saved.period||'monthly';
+    // Tradelane: only Monthly + Yearly allowed
+    period = (saved.period==='monthly'||saved.period==='yearly') ? saved.period : 'monthly';
     document.querySelectorAll('.tog').forEach(function(b){
       var t = b.textContent.trim();
-      if(t==='Weekly'||t==='Custom'){ b.classList.add('locked-tog'); b.classList.remove('active'); }
-      else { b.classList.remove('locked-tog','active'); }
+      b.classList.remove('locked-tog','active');
+      if(t==='Weekly'||t==='Custom'){ b.classList.add('locked-tog'); }
     });
     var tlPeriodLabel={monthly:'Monthly',yearly:'Yearly'}[period]||'Monthly';
     document.querySelectorAll('.tog').forEach(function(b){ if(b.textContent.trim()===tlPeriodLabel) b.classList.add('active'); });
+    // Show correct filter row
+    var drEl=document.getElementById('drRow');
+    var fyEl=document.getElementById('fyInline');
+    if(drEl) drEl.style.display = period==='monthly'?'flex':'none';
+    if(fyEl){ if(period==='yearly') fyEl.classList.add('show'); else fyEl.classList.remove('show'); }
   }
   if(name === 'ops' || name === 'finance'){
     // Show appropriate filter row based on period
@@ -2542,6 +2569,7 @@ function renderTL(){
     return;
   }
   if(!tlInited){ aggregateTLData(); tlInited = true; }
+  if(period==='yearly'){ renderTLYearly(); return; }
 
   // Use main topbar FROM/TO (date range shared -- only dates, not LOB/Rep)
   var from = (document.getElementById('fromM') || {}).value || 'April-2025';
@@ -3624,57 +3652,62 @@ function renderCustomTable(data,lob,repF){
 
 // TL YTD comparison
 function renderTLYearly(){
-  var ytdVal=document.getElementById('ytdMonth')?document.getElementById('ytdMonth').value:'July-2025';
   var lob=(document.getElementById('lobF')||{}).value||'all';
-  var ytd=getYTDMonths(ytdVal);
-  var lbl=document.getElementById('ytdLabel');
-  if(lbl) lbl.textContent=ytd.label0+' vs '+ytd.label1;
-  setText('tl-tbl-meta',ytd.label0+' vs '+ytd.label1);
-  setText('tl-tbl-sub','YTD vs Prior Year');
+  var yr=getYearlyRange();
+  setText('tl-tbl-meta',yr.label0+' vs '+yr.label1);
+  setText('tl-tbl-sub','Year vs Prior Year');
 
   var tradelanes=[...new Set(TL_RAW.map(function(r){return r.tl;}))].filter(Boolean);
 
-  function sumTL(tl,months){
+  function sumTLyr(tl,months){
     var s={shp:0,teu:0,rev:0,gp:0};
     TL_RAW.forEach(function(r){
       if(r.tl!==tl) return;
       if(months.indexOf(r.month)<0) return;
       if(lob!=='all'&&r.lob!==lob) return;
+      if(tlCargo!=='all'&&r.cargo!==tlCargo) return;
       s.shp++;s.teu+=r.teu;s.rev+=r.rev;s.gp+=r.gp;
     });
     return s;
   }
 
-  tradelanes=tradelanes.sort(function(a,b){return sumTL(b,ytd.curYTD).gp-sumTL(a,ytd.curYTD).gp;});
+  tradelanes=tradelanes.sort(function(a,b){
+    return sumTLyr(b,yr.curPeriod).gp - sumTLyr(a,yr.curPeriod).gp;
+  });
 
   var html='<table><thead><tr>'
     +'<th class="h-rep">Tradelane</th><th class="h-metric">Metric</th>'
-    +'<th style="text-align:right;min-width:130px;color:var(--text3)">'+ytd.label0+'</th>'
-    +'<th style="text-align:right;min-width:130px;color:var(--blue)">'+ytd.label1+'</th>'
-    +'<th style="text-align:right;min-width:100px">YoY</th>'
+    +'<th style="text-align:right;min-width:130px;color:var(--text3)">'+yr.label0+'</th>'
+    +'<th style="text-align:right;min-width:130px;color:var(--blue)">'+yr.label1+'</th>'
+    +'<th style="text-align:right;min-width:100px">YoY Change</th>'
     +'</tr></thead><tbody>';
 
   var TLROWS=[{id:'shp',lbl:'Shipments'},{id:'teu',lbl:'TEUs'},{id:'rev',lbl:'Revenue ($)'},{id:'gp',lbl:'GP ($)'}];
 
-  function tlYTDRow(tl,isGrand){
+  function tlYrRow(tl,isGrand){
     var sA,sB;
     if(isGrand){
       sA={shp:0,teu:0,rev:0,gp:0};sB={shp:0,teu:0,rev:0,gp:0};
-      tradelanes.forEach(function(t){var a=sumTL(t,ytd.prevYTD),b=sumTL(t,ytd.curYTD);['shp','teu','rev','gp'].forEach(function(k){sA[k]+=a[k];sB[k]+=b[k];});});
-    } else { sA=sumTL(tl,ytd.prevYTD);sB=sumTL(tl,ytd.curYTD); }
+      tradelanes.forEach(function(t){
+        var a=sumTLyr(t,yr.prevPeriod),b=sumTLyr(t,yr.curPeriod);
+        ['shp','teu','rev','gp'].forEach(function(k){sA[k]+=a[k];sB[k]+=b[k];});
+      });
+    } else { sA=sumTLyr(tl,yr.prevPeriod);sB=sumTLyr(tl,yr.curPeriod); }
     var bg=isGrand?'background:linear-gradient(135deg,#2563eb,#7c3aed)':'background:'+rclr(tl);
     var initl=isGrand?'GT':tl.split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
     var rc=isGrand?'r-grand':'r-rep';
     var h='';
     TLROWS.forEach(function(mr,mi){
       h+='<tr class="'+rc+'">';
-      if(mi===0) h+='<td class="c-rep" rowspan="'+TLROWS.length+'" style="vertical-align:top;padding-top:8px"><div class="ravcell"><div class="rav" style="'+bg+'">'+initl+'</div><span style="font-weight:700;font-size:12px">'+tl+'</span></div></td>';
+      if(mi===0) h+='<td class="c-rep" rowspan="'+TLROWS.length+'" style="vertical-align:top;padding-top:8px">'
+        +'<div class="ravcell"><div class="rav" style="'+bg+'">'+initl+'</div>'
+        +'<span style="font-weight:700;font-size:12px">'+tl+'</span></div></td>';
       h+='<td class="c-metric">'+mr.lbl+'</td>';
-      var vA=mr.id==='shp'?sA.shp:mr.id==='teu'?fT(sA.teu):mr.id==='rev'?'$'+Math.round(sA.rev).toLocaleString():'$'+Math.round(sA.gp).toLocaleString();
-      var vB=mr.id==='shp'?sB.shp:mr.id==='teu'?fT(sB.teu):mr.id==='rev'?'$'+Math.round(sB.rev).toLocaleString():'$'+Math.round(sB.gp).toLocaleString();
-      var yoy='—';
+      var vA=mr.id==='shp'?sA.shp.toLocaleString():mr.id==='teu'?fT(sA.teu):mr.id==='rev'?'$'+Math.round(sA.rev).toLocaleString():'$'+Math.round(sA.gp).toLocaleString();
+      var vB=mr.id==='shp'?sB.shp.toLocaleString():mr.id==='teu'?fT(sB.teu):mr.id==='rev'?'$'+Math.round(sB.rev).toLocaleString():'$'+Math.round(sB.gp).toLocaleString();
       var aV=mr.id==='shp'?sA.shp:mr.id==='teu'?sA.teu:mr.id==='rev'?sA.rev:sA.gp;
       var bV=mr.id==='shp'?sB.shp:mr.id==='teu'?sB.teu:mr.id==='rev'?sB.rev:sB.gp;
+      var yoy='—';
       if(aV>0){var pct=((bV-aV)/aV*100);yoy='<span class="'+(pct>=0?'pos':'neg')+'">'+(pct>=0?'+':'')+pct.toFixed(1)+'%</span>';}
       h+='<td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--text3)">'+vA+'</td>';
       h+='<td style="text-align:right;font-family:var(--mono);font-size:12px">'+vB+'</td>';
@@ -3684,9 +3717,9 @@ function renderTLYearly(){
     return h;
   }
 
-  html+=tlYTDRow('Grand Total',true);
+  html+=tlYrRow('Grand Total',true);
   html+='<tr class="grand-sep"><td colspan="5"></td></tr>';
-  tradelanes.forEach(function(tl){html+=tlYTDRow(tl,false);html+='<tr class="r-sep"><td colspan="5"></td></tr>';});
+  tradelanes.forEach(function(tl){html+=tlYrRow(tl,false);html+='<tr class="r-sep"><td colspan="5"></td></tr>';});
   html+='</tbody></table>';
   var wrap=document.getElementById('tl-twrap');
   if(wrap) wrap.innerHTML=html;
@@ -3939,58 +3972,62 @@ var FY_MONTHS={
 
 var MONTH_SEQ=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-function getYTDMonths(ytdMonthVal){
-  // ytdMonthVal like "July-2025"
-  // Determine which FY it belongs to
-  var parts=ytdMonthVal.split('-');
-  var mName=parts[0],yr=parseInt(parts[1]);
-  var mIdx=MONTH_SEQ.indexOf(mName); // 0-11
-  // FY runs Apr-Mar. If month is Apr-Dec, FY start = same year Apr. If Jan-Mar, FY start = prev year Apr.
-  var fyStartYr = (mIdx>=3) ? yr : yr-1; // April=idx3
-  var fyLabel=fyStartYr+'-'+(fyStartYr+1-2000).toString().padStart(2,'0');
+function getYearlyRange(){
+  // Read FROM/TO selectors
+  var fromVal = (document.getElementById('yrFrom')||{}).value || 'January-2026';
+  var toVal   = (document.getElementById('yrTo')||{}).value   || 'March-2026';
 
-  // Current FY YTD: Apr(fyStartYr) to ytdMonth
-  var curMonths=[];
-  for(var i=3;i<=11;i++) curMonths.push(MONTH_SEQ[i]+'-'+fyStartYr); // Apr-Dec
-  for(var i=0;i<=2;i++) curMonths.push(MONTH_SEQ[i]+'-'+(fyStartYr+1)); // Jan-Mar
-  var cutIdx=curMonths.indexOf(ytdMonthVal);
-  var curYTD=cutIdx>=0?curMonths.slice(0,cutIdx+1):curMonths;
+  // Build the current period: all months from fromVal to toVal
+  var allM = MONTHS; // global MONTHS array Jan-25 ... Mar-26
+  var fi = allM.indexOf(fromVal), ti = allM.indexOf(toVal);
+  if(fi<0) fi=0; if(ti<0) ti=allM.length-1;
+  if(ti<fi) ti=fi; // ensure valid range
+  var curPeriod = allM.slice(fi, ti+1);
 
-  // Prior FY YTD: same months but previous year
-  var prevStartYr=fyStartYr-1;
-  var prevMonths=[];
-  for(var i=3;i<=11;i++) prevMonths.push(MONTH_SEQ[i]+'-'+prevStartYr);
-  for(var i=0;i<=2;i++) prevMonths.push(MONTH_SEQ[i]+'- '+(prevStartYr+1));
-  var prevYTD=prevMonths.slice(0,curYTD.length);
+  // Prior period: exactly 1 year back for each month
+  var prevPeriod = curPeriod.map(function(m){
+    var parts=m.split('-');
+    var mName=parts[0], yr=parseInt(parts[1]);
+    return mName+'-'+(yr-1);
+  });
 
-  var label1='Apr-'+(fyStartYr-2000)+' to '+(MS[ytdMonthVal]||ytdMonthVal);
-  var label0='Apr-'+(prevStartYr-2000)+' to '+(MS[prevMonths[curYTD.length-1]]||prevMonths[curYTD.length-1]);
-  return {curYTD,prevYTD,label0,label1,fyStartYr,prevStartYr};
+  // Labels
+  var label1 = (MS[fromVal]||fromVal)+' to '+(MS[toVal]||toVal);
+  var prevFrom = prevPeriod[0], prevTo = prevPeriod[prevPeriod.length-1];
+  var label0 = (MS[prevFrom]||prevFrom)+' to '+(MS[prevTo]||prevTo);
+
+  // Targets: only available from Jan-2025 onwards
+  // Prior period before Jan-2025 = no targets
+  var prevHasTargets = prevPeriod.some(function(m){
+    var parts=m.split('-'); var yr=parseInt(parts[1]);
+    return yr>=2025;
+  });
+
+  return {curPeriod, prevPeriod, label0, label1, prevHasTargets};
 }
 
+// Legacy alias kept for any remaining references
+function getYTDMonths(ytdMonthVal){ return getYearlyRange(); }
+
 function renderYearly(){
-  var ytdVal=document.getElementById('ytdMonth')?document.getElementById('ytdMonth').value:'July-2025';
   var lob=document.getElementById('lobF').value;
   var repF=document.getElementById('repF').value;
-  var ytd=getYTDMonths(ytdVal);
+  var yr=getYearlyRange();
 
-  // Update YTD label
-  var lbl=document.getElementById('ytdLabel');
-  if(lbl) lbl.textContent=ytd.label0+' vs '+ytd.label1;
-  setText('tbl-sub','YTD vs Prior Year · USD');
-  setText('tbl-meta',ytd.label0+' vs '+ytd.label1);
+  setText('tbl-sub','Year vs Prior Year · USD');
+  setText('tbl-meta',yr.label0+' vs '+yr.label1);
 
   // Aggregate data for both periods
-  var dataA=applyFilters(lob,repF,ytd.prevYTD);  // prior year
-  var dataB=applyFilters(lob,repF,ytd.curYTD);   // current year
+  var dataA=applyFilters(lob,repF,yr.prevPeriod);  // prior year
+  var dataB=applyFilters(lob,repF,yr.curPeriod);   // current year
   var effRep=getEffectiveRepFilter(repF);
   var repsArr=effRep==='all'?null:(Array.isArray(effRep)?effRep:[effRep]);
   var allReps=Object.keys(dataB).length>0?Object.keys(dataB):Object.keys(dataA);
   if(repsArr) allReps=allReps.filter(function(r){return repsArr.indexOf(r)>=0;});
 
   var COLS=[
-    {id:'prior',label:ytd.label0,data:dataA,months:ytd.prevYTD},
-    {id:'cur',  label:ytd.label1,data:dataB,months:ytd.curYTD}
+    {id:'prior',label:yr.label0,data:dataA,months:yr.prevPeriod},
+    {id:'cur',  label:yr.label1,data:dataB,months:yr.curPeriod}
   ];
 
   var MROWS2=[
@@ -4006,8 +4043,8 @@ function renderYearly(){
 
   var html='<table><thead><tr>'
     +'<th class="h-rep">Sales Rep</th><th class="h-metric">Metric</th>'
-    +'<th style="text-align:right;min-width:140px;color:var(--text3)">'+ytd.label0+'</th>'
-    +'<th style="text-align:right;min-width:140px;color:var(--blue)">'+ytd.label1+'</th>'
+    +'<th style="text-align:right;min-width:140px;color:var(--text3)">'+yr.label0+'</th>'
+    +'<th style="text-align:right;min-width:140px;color:var(--blue)">'+yr.label1+'</th>'
     +'<th style="text-align:right;min-width:100px">YoY Change</th>'
     +'</tr></thead><tbody>';
 
@@ -4018,10 +4055,10 @@ function renderYearly(){
     var sA,sB;
     if(isGrand){
       sA={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};sB={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
-      allReps.forEach(function(r){var a=sumRep(dataA,r,ytd.prevYTD),b=sumRep(dataB,r,ytd.curYTD);['teuFCL','teuTank','tons','rev','gp'].forEach(function(k){sA[k]+=a[k];sB[k]+=b[k];});});
-    } else { sA=sumRep(dataA,repName,ytd.prevYTD);sB=sumRep(dataB,repName,ytd.curYTD); }
-    var tgtA=isGrand?allReps.reduce(function(a,r){return a+(REP_TARGETS[r]||0);},0)*ytd.prevYTD.length:(REP_TARGETS[repName]||0)*ytd.curYTD.length;
-    var tgtB=isGrand?allReps.reduce(function(a,r){return a+(REP_TARGETS[r]||0);},0)*ytd.curYTD.length:(REP_TARGETS[repName]||0)*ytd.curYTD.length;
+      allReps.forEach(function(r){var a=sumRep(dataA,r,yr.prevPeriod),b=sumRep(dataB,r,yr.curPeriod);['teuFCL','teuTank','tons','rev','gp'].forEach(function(k){sA[k]+=a[k];sB[k]+=b[k];});});
+    } else { sA=sumRep(dataA,repName,yr.prevPeriod);sB=sumRep(dataB,repName,yr.curPeriod); }
+    var tgtA=yr.prevHasTargets?(isGrand?allReps.reduce(function(a,r){return a+(REP_TARGETS[r]||0);},0)*yr.prevPeriod.length:(REP_TARGETS[repName]||0)*yr.prevPeriod.length):0;
+    var tgtB=isGrand?allReps.reduce(function(a,r){return a+(REP_TARGETS[r]||0);},0)*yr.curPeriod.length:(REP_TARGETS[repName]||0)*yr.curPeriod.length;
     var varA=tgtA>0?(sA.gp-tgtA)/Math.abs(tgtA)*100:null;
     var varB=tgtB>0?(sB.gp-tgtB)/Math.abs(tgtB)*100:null;
     var rc=isGrand?'r-grand':'r-rep';
@@ -4098,7 +4135,7 @@ function openRepDetail(repName){
   } else if(period==='yearly'){
     var ytdVal=document.getElementById('ytdMonth')?document.getElementById('ytdMonth').value:'July-2025';
     var ytd=getYTDMonths(ytdVal);
-    _repDetailRows=SHIP_RAW.filter(function(r){ return r.rep===repName&&(lob==='all'||r.lob===lob)&&ytd.curYTD.indexOf(r.mon)>=0; });
+    _repDetailRows=SHIP_RAW.filter(function(r){ return r.rep===repName&&(lob==='all'||r.lob===lob)&&yr.curPeriod.indexOf(r.mon)>=0; });
   } else {
     _repDetailRows=SHIP_RAW.filter(function(r){ return r.rep===repName&&(lob==='all'||r.lob===lob); });
   }
