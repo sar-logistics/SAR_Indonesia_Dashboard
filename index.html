@@ -3753,7 +3753,7 @@ function renderCustomTable(data,lob,repF){
 function renderTLYearly(){
   var lob=(document.getElementById('lobF')||{}).value||'all';
   var yr=getYearlyRange();
-  setText('tl-tbl-meta',yr.label0+' vs '+yr.label1);
+  setText('tl-tbl-meta',''); // shown in column headers
   setText('tl-tbl-sub','Year vs Prior Year');
 
   var tradelanes=[...new Set(TL_RAW.map(function(r){return r.tl;}))].filter(Boolean);
@@ -3959,6 +3959,7 @@ function closePendModal(){
   _pendDetailRows = [];
   _repDetailRows = [];
   _isRepDetail = false;
+  _rdFilters = {};
   // Restore original modal state
   var dlBtn=document.getElementById('pendDownloadBtn');
   if(dlBtn) dlBtn.style.display='';
@@ -4113,7 +4114,13 @@ function getYearlyRange(){
   });
 
   // Labels
-  function shortMon(m){return MS[m]||m;}
+  function shortMon(m){
+    if(MS[m]) return MS[m]; // e.g. "Sep-25"
+    // Fall back: parse "Month-YYYY" and format as "Mon-YY"
+    var p=m.split('-'); if(p.length<2) return m;
+    var mn=p[0].slice(0,3); var yr=String(p[1]).slice(2);
+    return mn+'-'+yr;
+  }
   var label1 = shortMon(fromVal)+' to '+shortMon(toVal);
   var prevFrom = prevPeriod[0], prevTo = prevPeriod[prevPeriod.length-1];
   var label0 = shortMon(prevFrom)+' to '+shortMon(prevTo);
@@ -4147,8 +4154,7 @@ function renderYearly(){
   var yr=getYearlyRange();
 
   setText('tbl-sub','Year vs Prior Year · USD');
-  setText('tbl-meta',yr.label0+' vs '+yr.label1);
-
+  setText('tbl-meta',''); // shown in column headers already
   // Update KPI cards with current year data
   var kpiData=applyFilters(lob,repF,yr.curPeriod);
   updateKPIsFromData(kpiData,yr.curPeriod,lob,repF);
@@ -4297,78 +4303,118 @@ function openRepDetail(repName){
   // Hide download button for rep detail
   var dlBtn=document.getElementById('pendDownloadBtn');
   if(dlBtn) dlBtn.style.display='none';
-  // Show filter row for rep detail
+  // Reset column filters
+  _rdFilters = {};
+  // Hide the separate filter row (filters are now in column headers)
   var filterRow=document.getElementById('repDetailFilterRow');
-  if(filterRow){ filterRow.style.display='flex'; populateRepDetailFilters(); }
+  if(filterRow) filterRow.style.display='none';
 
   _isRepDetail=true;
   renderRepDetailTable(_repDetailRows);
   document.getElementById('pendDetailModal').classList.add('show');
 }
 
+// Column definitions for rep detail table
+var RD_COLS = [
+  {key:'shipId',   lbl:'Ship No.',        type:'text',   w:'white-space:nowrap'},
+  {key:'bookDate', lbl:'Booking Date',    type:'date',   w:'white-space:nowrap'},
+  {key:'customer', lbl:'Customer',        type:'text',   w:'max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
+  {key:'shipper',  lbl:'Shipper',         type:'text',   w:'max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
+  {key:'consignee',lbl:'Consignee',       type:'text',   w:'max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
+  {key:'etd',      lbl:'Origin ETD',      type:'date',   w:'white-space:nowrap'},
+  {key:'eta',      lbl:'Dest. ETA',       type:'date',   w:'white-space:nowrap'},
+  {key:'rep',      lbl:'Sales Rep',       type:'text',   w:''},
+  {key:'operator', lbl:'Operator',        type:'text',   w:''},
+  {key:'lob',      lbl:'LOB',             type:'text',   w:''},
+  {key:'totCont',  lbl:'Total Cont.',     type:'num',    w:'text-align:right'},
+  {key:'other',    lbl:'Other',           type:'num',    w:'text-align:right'},
+  {key:'c20F',     lbl:'20F',             type:'num',    w:'text-align:right'},
+  {key:'c20R',     lbl:'20R',             type:'num',    w:'text-align:right'},
+  {key:'c20H',     lbl:'20H',             type:'num',    w:'text-align:right'},
+  {key:'c40F',     lbl:'40F',             type:'num',    w:'text-align:right'},
+  {key:'c40R',     lbl:'40R',             type:'num',    w:'text-align:right'},
+  {key:'c40H',     lbl:'40H',             type:'num',    w:'text-align:right'},
+  {key:'c45F',     lbl:'45F',             type:'num',    w:'text-align:right'},
+  {key:'recInc',   lbl:'Rec. Income ($)', type:'money',  w:'text-align:right'},
+  {key:'recExp',   lbl:'Rec. Expense ($)',type:'money',  w:'text-align:right'},
+  {key:'actProf',  lbl:'Actual Profit ($)',type:'money', w:'text-align:right'}
+];
+
+var _rdFilters = {}; // active column filters
+
+function getCellVal(r, col){
+  if(col.type==='date') return excelDateToStr(r[col.key]);
+  if(col.type==='money') return r[col.key]?'$'+parseFloat(r[col.key]).toLocaleString():'—';
+  return r[col.key]||'—';
+}
+
 function renderRepDetailTable(rows){
+  document.getElementById('pendModalCount').textContent=rows.length+' records';
+  var tbl=document.getElementById('pendDetailTable');
+  if(!tbl) return;
+
+  // Build header with filter dropdowns
+  var thead=tbl.querySelector('thead tr');
+  thead.innerHTML='';
+  RD_COLS.forEach(function(col){
+    var th=document.createElement('th');
+    th.style.cssText='position:sticky;top:0;z-index:2;background:#f4f6fa;white-space:nowrap;padding:6px 8px';
+    // Get unique values for this column
+    var vals=[...new Set(_repDetailRows.map(function(r){
+      if(col.type==='date') return excelDateToStr(r[col.key]);
+      return r[col.key]||'';
+    }))].filter(function(v){return v&&v!=='—';}).sort();
+    var isFiltered=_rdFilters[col.key]&&_rdFilters[col.key]!=='all';
+    th.innerHTML='<div style="display:flex;flex-direction:column;gap:3px">'+
+      '<span style="font-size:10px;font-weight:700;color:'+(isFiltered?'var(--blue)':'var(--text3)')+';text-transform:uppercase;letter-spacing:.4px">'+col.lbl+(isFiltered?' ▼':'')+'</span>'+
+      '<select onchange="setRdFilter(\"'+col.key+'\",this.value)" '+
+        'style="font-size:10px;padding:2px 4px;border:1px solid '+(isFiltered?'var(--blue)':'var(--border)')+';border-radius:4px;background:'+(isFiltered?'#eff4ff':'#fff')+';max-width:120px;cursor:pointer">'+
+        '<option value="all">All</option>'+
+        vals.map(function(v){return '<option value="'+v.replace(/"/g,'&quot;')+'"'+((_rdFilters[col.key]===v)?' selected':'')+'>'+v+'</option>';}).join('')+
+      '</select></div>';
+    thead.appendChild(th);
+  });
+
+  // Build body
   var tbody=document.getElementById('pendDetailBody');
   tbody.innerHTML='';
-  document.getElementById('pendModalCount').textContent=rows.length+' records';
   if(rows.length===0){
-    tbody.innerHTML='<tr><td colspan="21" style="text-align:center;padding:30px;color:var(--text3)">No shipments found.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="'+RD_COLS.length+'" style="text-align:center;padding:30px;color:var(--text3)">No shipments match the current filters.</td></tr>';
     return;
   }
   rows.forEach(function(r){
     var tr=document.createElement('tr');
-    tr.innerHTML=
-      '<td style="font-family:var(--mono);font-size:10.5px;white-space:nowrap">'+(r.shipId||'—')+'</td>'+
-      '<td style="white-space:nowrap;font-size:10.5px">'+excelDateToStr(r.bookDate)+'</td>'+
-      '<td style="font-size:10.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.customer||'')+'">'+(r.customer||'—')+'</td>'+
-      '<td style="font-size:10.5px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.shipper||'')+'">'+(r.shipper||'—')+'</td>'+
-      '<td style="font-size:10.5px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.consignee||'')+'">'+(r.consignee||'—')+'</td>'+
-      '<td style="white-space:nowrap;font-size:10.5px">'+excelDateToStr(r.etd)+'</td>'+
-      '<td style="white-space:nowrap;font-size:10.5px">'+excelDateToStr(r.eta)+'</td>'+
-      '<td style="font-size:10.5px">'+(r.rep||'—')+'</td>'+
-      '<td style="font-size:10.5px">'+(r.operator||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.totCont||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.other||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c20F||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c20R||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c20H||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c40F||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c40R||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c40H||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c45F||'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--green)">'+(r.recInc?'$'+parseFloat(r.recInc).toLocaleString():'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--red)">'+(r.recExp?'$'+parseFloat(r.recExp).toLocaleString():'—')+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px;font-weight:600">'+(r.actProf?'$'+parseFloat(r.actProf).toLocaleString():'—')+'</td>';
+    RD_COLS.forEach(function(col){
+      var td=document.createElement('td');
+      td.style.cssText='font-size:10.5px;'+col.w+(col.type==='money'?';font-family:var(--mono)':'');
+      if(col.type==='money') td.style.color=col.key==='recInc'?'var(--green)':col.key==='recExp'?'var(--red)':col.key==='actProf'?'var(--text)':'inherit';
+      if(col.type==='money'&&col.key==='actProf') td.style.fontWeight='600';
+      var v=getCellVal(r,col);
+      td.textContent=v;
+      if(col.w.includes('max-width')) td.title=r[col.key]||'';
+      tr.appendChild(td);
+    });
     tbody.appendChild(tr);
   });
 }
 
-var _isRepDetail=false;
-
-function populateRepDetailFilters(){
-  // LOB filter
-  var lobSel=document.getElementById('rdLobF');
-  if(!lobSel) return;
-  // Month filter
-  var monSel=document.getElementById('rdMonF');
-  var months=[...new Set(_repDetailRows.map(function(r){return r.mon;}))].filter(Boolean).sort();
-  monSel.innerHTML='<option value="all">All Months</option>';
-  months.forEach(function(m){var o=document.createElement('option');o.value=o.textContent=MS[m]||m;o.value=m;monSel.appendChild(o);});
-  // LOB
-  var lobs=[...new Set(_repDetailRows.map(function(r){return r.lob;}))].filter(Boolean).sort();
-  lobSel.innerHTML='<option value="all">All LOBs</option>';
-  lobs.forEach(function(l){var o=document.createElement('option');o.value=o.textContent=l;lobSel.appendChild(o);});
-}
-
-function applyRepDetailFilters(){
-  var lobF=document.getElementById('rdLobF').value;
-  var monF=document.getElementById('rdMonF').value;
+function setRdFilter(key, val){
+  _rdFilters[key]=val;
+  // Apply all active filters
   var filtered=_repDetailRows.filter(function(r){
-    if(lobF!=='all'&&r.lob!==lobF) return false;
-    if(monF!=='all'&&r.mon!==monF) return false;
-    return true;
+    return Object.keys(_rdFilters).every(function(k){
+      if(!_rdFilters[k]||_rdFilters[k]==='all') return true;
+      var col=RD_COLS.find(function(c){return c.key===k;});
+      var cv=getCellVal(r,col);
+      return cv===_rdFilters[k];
+    });
   });
   renderRepDetailTable(filtered);
 }
+
+var _isRepDetail=false;
+
+// populateRepDetailFilters and applyRepDetailFilters replaced by per-column setRdFilter()
 
 // Override download for rep detail (different columns)
 var _repDetailMode=false;
@@ -4423,6 +4469,8 @@ function renderLeaderboard(){
     return {rep,gp,rev,teu,tgt,ach};
   });
 
+  // Exclude Nomination Sales from leaderboard
+  repStats = repStats.filter(function(s){return s.rep !== 'Nomination Sales';});
   // Sort by GP descending
   repStats.sort(function(a,b){return b.gp-a.gp;});
 
