@@ -3961,10 +3961,18 @@ function setPeriodCustom(){
 function getCustomDateRange(){
   var cf=document.getElementById('customFrom'),ct=document.getElementById('customTo');
   if(!cf||!ct||!cf.value||!ct.value) return null;
-  // Convert JS date to Excel serial for comparison with recDate
-  var from=new Date(cf.value), to=new Date(ct.value);
-  var excelFrom=Math.floor((from-new Date('1899-12-30'))/86400000);
-  var excelTo=Math.floor((to-new Date('1899-12-30'))/86400000);
+  // Convert HTML date value (YYYY-MM-DD) to Excel serial
+  // Using UTC to avoid timezone issues
+  function toExcelSerial(dateStr){
+    var p=dateStr.split('-');
+    var y=parseInt(p[0]),m=parseInt(p[1])-1,d=parseInt(p[2]);
+    var excelEpoch=Date.UTC(1899,11,30); // Dec 30 1899 UTC
+    var targetDate=Date.UTC(y,m,d);
+    return Math.round((targetDate-excelEpoch)/86400000);
+  }
+  var excelFrom=toExcelSerial(cf.value);
+  var excelTo=toExcelSerial(ct.value);
+  console.log('Custom date range - from serial:',excelFrom,'to serial:',excelTo,'(dates:',cf.value,'to',ct.value+')');
   return {from:excelFrom, to:excelTo, fromStr:cf.value, toStr:ct.value};
 }
 
