@@ -549,7 +549,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 
         <!-- TL VIEW TOGGLE + CARGO FILTER (below KPI cards) -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-          <div class="toggles">
+          <div class="toggles" id="tl-subtoggle">
             <button class="tog active" id="tl-view-pivot" onclick="tlSetView('pivot')">Pivot</button>
             <button class="tog" id="tl-view-monthly" onclick="tlSetView('monthly')">Monthly</button>
           </div>
@@ -1463,7 +1463,9 @@ async function fetchShipment(){
     const bookDate  = g(bookDateC,i)||'';
     const etd       = g(etdC,i)||'';
     const eta       = g(etaC,i)||'';
-    const recDateSerial=parseFloat(g(dateC,i))||0;
+    // Try EH (Recognition Date) first, fall back to C (Booking Date)
+    var recDateSerial=parseFloat(g(dateC,i))||0;
+    if(recDateSerial===0) recDateSerial=parseFloat(bookDate)||0; // bookDate = col C
     SHIP_RAW.push({shipId,recDate:recDateSerial,bookDate,etd,eta,
       rep:REP_MAP[rawRep]||'Nomination Sales',operator:jobOp||'',
       lob:mode||'Dry Freight',mon,
@@ -1741,7 +1743,12 @@ function render(){
   const repF=document.getElementById('repF').value;
   if(period==='custom'){
     const data=applyCustomFilter(lob,repF);
-    if(Object.keys(data).length===0){ document.getElementById('twrap').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">Select a date range to see data.</div>'; return; }
+    if(Object.keys(data).length===0){
+      var rangeCheck=getCustomDateRange();
+      var msg = rangeCheck ? 'No shipments found in the selected date range. Recognition Date (Col EH) may be empty for these records.' : 'Select a date range to see data.';
+      document.getElementById('twrap').innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">'+msg+'</div>';
+      return;
+    }
     renderCustomTable(data,lob,repF); return;
   }
   if(period==='weekly'){
@@ -2060,90 +2067,99 @@ function restorePanelFilters(name){
   var saved = panelFilters[name];
   if(!saved) return;
 
-  // Restore LOB and Rep -- swap options based on panel
+  // ── 1. LOB ──────────────────────────────────────────────
   var lobEl = document.getElementById('lobF');
-  var repEl = document.getElementById('repF');
-  var repLbl = document.getElementById('repFLabel');
   if(lobEl) lobEl.value = saved.lob || 'all';
 
-  // safeRep: use saved value; for restricted roles 'all' means their team scope
-  var safeRep = saved.rep || 'all';
-  // Don't override — refreshSalesRepDropdown already set the correct options
-  // safeRep='all' is fine for zonal manager (means "All (Team)")
-
+  // ── 2. Rep filter mode ──────────────────────────────────
+  var repEl = document.getElementById('repF');
   if(name === 'ops'){
-    // Swap to Job Operators
     swapRepFilter('operator');
     if(repEl){ repEl.value = saved.rep||'all'; if(!repEl.value) repEl.selectedIndex=0; }
   } else if(name === 'finance'){
-    // Finance pendency - no rep filter needed, hide it
     swapRepFilter('none');
   } else {
-    // Sales reps for all other panels
     swapRepFilter('sales');
+    var safeRep = saved.rep || 'all';
     if(repEl){ repEl.value = safeRep; if(!repEl.value) repEl.selectedIndex=0; }
   }
 
-  // Restore date range
+  // ── 3. Month selectors (always restore values) ──────────
   var fromEl = document.getElementById('fromM');
   var toEl   = document.getElementById('toM');
   if(fromEl) fromEl.value = saved.from || 'April-2025';
   if(toEl)   toEl.value   = saved.to   || 'March-2026';
 
+  // ── 4. Always hide ALL filter rows first ────────────────
+  var drRow      = document.getElementById('drRow');
+  var customRow  = document.getElementById('customDateRow');
+  var fyInlineEl = document.getElementById('fyInline');
+  var wkInlineEl = document.getElementById('wkInline');
+  if(drRow)      drRow.style.display = 'none';
+  if(customRow)  customRow.classList.remove('show');
+  if(fyInlineEl) fyInlineEl.classList.remove('show');
+  if(wkInlineEl) wkInlineEl.classList.remove('show');
+
+  // ── 5. Panel-specific toggle + filter row logic ─────────
+  var allToggles = document.querySelectorAll('.tog');
+
   if(name === 'ops' || name === 'finance'){
-    // Ops/Finance: ONLY Monthly — lock all other toggles
+    // Only Monthly allowed — lock everything else
     period = 'monthly';
-    document.querySelectorAll('.tog').forEach(function(b){
+    allToggles.forEach(function(b){
       var t = b.textContent.trim();
       b.classList.remove('active');
-      if(t==='Monthly'){ b.classList.remove('locked-tog'); b.classList.add('active'); }
+      if(t === 'Monthly'){ b.classList.remove('locked-tog'); b.classList.add('active'); }
       else { b.classList.add('locked-tog'); }
     });
+    if(drRow) drRow.style.display = 'flex'; // monthly always uses drRow
+    if(name === 'tradelane'){ // won't hit, just guard
+      if(saved.tlCargo) tlCargo = saved.tlCargo;
+      if(saved.tlView)  tlView  = saved.tlView;
+    }
+
   } else if(name === 'tradelane'){
-    // Tradelane: only Monthly + Yearly allowed
-    period = (saved.period==='monthly'||saved.period==='yearly') ? saved.period : 'monthly';
-    document.querySelectorAll('.tog').forEach(function(b){
+    // Monthly + Yearly only — lock Weekly and Custom
+    period = (saved.period === 'yearly') ? 'yearly' : 'monthly';
+    allToggles.forEach(function(b){
       var t = b.textContent.trim();
-      b.classList.remove('locked-tog','active');
-      if(t==='Weekly'||t==='Custom'){ b.classList.add('locked-tog'); }
+      b.classList.remove('locked-tog', 'active');
+      if(t === 'Weekly' || t === 'Custom') b.classList.add('locked-tog');
+      if(t === (period === 'yearly' ? 'Yearly' : 'Monthly')) b.classList.add('active');
     });
-    var tlPeriodLabel={monthly:'Monthly',yearly:'Yearly'}[period]||'Monthly';
-    document.querySelectorAll('.tog').forEach(function(b){ if(b.textContent.trim()===tlPeriodLabel) b.classList.add('active'); });
-    // Show correct filter row
-    var drEl=document.getElementById('drRow');
-    var fyEl=document.getElementById('fyInline');
-    if(drEl) drEl.style.display = period==='monthly'?'flex':'none';
-    if(fyEl){ if(period==='yearly') fyEl.classList.add('show'); else fyEl.classList.remove('show'); }
-  }
-  if(name === 'ops' || name === 'finance'){
-    // Show appropriate filter row based on period
-    if(period==='custom'){
-      var cRow=document.getElementById('customDateRow'); if(cRow) cRow.classList.add('show');
-    } else if(period==='yearly'){
-      var fyEl=document.getElementById('fyInline'); if(fyEl) fyEl.classList.add('show');
+    if(period === 'yearly'){
+      if(fyInlineEl) fyInlineEl.classList.add('show');
     } else {
-      document.getElementById('drRow').style.display='flex';
+      if(drRow) drRow.style.display = 'flex';
     }
-    // TL-specific state
-    if(name==='tradelane'){
-      if(saved.tlCargo){ tlCargo = saved.tlCargo; }
-      if(saved.tlView)  { tlView  = saved.tlView; }
-    }
+    if(saved.tlCargo) tlCargo = saved.tlCargo;
+    if(saved.tlView)  tlView  = saved.tlView;
+
   } else {
-    // Restore period toggle for non-TL panels
+    // Sales / other panels — all toggles unlocked, restore saved period
     period = saved.period || 'monthly';
-    document.querySelectorAll('.tog').forEach(function(b){
-      var t = b.textContent.trim();
-      b.classList.remove('locked-tog','active');
-    });
     var periodLabel = {monthly:'Monthly',weekly:'Weekly',yearly:'Yearly',custom:'Custom'}[period]||'Monthly';
-    document.querySelectorAll('.tog').forEach(function(b){
-      var t = b.textContent.trim();
-      if(t === periodLabel) b.classList.add('active');
+    allToggles.forEach(function(b){
+      b.classList.remove('locked-tog', 'active');
+      if(b.textContent.trim() === periodLabel) b.classList.add('active');
     });
-    // Show/hide date range row based on period
-    var drRow = document.getElementById('drRow');
-    if(drRow) drRow.style.display = (period==='yearly'||period==='weekly') ? 'none' : 'flex';
+    // Show the correct filter row for the period
+    if(period === 'weekly'){
+      if(wkInlineEl) wkInlineEl.classList.add('show');
+    } else if(period === 'yearly'){
+      if(fyInlineEl) fyInlineEl.classList.add('show');
+    } else if(period === 'custom'){
+      if(customRow) customRow.classList.add('show');
+      // Ensure dates are set when restoring custom period
+      var cf=document.getElementById('customFrom'),ct=document.getElementById('customTo');
+      if(cf&&ct&&(!cf.value||!ct.value)){
+        var d=new Date(); ct.value=d.toISOString().split('T')[0];
+        d.setDate(d.getDate()-30); cf.value=d.toISOString().split('T')[0];
+      }
+    } else {
+      // monthly
+      if(drRow) drRow.style.display = 'flex';
+    }
   }
 }
 
@@ -2569,6 +2585,9 @@ function renderTL(){
     return;
   }
   if(!tlInited){ aggregateTLData(); tlInited = true; }
+  // Show/hide Pivot|Monthly sub-toggle based on period
+  var tlSub = document.getElementById('tl-subtoggle');
+  if(tlSub) tlSub.style.display = period==='yearly' ? 'none' : 'flex';
   if(period==='yearly'){ renderTLYearly(); return; }
 
   // Use main topbar FROM/TO (date range shared -- only dates, not LOB/Rep)
