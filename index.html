@@ -4387,10 +4387,19 @@ function renderRepDetailTable(rows){
   RD_COLS.forEach(function(col,i){
     var th=document.createElement('th');
     th.style.cssText='position:sticky;top:0;z-index:2;background:#f4f6fa;white-space:nowrap;padding:6px 8px';
-    // Get unique values for this column
-    var vals=[...new Set(_repDetailRows.map(function(r){
+    // Get unique values for this column from rows filtered by ALL OTHER active filters
+    // (cascading: each dropdown reflects currently visible data)
+    var sourceRows = _repDetailRows.filter(function(r){
+      return Object.keys(_rdFilters).every(function(k){
+        if(k === col.key) return true; // skip own filter — show all own options
+        if(!_rdFilters[k] || _rdFilters[k]==='all') return true;
+        var oc = RD_COLS.find(function(c2){return c2.key===k;});
+        return oc ? getCellVal(r,oc)===_rdFilters[k] : true;
+      });
+    });
+    var vals=[...new Set(sourceRows.map(function(r){
       if(col.type==='date') return excelDateToStr(r[col.key]);
-      return r[col.key]||'';
+      var v=r[col.key]; return (v===undefined||v===null||v==='') ? '' : String(v);
     }))].filter(function(v){return v&&v!=='—';}).sort();
     var isFiltered=_rdFilters[col.key]&&_rdFilters[col.key]!=='all';
     // Build header cell — use data-key to avoid inline JS escaping issues
