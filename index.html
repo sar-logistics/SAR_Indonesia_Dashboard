@@ -4384,7 +4384,7 @@ function renderRepDetailTable(rows){
   // Build header with filter dropdowns
   var thead=tbl.querySelector('thead tr');
   thead.innerHTML='';
-  RD_COLS.forEach(function(col){
+  RD_COLS.forEach(function(col,i){
     var th=document.createElement('th');
     th.style.cssText='position:sticky;top:0;z-index:2;background:#f4f6fa;white-space:nowrap;padding:6px 8px';
     // Get unique values for this column
@@ -4419,7 +4419,7 @@ function renderRepDetailTable(rows){
   }
   rows.forEach(function(r){
     var tr=document.createElement('tr');
-    RD_COLS.forEach(function(col){
+    RD_COLS.forEach(function(col,i){
       var td=document.createElement('td');
       td.style.cssText='font-size:10.5px;'+col.w+(col.type==='money'?';font-family:var(--mono)':'');
       if(col.type==='money') td.style.color=col.key==='recInc'?'var(--green)':col.key==='recExp'?'var(--red)':col.key==='actProf'?'var(--text)':'inherit';
