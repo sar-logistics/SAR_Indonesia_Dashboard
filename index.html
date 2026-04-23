@@ -1430,13 +1430,13 @@ async function loadData(){
 
 async function fetchShipment(){
   // Added EG=Tradelane, EW=Freehand/Nomination for Tradelane module
-  const cols=['A','BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW','BG','BH','C','Z','AB','BE','R','T','CL','CM','CN','CO','CP','CQ','CR','CS','CT']; // A=ShipID C=BookingDate Z=ETD AB=ETA BE=Customer R=Shipper T=Consignee CL-CT=containers
+  const cols=['A','BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW','BG','BH','C','Z','AB','BE','R','T','CL','CM','CN','CO','CP','CQ','CR','CS','CT','DM']; // A=ShipID C=BookingDate Z=ETD AB=ETA BE=Customer R=Shipper T=Consignee CL-CT=containers DM=DEP/ARV date
   const j=await apiFetch(batchUrl('Shipment Detail',cols));
-  const [shipIdC,repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC,bookDateC,etdC,etaC,custC,shipperC,consigC,totContC,otherC,c20FC,c20RC,c20HC,c40FC,c40RC,c40HC,c45FC]=j.valueRanges.map(v=>v.values||[]);
+  const [shipIdC,repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC,bookDateC,etdC,etaC,custC,shipperC,consigC,totContC,otherC,c20FC,c20RC,c20HC,c40FC,c40RC,c40HC,c45FC,dmC]=j.valueRanges.map(v=>v.values||[]);
   // Use max of ALL columns -- revenue/GP rows may extend beyond rep/month rows
   const len=Math.max(repC.length,monC.length,revC.length,gpC.length);
-  console.log('Column lengths - repC:',repC.length,'monC:',monC.length,'dateC(EH):',dateC.length,'bookDateC(C):',bookDateC.length);
-  console.log('EH sample values (rows 1-5):',[1,2,3,4,5].map(function(i){return g(dateC,i);}));
+  console.log('Column lengths - repC:',repC.length,'monC:',monC.length,'dmC(DM):',dmC.length);
+  console.log('DM sample values (rows 1-5):',[1,2,3,4,5].map(function(i){return g(dmC,i);}));
   TL_RAW=[]; // reset tradelane raw data
   for(let i=1;i<len;i++){
     const rawRep=g(repC,i),mon=g(monC,i);
@@ -1471,9 +1471,9 @@ async function fetchShipment(){
     const bookDate  = g(bookDateC,i)||'';
     const etd       = g(etdC,i)||'';
     const eta       = g(etaC,i)||'';
-    // Try EH (Recognition Date) first, fall back to C (Booking Date)
-    var recDateSerial=parseFloat(g(dateC,i))||0;
-    if(recDateSerial===0) recDateSerial=parseFloat(bookDate)||0; // bookDate = col C
+    // Parse Col DM: "DEP 15-Feb-26" or "ARV 10-Jan-25" → Excel serial
+    var dmVal=g(dmC,i)||'';
+    var recDateSerial=parseDMDate(dmVal);
     SHIP_RAW.push({shipId,recDate:recDateSerial,bookDate,etd,eta,
       rep:REP_MAP[rawRep]||'Nomination Sales',operator:jobOp||'',
       lob:mode||'Dry Freight',mon,
@@ -2503,6 +2503,29 @@ async function loadTeams(){
 function ensure(obj,rep,key){if(!obj[rep])obj[rep]={};if(!obj[rep][key])obj[rep][key]={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};}
 function g(a,i){if(!a[i]||a[i][0]===undefined||a[i][0]===null||a[i][0]==='')return '';const v=a[i][0];return typeof v==='string'?v.trim():v;}
 function pf(s){return parseFloat(s)||0;}
+
+// Parse Col DM value like "DEP 15-Feb-26" or "ARV 10-Jan-25" → Excel serial
+// Returns 0 if unparseable
+function parseDMDate(val){
+  if(!val||typeof val!=='string') return 0;
+  // Strip prefix (DEP/ARV + space)
+  var dateStr = val.replace(/^(DEP|ARV)\s+/i,'').trim();
+  // Format: DD-Mon-YY e.g. "15-Feb-26"
+  var parts = dateStr.split('-');
+  if(parts.length!==3) return 0;
+  var day=parseInt(parts[0]);
+  var monNames={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  var mon=monNames[(parts[1]||'').toLowerCase().slice(0,3)];
+  if(!mon) return 0;
+  var yr=parseInt(parts[2]);
+  // 2-digit year: 00-49 = 2000-2049, 50-99 = 1950-1999
+  if(yr<100) yr = yr<50 ? 2000+yr : 1900+yr;
+  // Convert to Excel serial using UTC to avoid timezone issues
+  var excelEpoch=Date.UTC(1899,11,30);
+  var targetDate=Date.UTC(yr,mon-1,day);
+  var serial=Math.round((targetDate-excelEpoch)/86400000);
+  return serial>0?serial:0;
+}
 function pu(s){if(typeof s==='number') return s;return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
 function pusd(s){if(typeof s==='number') return s;return parseFloat(String(s).replace(/[\$,]/g,'').trim())||0;}
 
