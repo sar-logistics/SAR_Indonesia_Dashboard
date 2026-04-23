@@ -528,7 +528,14 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
               <span style="color:var(--border);font-size:13px;font-weight:300">|</span>
               <span id="tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Monthly · USD</span>
             </div>
-            <div class="thead-meta" id="tbl-meta">--</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="thead-meta" id="tbl-meta">--</div>
+              <button id="lbToggleBtn" onclick="toggleLeaderboard()" title="Toggle Leaderboard"
+                style="padding:5px 12px;border-radius:7px;border:1.5px solid var(--blue);background:#eff4ff;color:var(--blue);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="lbIcon"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
+                <span id="lbBtnLabel">Leaderboard</span>
+              </button>
+            </div>
           </div>
           <div class="twrap" id="twrap"><div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div></div>
         </div>
@@ -768,6 +775,16 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <p id="pendModalSub">Showing open pendencies</p>
       </div>
       <button onclick="closePendModal()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;line-height:1">&times;</button>
+    </div>
+    <!-- Rep detail filters (hidden for pendency modals) -->
+    <div id="repDetailFilterRow" style="display:none;padding:8px 20px;gap:10px;align-items:center;border-bottom:1px solid var(--border);background:#f8f9fc;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:600;color:var(--text3)">FILTER:</span>
+      <select id="rdLobF" onchange="applyRepDetailFilters()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:#fff">
+        <option value="all">All LOBs</option>
+      </select>
+      <select id="rdMonF" onchange="applyRepDetailFilters()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:#fff">
+        <option value="all">All Months</option>
+      </select>
     </div>
     <div class="pend-modal-body">
       <table class="pend-tbl" id="pendDetailTable">
@@ -1430,9 +1447,9 @@ async function loadData(){
 
 async function fetchShipment(){
   // Added EG=Tradelane, EW=Freehand/Nomination for Tradelane module
-  const cols=['A','BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW','BG','BH','C','Z','AB','BE','R','T','CL','CM','CN','CO','CP','CQ','CR','CS','CT','DM']; // A=ShipID C=BookingDate Z=ETD AB=ETA BE=Customer R=Shipper T=Consignee CL-CT=containers DM=DEP/ARV date
+  const cols=['A','BF','CK','EI','FB','FC','EL','EO','EH','FE','EG','EW','BG','BH','C','Z','AB','BE','R','T','CL','CM','CN','CO','CP','CQ','CR','CS','CT','DM','EJ','EK','EN']; // A=ShipID C=BookingDate Z=ETD AB=ETA BE=Customer R=Shipper T=Consignee CL-CT=containers DM=DEP/ARV date
   const j=await apiFetch(batchUrl('Shipment Detail',cols));
-  const [shipIdC,repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC,bookDateC,etdC,etaC,custC,shipperC,consigC,totContC,otherC,c20FC,c20RC,c20HC,c40FC,c40RC,c40HC,c45FC,dmC]=j.valueRanges.map(v=>v.values||[]);
+  const [shipIdC,repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC,bookDateC,etdC,etaC,custC,shipperC,consigC,totContC,otherC,c20FC,c20RC,c20HC,c40FC,c40RC,c40HC,c45FC,dmC,recIncC,recExpC,actProfC]=j.valueRanges.map(v=>v.values||[]);
   // Use max of ALL columns -- revenue/GP rows may extend beyond rep/month rows
   const len=Math.max(repC.length,monC.length,revC.length,gpC.length);
   console.log('Column lengths - repC:',repC.length,'monC:',monC.length,'dmC(DM):',dmC.length);
@@ -1482,7 +1499,8 @@ async function fetchShipment(){
       customer:g(custC,i)||'',shipper:g(shipperC,i)||'',consignee:g(consigC,i)||'',
       totCont:g(totContC,i)||'',other:g(otherC,i)||'',
       c20F:g(c20FC,i)||'',c20R:g(c20RC,i)||'',c20H:g(c20HC,i)||'',
-      c40F:g(c40FC,i)||'',c40R:g(c40RC,i)||'',c40H:g(c40HC,i)||'',c45F:g(c45FC,i)||''});
+      c40F:g(c40FC,i)||'',c40R:g(c40RC,i)||'',c40H:g(c40HC,i)||'',c45F:g(c45FC,i)||'',
+        recInc:g(recIncC,i)||'',recExp:g(recExpC,i)||'',actProf:g(actProfC,i)||''});
     // Ops & Finance pendency (only non-blank status rows)
     if(jobStatus){
       const pendRow={shipId,bookDate,etd,eta,status:jobStatus,operator:jobOp||'Unknown',month:mon,lob:mode||'Dry Freight',rep:REP_MAP[rawRep]||'Nomination Sales'};
@@ -1842,6 +1860,35 @@ function applyWeekFilters(lob,repF,weeks){
     });
   });
   return out;
+}
+
+function updateKPIsFromData(data, months, lob, repF){
+  // For yearly/custom: aggregate all reps, use their data
+  var effRep=getEffectiveRepFilter(repF);
+  var repsArr=effRep==='all'?null:(Array.isArray(effRep)?effRep:[effRep]);
+  var rev=0,gp=0,tf=0,tt=0,tons=0;
+  var tgt=0;
+  var isCustom=(months==='custom');
+  Object.keys(data).forEach(function(rep){
+    if(repsArr&&repsArr.indexOf(rep)<0) return;
+    var repData=data[rep];
+    if(isCustom){
+      var d=repData['custom']||{};
+      rev+=d.rev||0;gp+=d.gp||0;tf+=d.teuFCL||0;tt+=d.teuTank||0;tons+=d.tons||0;
+    } else {
+      months.forEach(function(m){var d=repData[m]||{};rev+=d.rev||0;gp+=d.gp||0;tf+=d.teuFCL||0;tt+=d.teuTank||0;tons+=d.tons||0;});
+    }
+    tgt+=(REP_TARGETS[rep]||0);
+  });
+  var tgtTotal=isCustom?tgt:(tgt*(Array.isArray(months)?months.length:1));
+  var gpPct=rev>0?(gp/rev*100):0;
+  setText('k-rev','$'+Math.round(rev).toLocaleString());
+  setText('k-gp','$'+Math.round(gp).toLocaleString());
+  setText('k-tgt','$'+Math.round(tgtTotal).toLocaleString());
+  setText('k-gppct',gpPct.toFixed(1)+'%');
+  setText('k-teu',((tf+tt)).toFixed(1).replace(/\.0$/,''));
+  setText('k-teu-sub',tf.toFixed(1)+' FCL · '+tt.toFixed(1)+' Tank');
+  setText('k-tons',tons>0?tons.toFixed(2):'--');
 }
 
 function updateKPIs(data,months){
@@ -3653,6 +3700,8 @@ function renderCustomTable(data,lob,repF){
   var label=range?range.fromStr+' to '+range.toStr:'Custom Range';
   setText('tbl-sub','Custom · USD');
   setText('tbl-meta',label);
+  // Update KPI cards with custom period data
+  updateKPIsFromData(data,'custom',lob,repF);
   var reps=Object.keys(data).sort();
   var effRep=getEffectiveRepFilter(repF);
   var repsArr=effRep==='all'?null:(Array.isArray(effRep)?effRep:[effRep]);
@@ -3908,6 +3957,20 @@ function openFinPendDetail(){
 function closePendModal(){
   document.getElementById('pendDetailModal').classList.remove('show');
   _pendDetailRows = [];
+  _repDetailRows = [];
+  _isRepDetail = false;
+  // Restore original modal state
+  var dlBtn=document.getElementById('pendDownloadBtn');
+  if(dlBtn) dlBtn.style.display='';
+  var filterRow=document.getElementById('repDetailFilterRow');
+  if(filterRow) filterRow.style.display='none';
+  // Restore ops/finance table headers
+  var tbl=document.getElementById('pendDetailTable');
+  if(tbl){
+    tbl.querySelector('thead tr').innerHTML=
+      '<th>Shipment ID</th><th>Booking Date</th><th>Job Operator</th><th>Sales Rep</th>'+
+      '<th>Origin ETD</th><th>Dest. ETA</th><th>LOB</th><th>Status</th>';
+  }
 }
 
 function downloadPendDetail(){
@@ -4050,9 +4113,10 @@ function getYearlyRange(){
   });
 
   // Labels
-  var label1 = (MS[fromVal]||fromVal)+' to '+(MS[toVal]||toVal);
+  function shortMon(m){return MS[m]||m;}
+  var label1 = shortMon(fromVal)+' to '+shortMon(toVal);
   var prevFrom = prevPeriod[0], prevTo = prevPeriod[prevPeriod.length-1];
-  var label0 = (MS[prevFrom]||prevFrom)+' to '+(MS[prevTo]||prevTo);
+  var label0 = shortMon(prevFrom)+' to '+shortMon(prevTo);
 
   // Targets: only available from Jan-2025 onwards
   // Prior period before Jan-2025 = no targets
@@ -4061,7 +4125,17 @@ function getYearlyRange(){
     return yr>=2025;
   });
 
-  return {curPeriod, prevPeriod, label0, label1, prevHasTargets};
+  // Per-month target: 0 for months before Jan-2025, normal for Jan-2025+
+  function getMonthTarget(rep, month){
+    var parts=month.split('-');
+    var mName=parts[0],yr2=parseInt(parts[1]);
+    // Before Jan-2025 = no target
+    if(yr2<2025) return 0;
+    if(yr2===2025 && ['January','February','March','April','May','June','July','August','September','October','November','December'].indexOf(mName)<0) return 0;
+    return REP_TARGETS[rep]||0;
+  }
+
+  return {curPeriod, prevPeriod, label0, label1, prevHasTargets, getMonthTarget};
 }
 
 // Legacy alias kept for any remaining references
@@ -4074,6 +4148,10 @@ function renderYearly(){
 
   setText('tbl-sub','Year vs Prior Year · USD');
   setText('tbl-meta',yr.label0+' vs '+yr.label1);
+
+  // Update KPI cards with current year data
+  var kpiData=applyFilters(lob,repF,yr.curPeriod);
+  updateKPIsFromData(kpiData,yr.curPeriod,lob,repF);
 
   // Aggregate data for both periods
   var dataA=applyFilters(lob,repF,yr.prevPeriod);  // prior year
@@ -4115,8 +4193,17 @@ function renderYearly(){
       sA={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};sB={teuFCL:0,teuTank:0,tons:0,rev:0,gp:0};
       allReps.forEach(function(r){var a=sumRep(dataA,r,yr.prevPeriod),b=sumRep(dataB,r,yr.curPeriod);['teuFCL','teuTank','tons','rev','gp'].forEach(function(k){sA[k]+=a[k];sB[k]+=b[k];});});
     } else { sA=sumRep(dataA,repName,yr.prevPeriod);sB=sumRep(dataB,repName,yr.curPeriod); }
-    var tgtA=yr.prevHasTargets?(isGrand?allReps.reduce(function(a,r){return a+(REP_TARGETS[r]||0);},0)*yr.prevPeriod.length:(REP_TARGETS[repName]||0)*yr.prevPeriod.length):0;
-    var tgtB=isGrand?allReps.reduce(function(a,r){return a+(REP_TARGETS[r]||0);},0)*yr.curPeriod.length:(REP_TARGETS[repName]||0)*yr.curPeriod.length;
+    // Prior year target: sum per-month (0 for months before Jan-2025)
+    function repTgtForPeriod(rep, period){
+      return period.reduce(function(sum,m){
+        var p=m.split('-');var mName=p[0],yr2=parseInt(p[1]);
+        if(yr2<2025) return sum;
+        if(yr2===2025&&mName===''){return sum;} // guard
+        return sum+(REP_TARGETS[rep]||0);
+      },0);
+    }
+    var tgtA=isGrand?allReps.reduce(function(s,r){return s+repTgtForPeriod(r,yr.prevPeriod);},0):repTgtForPeriod(repName,yr.prevPeriod);
+    var tgtB=isGrand?allReps.reduce(function(s,r){return s+(REP_TARGETS[r]||0)*yr.curPeriod.length;},0):(REP_TARGETS[repName]||0)*yr.curPeriod.length;
     var varA=tgtA>0?(sA.gp-tgtA)/Math.abs(tgtA)*100:null;
     var varB=tgtB>0?(sB.gp-tgtB)/Math.abs(tgtB)*100:null;
     var rc=isGrand?'r-grand':'r-rep';
@@ -4170,82 +4257,215 @@ function openRepDetail(repName){
   var effRep=getEffectiveRepFilter(document.getElementById('repF').value);
   if(effRep!=='all'&&Array.isArray(effRep)&&effRep.indexOf(repName)<0) return;
 
-  // Filter SHIP_RAW to this rep, respecting current period/LOB
   var lob=document.getElementById('lobF').value;
   var months=[];
-  if(period==='monthly'||period==='custom'){
-    if(period==='custom'){
-      // Use date range
-      var range=getCustomDateRange();
-      _repDetailRows=SHIP_RAW.filter(function(r){
-        if(r.rep!==repName) return false;
-        if(lob!=='all'&&r.lob!==lob) return false;
-        if(range&&(r.recDate<range.from||r.recDate>range.to)) return false;
-        return true;
-      });
-    } else {
-      var from=document.getElementById('fromM').value;
-      var to=document.getElementById('toM').value;
-      var fi=MONTHS.indexOf(from),ti=MONTHS.indexOf(to);
-      months=fi>=0&&ti>=0?MONTHS.slice(fi,ti+1):MONTHS;
-      _repDetailRows=SHIP_RAW.filter(function(r){ return r.rep===repName&&(lob==='all'||r.lob===lob)&&months.indexOf(r.mon)>=0; });
-    }
+  if(period==='custom'){
+    var range=getCustomDateRange();
+    _repDetailRows=SHIP_RAW.filter(function(r){
+      if(r.rep!==repName) return false;
+      if(lob!=='all'&&r.lob!==lob) return false;
+      if(range&&(r.recDate<range.from||r.recDate>range.to)) return false;
+      return true;
+    });
   } else if(period==='yearly'){
-    var ytdVal=document.getElementById('ytdMonth')?document.getElementById('ytdMonth').value:'July-2025';
-    var ytd=getYTDMonths(ytdVal);
-    _repDetailRows=SHIP_RAW.filter(function(r){ return r.rep===repName&&(lob==='all'||r.lob===lob)&&yr.curPeriod.indexOf(r.mon)>=0; });
+    var yr2=getYearlyRange();
+    _repDetailRows=SHIP_RAW.filter(function(r){return r.rep===repName&&(lob==='all'||r.lob===lob)&&yr2.curPeriod.indexOf(r.mon)>=0;});
   } else {
-    _repDetailRows=SHIP_RAW.filter(function(r){ return r.rep===repName&&(lob==='all'||r.lob===lob); });
+    var from=document.getElementById('fromM').value;
+    var to=document.getElementById('toM').value;
+    var fi=MONTHS.indexOf(from),ti=MONTHS.indexOf(to);
+    months=fi>=0&&ti>=0?MONTHS.slice(fi,ti+1):MONTHS;
+    _repDetailRows=SHIP_RAW.filter(function(r){return r.rep===repName&&(lob==='all'||r.lob===lob)&&months.indexOf(r.mon)>=0;});
   }
-
-  _repDetailRows.sort(function(a,b){ return (a.recDate||0)-(b.recDate||0); });
+  _repDetailRows.sort(function(a,b){return (a.recDate||0)-(b.recDate||0);});
 
   document.getElementById('pendModalTitle').textContent=repName+' — Shipment Detail';
-  document.getElementById('pendModalSub').textContent=_repDetailRows.length+' shipments · All statuses';
+  document.getElementById('pendModalSub').textContent=_repDetailRows.length+' shipments';
   document.getElementById('pendModalCount').textContent=_repDetailRows.length+' records';
 
-  // Override table headers for rep detail
+  // Override headers — 21 cols, no download
   var tbl=document.getElementById('pendDetailTable');
   if(tbl){
-    var thead=tbl.querySelector('thead tr');
-    if(thead) thead.innerHTML='<th>Ship.No</th><th>Booking Date</th><th>Customer</th><th>Shipper</th><th>Consignee</th><th>Origin ETD</th><th>Dest.ETA</th><th>Sales Rep</th><th>Operator</th><th>Total Cont.</th><th>Other</th><th>20F</th><th>20R</th><th>20H</th><th>40F</th><th>40R</th><th>40H</th><th>45F</th>';
+    tbl.querySelector('thead tr').innerHTML=
+      '<th>Ship No.</th><th>Booking Date</th><th>Customer</th><th>Shipper</th><th>Consignee</th>'+
+      '<th>Origin ETD</th><th>Dest. ETA</th><th>Sales Rep</th><th>Operator</th>'+
+      '<th>Total Cont.</th><th>Other</th><th>20F</th><th>20R</th><th>20H</th>'+
+      '<th>40F</th><th>40R</th><th>40H</th><th>45F</th>'+
+      '<th>Rec. Income ($)</th><th>Rec. Expense ($)</th><th>Actual Profit ($)</th>';
   }
 
+  // Hide download button for rep detail
+  var dlBtn=document.getElementById('pendDownloadBtn');
+  if(dlBtn) dlBtn.style.display='none';
+  // Show filter row for rep detail
+  var filterRow=document.getElementById('repDetailFilterRow');
+  if(filterRow){ filterRow.style.display='flex'; populateRepDetailFilters(); }
+
+  _isRepDetail=true;
+  renderRepDetailTable(_repDetailRows);
+  document.getElementById('pendDetailModal').classList.add('show');
+}
+
+function renderRepDetailTable(rows){
   var tbody=document.getElementById('pendDetailBody');
   tbody.innerHTML='';
-  if(_repDetailRows.length===0){
-    tbody.innerHTML='<tr><td colspan="18" style="text-align:center;padding:30px;color:var(--text3)">No shipments found.</td></tr>';
-  } else {
-    _repDetailRows.forEach(function(r){
-      var tr=document.createElement('tr');
-      tr.innerHTML=
-        '<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(r.shipId||'—')+'</td>'+
-        '<td style="white-space:nowrap;font-size:11px">'+excelDateToStr(r.bookDate)+'</td>'+
-        '<td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.customer||'')+'">'+(r.customer||'—')+'</td>'+
-        '<td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.shipper||'')+'">'+(r.shipper||'—')+'</td>'+
-        '<td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.consignee||'')+'">'+(r.consignee||'—')+'</td>'+
-        '<td style="white-space:nowrap;font-size:11px">'+excelDateToStr(r.etd)+'</td>'+
-        '<td style="white-space:nowrap;font-size:11px">'+excelDateToStr(r.eta)+'</td>'+
-        '<td style="font-size:11px">'+(r.rep||'—')+'</td>'+
-        '<td style="font-size:11px">'+(r.operator||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.totCont||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.other||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.c20F||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.c20R||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.c20H||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.c40F||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.c40R||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.c40H||'—')+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono);font-size:11px">'+(r.c45F||'—')+'</td>';
-      tbody.appendChild(tr);
-    });
+  document.getElementById('pendModalCount').textContent=rows.length+' records';
+  if(rows.length===0){
+    tbody.innerHTML='<tr><td colspan="21" style="text-align:center;padding:30px;color:var(--text3)">No shipments found.</td></tr>';
+    return;
   }
-  document.getElementById('pendDetailModal').classList.add('show');
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td style="font-family:var(--mono);font-size:10.5px;white-space:nowrap">'+(r.shipId||'—')+'</td>'+
+      '<td style="white-space:nowrap;font-size:10.5px">'+excelDateToStr(r.bookDate)+'</td>'+
+      '<td style="font-size:10.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.customer||'')+'">'+(r.customer||'—')+'</td>'+
+      '<td style="font-size:10.5px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.shipper||'')+'">'+(r.shipper||'—')+'</td>'+
+      '<td style="font-size:10.5px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.consignee||'')+'">'+(r.consignee||'—')+'</td>'+
+      '<td style="white-space:nowrap;font-size:10.5px">'+excelDateToStr(r.etd)+'</td>'+
+      '<td style="white-space:nowrap;font-size:10.5px">'+excelDateToStr(r.eta)+'</td>'+
+      '<td style="font-size:10.5px">'+(r.rep||'—')+'</td>'+
+      '<td style="font-size:10.5px">'+(r.operator||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.totCont||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.other||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c20F||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c20R||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c20H||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c40F||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c40R||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c40H||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.c45F||'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--green)">'+(r.recInc?'$'+parseFloat(r.recInc).toLocaleString():'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--red)">'+(r.recExp?'$'+parseFloat(r.recExp).toLocaleString():'—')+'</td>'+
+      '<td style="text-align:right;font-family:var(--mono);font-size:10.5px;font-weight:600">'+(r.actProf?'$'+parseFloat(r.actProf).toLocaleString():'—')+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+var _isRepDetail=false;
+
+function populateRepDetailFilters(){
+  // LOB filter
+  var lobSel=document.getElementById('rdLobF');
+  if(!lobSel) return;
+  // Month filter
+  var monSel=document.getElementById('rdMonF');
+  var months=[...new Set(_repDetailRows.map(function(r){return r.mon;}))].filter(Boolean).sort();
+  monSel.innerHTML='<option value="all">All Months</option>';
+  months.forEach(function(m){var o=document.createElement('option');o.value=o.textContent=MS[m]||m;o.value=m;monSel.appendChild(o);});
+  // LOB
+  var lobs=[...new Set(_repDetailRows.map(function(r){return r.lob;}))].filter(Boolean).sort();
+  lobSel.innerHTML='<option value="all">All LOBs</option>';
+  lobs.forEach(function(l){var o=document.createElement('option');o.value=o.textContent=l;lobSel.appendChild(o);});
+}
+
+function applyRepDetailFilters(){
+  var lobF=document.getElementById('rdLobF').value;
+  var monF=document.getElementById('rdMonF').value;
+  var filtered=_repDetailRows.filter(function(r){
+    if(lobF!=='all'&&r.lob!==lobF) return false;
+    if(monF!=='all'&&r.mon!==monF) return false;
+    return true;
+  });
+  renderRepDetailTable(filtered);
 }
 
 // Override download for rep detail (different columns)
 var _repDetailMode=false;
 var _origDownloadFn=null;
+
+
+// ================================================================
+// LEADERBOARD
+// ================================================================
+var _showingLeaderboard = false;
+
+function toggleLeaderboard(){
+  _showingLeaderboard = !_showingLeaderboard;
+  var btn = document.getElementById('lbBtnLabel');
+  var icon = document.getElementById('lbIcon');
+  if(_showingLeaderboard){
+    btn.textContent = 'Table View';
+    // Switch icon to table view icon
+    icon.innerHTML = '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>';
+    renderLeaderboard();
+  } else {
+    btn.textContent = 'Leaderboard';
+    icon.innerHTML = '<rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/>';
+    render(); // restore normal table
+  }
+}
+
+function renderLeaderboard(){
+  var lob = document.getElementById('lobF').value;
+  // Always use full FY for leaderboard
+  var fyMonths = MONTHS.filter(function(m){
+    var p=m.split('-'); var yr=parseInt(p[1]);
+    return (yr===2025&&['April','May','June','July','August','September','October','November','December'].indexOf(p[0])>=0)
+        || (yr===2026&&['January','February','March'].indexOf(p[0])>=0);
+  });
+  var data = applyFilters(lob,'all',fyMonths);
+  var effRep = getEffectiveRepFilter(document.getElementById('repF').value);
+  var repsArr = effRep==='all'?null:(Array.isArray(effRep)?effRep:[effRep]);
+  var repList = Object.keys(data);
+  if(repsArr) repList = repList.filter(function(r){return repsArr.indexOf(r)>=0;});
+
+  // Calculate totals per rep
+  var repStats = repList.map(function(rep){
+    var gp=0,rev=0,teu=0,shp=0;
+    fyMonths.forEach(function(m){
+      var d=data[rep]&&data[rep][m]?data[rep][m]:{};
+      gp+=d.gp||0;rev+=d.rev||0;teu+=(d.teuFCL||0)+(d.teuTank||0);
+      if(d.rev||d.gp) shp++;
+    });
+    var tgt=(REP_TARGETS[rep]||0)*fyMonths.length;
+    var ach=tgt>0?((gp-tgt)/tgt*100):null;
+    return {rep,gp,rev,teu,tgt,ach};
+  });
+
+  // Sort by GP descending
+  repStats.sort(function(a,b){return b.gp-a.gp;});
+
+  var maxGP = repStats.length>0?repStats[0].gp:1;
+
+  setText('tbl-sub','Leaderboard · FY 2025-26');
+  setText('tbl-meta','Ranked by Gross Profit');
+
+  var MEDAL=['🥇','🥈','🥉'];
+
+  var html='<div style="padding:16px;display:flex;flex-direction:column;gap:12px">';
+  repStats.forEach(function(s,i){
+    var rank=i+1;
+    var rankDisplay=rank<=3?MEDAL[i]:'#'+rank;
+    var pct=maxGP>0?(s.gp/maxGP*100):0;
+    var tgtPct=s.tgt>0?(s.tgt/maxGP*100):0;
+    var gpFmt='$'+Math.round(s.gp).toLocaleString();
+    var achTxt=s.ach!==null?(s.ach>=0?'+':'')+s.ach.toFixed(1)+'%':'—';
+    var achColor=s.ach===null?'var(--text3)':s.ach>=0?'var(--green)':'var(--red)';
+    var hitTarget=s.tgt>0&&s.gp>=s.tgt;
+    var bg=rank===1?'#fffbeb':rank===2?'#f8faff':rank===3?'#fff8f0':'#fff';
+    var borderColor=rank===1?'#f59e0b':rank===2?'var(--blue)':rank===3?'#ea580c':'var(--border)';
+    var ini2=s.rep.split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+    html+='<div style="background:'+bg+';border:1.5px solid '+borderColor+';border-radius:12px;padding:14px 18px">';
+    html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
+    html+='<div style="font-size:'+(rank<=3?'22px':'14px')+';font-weight:700;min-width:36px;color:'+(rank<=3?'inherit':'var(--text3)')+'">'+rankDisplay+'</div>';
+    html+='<div style="width:36px;height:36px;border-radius:50%;background:'+rclr(s.rep)+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">'+ini2+'</div>';
+    html+='<div style="flex:1"><div style="font-weight:700;font-size:14px">'+s.rep+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3);margin-top:1px">'+s.teu.toFixed(1)+' TEUs · Ach: <span style="color:'+achColor+';font-weight:600">'+achTxt+'</span></div></div>';
+    html+='<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:var(--green)">$'+Math.round(s.gp).toLocaleString()+'</div>';
+    html+=(hitTarget?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ Target Hit</div>':'<div style="font-size:10px;color:var(--red)">Target: $'+Math.round(s.tgt).toLocaleString()+'</div>')+'</div></div>';
+    // Progress bar
+    html+='<div style="position:relative;height:8px;background:#e5e7eb;border-radius:4px;overflow:visible">';
+    html+='<div style="height:100%;width:'+Math.min(100,pct).toFixed(1)+'%;background:'+(hitTarget?'var(--green)':'var(--blue)')+';border-radius:4px;transition:width .4s"></div>';
+    if(s.tgt>0) html+='<div style="position:absolute;top:-3px;left:'+Math.min(100,tgtPct).toFixed(1)+'%;width:2px;height:14px;background:#374151;border-radius:1px" title="Target"></div>';
+    html+='</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+
+  var wrap=document.getElementById('twrap');
+  if(wrap) wrap.innerHTML=html;
+}
 
 </script>
 </html>
