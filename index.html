@@ -4393,14 +4393,21 @@ function renderRepDetailTable(rows){
       return r[col.key]||'';
     }))].filter(function(v){return v&&v!=='—';}).sort();
     var isFiltered=_rdFilters[col.key]&&_rdFilters[col.key]!=='all';
+    // Build header cell — use data-key to avoid inline JS escaping issues
+    var selId = 'rd-filter-'+i;
     th.innerHTML='<div style="display:flex;flex-direction:column;gap:3px">'+
-      '<span style="font-size:10px;font-weight:700;color:'+(isFiltered?'var(--blue)':'var(--text3)')+';text-transform:uppercase;letter-spacing:.4px">'+col.lbl+(isFiltered?' ▼':'')+'</span>'+
-      '<select onchange="setRdFilter(\"'+col.key+'\",this.value)" '+
+      '<span style="font-size:10px;font-weight:700;color:'+(isFiltered?'var(--blue)':'var(--text3)')+';text-transform:uppercase;letter-spacing:.4px">'+col.lbl+(isFiltered?' &#9660;':'')+'</span>'+
+      '<select id="'+selId+'" '+
         'style="font-size:10px;padding:2px 4px;border:1px solid '+(isFiltered?'var(--blue)':'var(--border)')+';border-radius:4px;background:'+(isFiltered?'#eff4ff':'#fff')+';max-width:120px;cursor:pointer">'+
         '<option value="all">All</option>'+
         vals.map(function(v){var vs=String(v);return '<option value="'+vs.replace(/"/g,'&quot;')+'"'+((_rdFilters[col.key]===vs)?' selected':'')+'>'+vs+'</option>';}).join('')+
       '</select></div>';
     thead.appendChild(th);
+    // Attach event listener via JS (no inline handler — avoids escaping issues with col.key)
+    (function(colKey, sid){
+      var sel = th.querySelector('select');
+      if(sel) sel.addEventListener('change', function(){ setRdFilter(colKey, this.value); });
+    })(col.key, selId);
   });
 
   // Build body
