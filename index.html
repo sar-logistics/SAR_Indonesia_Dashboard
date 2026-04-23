@@ -3904,10 +3904,36 @@ function openPendDetail(operatorName, panel){
   }
 
   document.getElementById('pendDetailModal').classList.add('show');
+  (function(){
+    var tbl=document.getElementById('pendDetailTable');
+    if(tbl) tbl.querySelector('thead tr').innerHTML=
+      '<th>Shipment ID</th><th>Booking Date</th><th>Job Operator</th><th>Sales Rep</th>'+
+      '<th>Origin ETD</th><th>Dest. ETA</th><th>LOB</th><th>Status</th>';
+    var dlBtn=document.getElementById('pendDownloadBtn');
+    if(dlBtn) dlBtn.style.display='';
+    var fRow=document.getElementById('repDetailFilterRow');
+    if(fRow) fRow.style.display='none';
+    if(typeof _isRepDetail!=='undefined') _isRepDetail=false;
+    if(typeof _rdFilters!=='undefined') _rdFilters={};
+  })();
+  document.getElementById('pendDetailModal').classList.add('show');
 }
 
 // Open finance pendency detail for Trupti Gore (CMP = finance open)
 function openFinPendDetail(){
+  // Reset to 8-col headers for finance pendency (no filters)
+  (function(){
+    var tbl=document.getElementById('pendDetailTable');
+    if(tbl) tbl.querySelector('thead tr').innerHTML=
+      '<th>Shipment ID</th><th>Booking Date</th><th>Job Operator</th><th>Sales Rep</th>'+
+      '<th>Origin ETD</th><th>Dest. ETA</th><th>LOB</th><th>Status</th>';
+    var dlBtn=document.getElementById('pendDownloadBtn');
+    if(dlBtn) dlBtn.style.display='';
+    var fRow=document.getElementById('repDetailFilterRow');
+    if(fRow) fRow.style.display='none';
+    if(typeof _isRepDetail!=='undefined') _isRepDetail=false;
+    if(typeof _rdFilters!=='undefined') _rdFilters={};
+  })();
   var f = getPendFilters();
   var lob = f.lob, months = f.months;
   var salesRepF = (document.getElementById('fin-repF')||{}).value||'all';
@@ -4344,8 +4370,10 @@ var _rdFilters = {}; // active column filters
 
 function getCellVal(r, col){
   if(col.type==='date') return excelDateToStr(r[col.key]);
-  if(col.type==='money') return r[col.key]?'$'+parseFloat(r[col.key]).toLocaleString():'—';
-  return r[col.key]||'—';
+  if(col.type==='money'){var mv=r[col.key];return mv||mv===0?'$'+parseFloat(mv).toLocaleString():'—';}
+  var v=r[col.key];
+  if(v===undefined||v===null||v==='') return '—';
+  return String(v); // always return string
 }
 
 function renderRepDetailTable(rows){
@@ -4370,7 +4398,7 @@ function renderRepDetailTable(rows){
       '<select onchange="setRdFilter(\"'+col.key+'\",this.value)" '+
         'style="font-size:10px;padding:2px 4px;border:1px solid '+(isFiltered?'var(--blue)':'var(--border)')+';border-radius:4px;background:'+(isFiltered?'#eff4ff':'#fff')+';max-width:120px;cursor:pointer">'+
         '<option value="all">All</option>'+
-        vals.map(function(v){return '<option value="'+v.replace(/"/g,'&quot;')+'"'+((_rdFilters[col.key]===v)?' selected':'')+'>'+v+'</option>';}).join('')+
+        vals.map(function(v){var vs=String(v);return '<option value="'+vs.replace(/"/g,'&quot;')+'"'+((_rdFilters[col.key]===vs)?' selected':'')+'>'+vs+'</option>';}).join('')+
       '</select></div>';
     thead.appendChild(th);
   });
