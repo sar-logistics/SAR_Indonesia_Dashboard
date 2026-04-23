@@ -1415,6 +1415,12 @@ async function loadData(){
     buildWeekEndSelector();
     document.getElementById('rts').textContent='Updated '+new Date().toLocaleTimeString();
     setOv(false);
+    // Debug: log SHIP_RAW date stats to help diagnose custom filter
+    var withDate = SHIP_RAW.filter(function(r){return r.recDate>0;});
+    var noDate   = SHIP_RAW.filter(function(r){return r.recDate===0;});
+    console.log('SHIP_RAW total:',SHIP_RAW.length,'| with recDate:',withDate.length,'| without:',noDate.length);
+    if(withDate.length>0) console.log('Sample recDates:',withDate.slice(0,3).map(function(r){return r.recDate;}));
+    if(noDate.length>0)   console.log('Sample rows without date:',noDate.slice(0,2).map(function(r){return {rep:r.rep,mon:r.mon,bookDate:r.bookDate};}));
     render();
     // Populate pendency dropdowns NOW that PEND_RAW is full
     refreshPendencyDropdowns();
@@ -1429,6 +1435,8 @@ async function fetchShipment(){
   const [shipIdC,repC,teuC,monC,modeC,tonsC,revC,gpC,dateC,wkC,tlC,cargoC,opC,statusC,bookDateC,etdC,etaC,custC,shipperC,consigC,totContC,otherC,c20FC,c20RC,c20HC,c40FC,c40RC,c40HC,c45FC]=j.valueRanges.map(v=>v.values||[]);
   // Use max of ALL columns -- revenue/GP rows may extend beyond rep/month rows
   const len=Math.max(repC.length,monC.length,revC.length,gpC.length);
+  console.log('Column lengths - repC:',repC.length,'monC:',monC.length,'dateC(EH):',dateC.length,'bookDateC(C):',bookDateC.length);
+  console.log('EH sample values (rows 1-5):',[1,2,3,4,5].map(function(i){return g(dateC,i);}));
   TL_RAW=[]; // reset tradelane raw data
   for(let i=1;i<len;i++){
     const rawRep=g(repC,i),mon=g(monC,i);
