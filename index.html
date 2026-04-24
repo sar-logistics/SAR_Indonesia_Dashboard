@@ -307,6 +307,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
 .pend-tbl{width:100%;border-collapse:collapse;font-size:12px}
 .pend-tbl th{background:#f4f6fa;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:1}
 .pend-tbl td{padding:8px 12px;border-bottom:1px solid var(--border-l);vertical-align:middle}
+.pend-tbl tfoot tr td{position:sticky;bottom:0;z-index:2;}
 .pend-tbl tr:hover td{background:#f8f9fc}
 .pend-tbl tr:last-child td{border-bottom:none}
 .status-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:600}
@@ -4104,6 +4105,12 @@ function downloadPendDetail(){
 // Close modal on background click
 document.addEventListener('click', function(e){
   if(e.target.id==='pendDetailModal') closePendModal();
+  // Close any open rd-dropdowns when clicking outside
+  if(!e.target.closest||!e.target.closest('.rd-dropdown-open')&&!e.target.closest('button[id^="rd-drop"]')){
+    document.querySelectorAll('.rd-dropdown-open').forEach(function(el){
+      el.style.display='none'; el.classList.remove('rd-dropdown-open');
+    });
+  }
 });
 
 
@@ -4379,8 +4386,9 @@ function openRepDetail(repName){
   // Hide download button for rep detail
   var dlBtn=document.getElementById('pendDownloadBtn');
   if(dlBtn) dlBtn.style.display='none';
-  // Reset column filters
+  // Reset column filters and close any open dropdowns
   _rdFilters = {};
+  document.querySelectorAll('.rd-dropdown-open').forEach(function(el){el.style.display='none';el.classList.remove('rd-dropdown-open');});
   // Hide the separate filter row (filters are now in column headers)
   var filterRow=document.getElementById('repDetailFilterRow');
   if(filterRow) filterRow.style.display='none';
@@ -4392,7 +4400,8 @@ function openRepDetail(repName){
 
 // Column definitions for rep detail table
 var RD_COLS = [
-  {key:'shipId',   lbl:'Ship No.',         type:'text',  w:'white-space:nowrap'},
+  {key:'shipId',   lbl:'Ship No.',         type:'text',  w:'white-space:nowrap', freeze:true},
+  {key:'lob',      lbl:'LOB',              type:'text',  w:'',                   freeze:true},
   {key:'bookDate', lbl:'Booking Date',     type:'date',  w:'white-space:nowrap'},
   {key:'customer', lbl:'Customer',         type:'text',  w:'max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
   {key:'shipper',  lbl:'Shipper',          type:'text',  w:'max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
@@ -4404,7 +4413,6 @@ var RD_COLS = [
   {key:'eta',      lbl:'Dest. ETA',        type:'date',  w:'white-space:nowrap'},
   {key:'rep',      lbl:'Sales Rep',        type:'text',  w:''},
   {key:'operator', lbl:'Operator',         type:'text',  w:''},
-  {key:'lob',      lbl:'LOB',              type:'text',  w:''},
   {key:'totCont',  lbl:'Total Cont.',      type:'num',   w:'text-align:right'},
   {key:'other',    lbl:'Other',            type:'num',   w:'text-align:right'},
   {key:'c20F',     lbl:'20F',              type:'num',   w:'text-align:right'},
@@ -4420,10 +4428,15 @@ var _rdFilters = {}; // active column filters
 
 function getCellVal(r, col){
   if(col.type==='date') return excelDateToStr(r[col.key]);
-  if(col.type==='money'){var mv=r[col.key];return mv||mv===0?'$'+parseFloat(mv).toLocaleString():'—';}
+  if(col.type==='money'){
+    var mv=r[col.key];
+    if(mv===undefined||mv===null||mv==='') return '—';
+    // No decimals for money
+    return '$'+Math.round(parseFloat(mv)).toLocaleString();
+  }
   var v=r[col.key];
   if(v===undefined||v===null||v==='') return '—';
-  return String(v); // always return string
+  return String(v);
 }
 
 function renderRepDetailTable(rows){
@@ -4435,23 +4448,37 @@ function renderRepDetailTable(rows){
     totProf+=parseFloat(r.actProf)||0; totCnt+=parseInt(r.totCont)||0;
   });
   var foot=document.getElementById('repDetailFooter');
+  var bg2='background:#e8f0fe';
   if(foot) foot.innerHTML=
-    '<td colspan="5" style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--text2);background:var(--surface2)">Subtotal — '+rows.length+' rows</td>'+
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green);padding:6px 12px;background:var(--surface2)">$'+Math.round(totInc).toLocaleString()+'</td>'+
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--red);padding:6px 12px;background:var(--surface2)">$'+Math.round(totExp).toLocaleString()+'</td>'+
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;padding:6px 12px;background:var(--surface2)">$'+Math.round(totProf).toLocaleString()+'</td>'+
-    '<td colspan="6" style="padding:6px 4px;background:var(--surface2)"></td>'+
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 12px;background:var(--surface2)">'+totCnt+'</td>'+
-    '<td colspan="8" style="background:var(--surface2)"></td>';
+    // Cols 1-2: frozen (Ship No + LOB) — show label
+    '<td colspan="2" style="position:sticky;left:0;z-index:2;padding:6px 12px;font-size:11px;font-weight:700;color:var(--blue);'+bg2+'">Subtotal</td>'+
+    // Cols 3-6: blank
+    '<td colspan="4" style="'+bg2+'"></td>'+
+    // Col 7: Rec Income
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green);padding:6px 12px;'+bg2+'">$'+Math.round(totInc).toLocaleString()+'</td>'+
+    // Col 8: Rec Expense
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--red);padding:6px 12px;'+bg2+'">$'+Math.round(totExp).toLocaleString()+'</td>'+
+    // Col 9: Actual Profit
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;padding:6px 12px;'+bg2+'">$'+Math.round(totProf).toLocaleString()+'</td>'+
+    // Cols 10-13: blank (ETD, ETA, Rep, Operator)
+    '<td colspan="4" style="'+bg2+'"></td>'+
+    // Col 14: Total Cont
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 12px;'+bg2+'">'+totCnt+'</td>'+
+    // Cols 15-22: blank (Other + container types)
+    '<td colspan="8" style="'+bg2+'"></td>';
   var tbl=document.getElementById('pendDetailTable');
   if(!tbl) return;
 
   // Build header with filter dropdowns
   var thead=tbl.querySelector('thead tr');
   thead.innerHTML='';
+  var freezeOffsets=[0,80]; // col1=0px, col2=80px (Ship No. width)
   RD_COLS.forEach(function(col,i){
     var th=document.createElement('th');
-    th.style.cssText='position:sticky;top:0;z-index:2;background:#f4f6fa;white-space:nowrap;padding:6px 8px';
+    var freezeStyle = col.freeze
+      ? 'position:sticky;left:'+freezeOffsets[i]+'px;z-index:3;box-shadow:2px 0 4px rgba(0,0,0,.08);'
+      : '';
+    th.style.cssText='position:sticky;top:0;z-index:2;background:#f4f6fa;white-space:nowrap;padding:6px 8px;'+freezeStyle;
     // Get unique values for this column from rows filtered by ALL OTHER active filters
     // (cascading: each dropdown reflects currently visible data)
     var sourceRows = _repDetailRows.filter(function(r){
@@ -4468,20 +4495,66 @@ function renderRepDetailTable(rows){
     }))].filter(function(v){return v&&v!=='—';}).sort();
     var isFiltered=_rdFilters[col.key]&&_rdFilters[col.key]!=='all';
     // Build header cell — use data-key to avoid inline JS escaping issues
-    var selId = 'rd-filter-'+i;
-    th.innerHTML='<div style="display:flex;flex-direction:column;gap:3px">'+
-      '<span style="font-size:10px;font-weight:700;color:'+(isFiltered?'var(--blue)':'var(--text3)')+';text-transform:uppercase;letter-spacing:.4px">'+col.lbl+(isFiltered?' &#9660;':'')+'</span>'+
-      '<select id="'+selId+'" '+
-        'style="font-size:10px;padding:2px 4px;border:1px solid '+(isFiltered?'var(--blue)':'var(--border)')+';border-radius:4px;background:'+(isFiltered?'#eff4ff':'#fff')+';max-width:120px;cursor:pointer">'+
-        '<option value="all">All</option>'+
-        vals.map(function(v){var vs=String(v);return '<option value="'+vs.replace(/"/g,'&quot;')+'"'+((_rdFilters[col.key]===vs)?' selected':'')+'>'+vs+'</option>';}).join('')+
-      '</select></div>';
+    // Build multi-select checkbox dropdown
+    var activeVals = Array.isArray(_rdFilters[col.key]) ? _rdFilters[col.key] : [];
+    var isFiltered2 = activeVals.length > 0;
+    var btnLabel = isFiltered2 ? activeVals.length+' selected' : 'All';
+    var dropId = 'rd-drop-'+i;
+    th.innerHTML = '<div style="display:flex;flex-direction:column;gap:3px;min-width:80px">' +
+      '<span style="font-size:10px;font-weight:700;color:'+(isFiltered2?'var(--blue)':'var(--text3)')+';text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">' +
+        col.lbl+(isFiltered2?' &#9660;':'')+'</span>' +
+      '<div style="position:relative">' +
+        '<button id="'+dropId+'-btn" style="font-size:10px;padding:2px 6px;border:1px solid '+(isFiltered2?'var(--blue)':'var(--border)')+';border-radius:4px;background:'+(isFiltered2?'#eff4ff':'#fff')+';color:'+(isFiltered2?'var(--blue)':'var(--text)')+';cursor:pointer;width:100%;text-align:left;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis">'+btnLabel+'</button>' +
+        '<div id="'+dropId+'" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--blue);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:160px;max-height:220px;overflow-y:auto;padding:4px 0">' +
+          '<label style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border-l)">' +
+            '<input type="checkbox" value="__all__" '+(activeVals.length===0?'checked':'')+' style="cursor:pointer"> <span style="font-weight:600">All</span></label>' +
+          vals.map(function(v){
+            var vs=String(v);
+            var chk = activeVals.indexOf(vs)>=0 ? 'checked' : '';
+            return '<label style="display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:11px;border-bottom:0.5px solid var(--border-l)">'+
+              '<input type="checkbox" value="'+vs.replace(/"/g,'&quot;')+'" '+chk+' style="cursor:pointer"> <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px" title="'+vs.replace(/"/g,'&quot;')+'">'+vs+'</span></label>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+    '</div>';
     thead.appendChild(th);
-    // Attach event listener via JS (no inline handler — avoids escaping issues with col.key)
-    (function(colKey, sid){
-      var sel = th.querySelector('select');
-      if(sel) sel.addEventListener('change', function(){ setRdFilter(colKey, this.value); });
-    })(col.key, selId);
+    // Wire up the dropdown toggle + checkbox logic
+    (function(colKey, dId){
+      var btn = th.querySelector('button');
+      var drop = document.getElementById(dId);
+      if(!btn||!drop) return;
+      // Toggle open/close
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        // Close all other dropdowns first
+        document.querySelectorAll('.rd-dropdown-open').forEach(function(el){
+          if(el!==drop){el.style.display='none';el.classList.remove('rd-dropdown-open');}
+        });
+        var open = drop.style.display==='block';
+        drop.style.display = open?'none':'block';
+        drop.classList.toggle('rd-dropdown-open', !open);
+        if(!open){
+          // Position dropdown below button
+          var rect=btn.getBoundingClientRect();
+          drop.style.top=(rect.bottom+2)+'px';
+          drop.style.left=rect.left+'px';
+        }
+      });
+      // Checkbox changes
+      drop.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+        cb.addEventListener('change', function(){
+          if(this.value==='__all__'){
+            _rdFilters[colKey]='all';
+          } else {
+            var arr = Array.isArray(_rdFilters[colKey]) ? _rdFilters[colKey].slice() : [];
+            if(this.checked){ if(arr.indexOf(this.value)<0) arr.push(this.value); }
+            else { arr=arr.filter(function(x){return x!==this.value;}.bind(this)); }
+            _rdFilters[colKey] = arr.length>0 ? arr : 'all';
+          }
+          applyRdFilters();
+        });
+      });
+    })(col.key, dropId);
   });
 
   // Build body
@@ -4493,9 +4566,10 @@ function renderRepDetailTable(rows){
   }
   rows.forEach(function(r){
     var tr=document.createElement('tr');
-    RD_COLS.forEach(function(col,i){
+    RD_COLS.forEach(function(col,ci){
       var td=document.createElement('td');
-      td.style.cssText='font-size:10.5px;'+col.w+(col.type==='money'?';font-family:var(--mono)':'');
+      var freezeTd=col.freeze?'position:sticky;left:'+freezeOffsets[ci]+'px;z-index:1;background:inherit;box-shadow:2px 0 3px rgba(0,0,0,.06);':'';
+      td.style.cssText='font-size:10.5px;'+col.w+(col.type==='money'?';font-family:var(--mono)':'')+';'+freezeTd;
       if(col.type==='money') td.style.color=col.key==='recInc'?'var(--green)':col.key==='recExp'?'var(--red)':col.key==='actProf'?'var(--text)':'inherit';
       if(col.type==='money'&&col.key==='actProf') td.style.fontWeight='600';
       var v=getCellVal(r,col);
@@ -4508,14 +4582,28 @@ function renderRepDetailTable(rows){
 }
 
 function setRdFilter(key, val){
-  _rdFilters[key]=val;
-  // Apply all active filters
+  // val can be 'all', '__all__', or a string value to toggle
+  if(val==='all'||val==='__all__'){
+    _rdFilters[key]='all';
+  } else {
+    var arr=Array.isArray(_rdFilters[key])?_rdFilters[key].slice():[];
+    var idx2=arr.indexOf(val);
+    if(idx2>=0){ arr.splice(idx2,1); if(arr.length===0) _rdFilters[key]='all'; else _rdFilters[key]=arr; }
+    else { arr.push(val); _rdFilters[key]=arr; }
+  }
+  applyRdFilters();
+}
+
+function applyRdFilters(){
   var filtered=_repDetailRows.filter(function(r){
     return Object.keys(_rdFilters).every(function(k){
-      if(!_rdFilters[k]||_rdFilters[k]==='all') return true;
-      var col=RD_COLS.find(function(c){return c.key===k;});
+      var fv=_rdFilters[k];
+      if(!fv||fv==='all') return true;
+      var col=RD_COLS.find(function(col2){return col2.key===k;});
+      if(!col) return true;
       var cv=getCellVal(r,col);
-      return cv===_rdFilters[k];
+      if(Array.isArray(fv)) return fv.indexOf(cv)>=0;
+      return cv===fv;
     });
   });
   renderRepDetailTable(filtered);
