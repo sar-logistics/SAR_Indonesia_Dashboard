@@ -4568,8 +4568,9 @@ var _rdColKeys = {};
 function rdToggle(i){
   var d=document.getElementById('rdd'+i);
   if(!d) return;
+  // Close other open dropdowns — only target top-level dropdown divs (rdd0, rdd1...) not their children
   document.querySelectorAll('[id^="rdd"]').forEach(function(el){
-    if(el!==d && el.style.display!=='none'){ el.style.display='none'; }
+    if(el!==d && /^rdd\d+$/.test(el.id) && el.style.display!=='none'){ el.style.display='none'; }
   });
   if(d.style.display==='flex'){ d.style.display='none'; return; }
   d.style.display='flex'; d.style.flexDirection='column';
@@ -4629,7 +4630,7 @@ function rdApply(i){
 document.addEventListener('click', function(e){
   if(e.target.id==='pendDetailModal'){ closePendModal(); return; }
   if(!e.target.closest('[id^="rdd"]') && !e.target.closest('th')){
-    document.querySelectorAll('[id^="rdd"]').forEach(function(el){ el.style.display='none'; });
+    document.querySelectorAll('[id^="rdd"]').forEach(function(el){ if(/^rdd\d+$/.test(el.id)) el.style.display='none'; });
   }
 });
 
