@@ -4399,53 +4399,7 @@ function openRepDetail(repName){
   document.getElementById('pendDetailModal').classList.add('show');
 }
 
-// ── Rep Detail Filter Dropdown Helpers ──────────────────────────
-function rdFilterSearch(dropId){
-  var q=(document.getElementById(dropId+'-search')||{}).value||'';
-  var list=document.getElementById(dropId+'-list');
-  if(!list) return;
-  list.querySelectorAll('.rd-cb-row').forEach(function(row){
-    var sp=row.querySelector('span');
-    var txt=sp?sp.textContent:'';
-    row.style.display=txt.toLowerCase().indexOf(q.toLowerCase())>=0?'flex':'none';
-  });
-}
-
-function rdSelectAll(dropId){
-  var list=document.getElementById(dropId+'-list');
-  if(!list) return;
-  list.querySelectorAll('input[type=checkbox]').forEach(function(cb){
-    if(cb.closest && cb.closest('.rd-cb-row') && cb.closest('.rd-cb-row').style.display!=='none') cb.checked=true;
-  });
-}
-
-function rdClearAll(dropId){
-  var list=document.getElementById(dropId+'-list');
-  if(!list) return;
-  list.querySelectorAll('input[type=checkbox]').forEach(function(cb){ cb.checked=false; });
-}
-
-function rdCancelDrop(dropId){
-  var drop=document.getElementById(dropId);
-  if(drop){ drop.style.display='none'; drop.classList.remove('rd-dropdown-open'); }
-}
-
-function rdApplyDrop(dropId, colKey){
-  var list=document.getElementById(dropId+'-list');
-  if(!list) return;
-  var checked=[];
-  list.querySelectorAll('input[type=checkbox]:checked').forEach(function(cb){ checked.push(cb.value); });
-  _rdFilters[colKey] = checked.length>0 ? checked : 'all';
-  var btn=document.getElementById(dropId+'-btn');
-  if(btn){
-    btn.textContent = checked.length>0 ? checked.length+' selected' : 'All';
-    btn.style.borderColor = checked.length>0 ? 'var(--blue)' : 'var(--border)';
-    btn.style.background  = checked.length>0 ? '#eff4ff' : '#fff';
-    btn.style.color       = checked.length>0 ? 'var(--blue)' : 'var(--text)';
-  }
-  rdCancelDrop(dropId);
-  applyRdFilters();
-}
+// rd filter helpers replaced by rdToggle/rdApply/rdSearch/rdSelAll/rdClrAll/rdClose
 
 
 // Column definitions for rep detail table
@@ -4490,168 +4444,195 @@ function getCellVal(r, col){
 }
 
 function renderRepDetailTable(rows){
-  document.getElementById('pendModalCount').textContent=rows.length+' records';
-  // Update subtotal footer
-  var totInc=0,totExp=0,totProf=0,totCnt=0;
-  rows.forEach(function(r){
-    totInc+=parseFloat(r.recInc)||0; totExp+=parseFloat(r.recExp)||0;
-    totProf+=parseFloat(r.actProf)||0; totCnt+=parseInt(r.totCont)||0;
-  });
-  var foot=document.getElementById('repDetailFooter');
-  var bg2='background:#e8f0fe';
-  if(foot) foot.innerHTML=
-    // Cols 1-2: frozen (Ship No + LOB) — show label
-    '<td colspan="2" style="position:sticky;left:0;z-index:2;padding:6px 12px;font-size:11px;font-weight:700;color:var(--blue);'+bg2+'">Subtotal</td>'+
-    // Cols 3-6: blank
-    '<td colspan="4" style="'+bg2+'"></td>'+
-    // Col 7: Rec Income
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green);padding:6px 12px;'+bg2+'">$'+Math.round(totInc).toLocaleString()+'</td>'+
-    // Col 8: Rec Expense
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--red);padding:6px 12px;'+bg2+'">$'+Math.round(totExp).toLocaleString()+'</td>'+
-    // Col 9: Actual Profit
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;padding:6px 12px;'+bg2+'">$'+Math.round(totProf).toLocaleString()+'</td>'+
-    // Cols 10-13: blank (ETD, ETA, Rep, Operator)
-    '<td colspan="4" style="'+bg2+'"></td>'+
-    // Col 14: Total Cont
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 12px;'+bg2+'">'+totCnt+'</td>'+
-    // Cols 15-22: blank (Other + container types)
-    '<td colspan="8" style="'+bg2+'"></td>';
-  var tbl=document.getElementById('pendDetailTable');
+  document.getElementById('pendModalCount').textContent = rows.length + ' records';
+  var tbl = document.getElementById('pendDetailTable');
   if(!tbl) return;
+  var freezeOffsets = [0, 80];
 
-  // Build header with filter dropdowns
-  var thead=tbl.querySelector('thead tr');
-  thead.innerHTML='';
-  var freezeOffsets=[0,80]; // col1=0px, col2=80px (Ship No. width)
-  RD_COLS.forEach(function(col,i){
-    var th=document.createElement('th');
-    var freezeStyle = col.freeze
-      ? 'position:sticky;left:'+freezeOffsets[i]+'px;z-index:3;background:#f4f6fa;box-shadow:2px 0 4px rgba(0,0,0,.10);'
-      : '';
-    th.style.cssText='position:sticky;top:0;z-index:2;background:#f4f6fa;white-space:nowrap;padding:6px 8px;'+freezeStyle;
-    // Get unique values for this column from rows filtered by ALL OTHER active filters
-    // (cascading: each dropdown reflects currently visible data)
-    var sourceRows = _repDetailRows.filter(function(r){
+  // Build thead
+  var thead = tbl.querySelector('thead tr');
+  thead.innerHTML = '';
+
+  RD_COLS.forEach(function(col, i){
+    var th = document.createElement('th');
+    var isF2 = Array.isArray(_rdFilters[col.key]) && _rdFilters[col.key].length > 0;
+    var fzStyle = col.freeze ? 'position:sticky;left:'+freezeOffsets[i]+'px;z-index:3;background:#f4f6fa;box-shadow:2px 0 4px rgba(0,0,0,.10);' : '';
+    th.style.cssText = 'position:sticky;top:0;z-index:2;background:#f4f6fa;white-space:nowrap;padding:6px 8px;' + fzStyle;
+
+    // Get unique values from cascaded rows
+    var srcRows = _repDetailRows.filter(function(r){
       return Object.keys(_rdFilters).every(function(k){
-        if(k === col.key) return true; // skip own filter — show all own options
-        if(!_rdFilters[k] || _rdFilters[k]==='all') return true;
-        var oc = RD_COLS.find(function(c2){return c2.key===k;});
-        return oc ? getCellVal(r,oc)===_rdFilters[k] : true;
+        if(k === col.key) return true;
+        var fv = _rdFilters[k];
+        if(!fv || fv === 'all') return true;
+        var c2 = RD_COLS.find(function(x){ return x.key===k; });
+        if(!c2) return true;
+        var cv = getCellVal(r, c2);
+        return Array.isArray(fv) ? fv.indexOf(cv)>=0 : cv===fv;
       });
     });
-    var vals=[...new Set(sourceRows.map(function(r){
-      if(col.type==='date') return excelDateToStr(r[col.key]);
-      var v=r[col.key]; return (v===undefined||v===null||v==='') ? '' : String(v);
-    }))].filter(function(v){return v&&v!=='—';}).sort();
-    var isFiltered=_rdFilters[col.key]&&_rdFilters[col.key]!=='all';
-    // Build header cell — use data-key to avoid inline JS escaping issues
-    // Build multi-select dropdown with search + Apply button
+
+    var vals = [];
+    var seen = {};
+    srcRows.forEach(function(r){
+      var v = col.type==='date' ? excelDateToStr(r[col.key]) : (r[col.key]===undefined||r[col.key]===null||r[col.key]==='' ? '' : String(r[col.key]));
+      if(v && v!=='—' && !seen[v]){ seen[v]=1; vals.push(v); }
+    });
+    vals.sort();
+
     var activeVals = Array.isArray(_rdFilters[col.key]) ? _rdFilters[col.key] : [];
-    var isFiltered2 = activeVals.length > 0;
-    var btnLabel = isFiltered2 ? activeVals.length+' selected' : 'All';
-    var dropId = 'rd-drop-'+i;
-    var checkboxHtml = vals.map(function(v){
-      var vs=String(v);
-      var chk = activeVals.indexOf(vs)>=0 ? 'checked' : '';
-      var safe=vs.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-      return '<label class="rd-cb-row" style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:0.5px solid #f0f0f0">'+
-        '<input type="checkbox" value="'+safe+'" '+chk+' style="cursor:pointer;width:13px;height:13px;flex-shrink:0"> '+
-        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+safe+'">'+safe+'</span></label>';
+    var btnTxt = activeVals.length > 0 ? activeVals.length+' selected' : 'All';
+
+    // Store col key in global map for onclick access
+    _rdColKeys[i] = col.key;
+
+    // Build checkbox list HTML
+    var listHtml = vals.map(function(v){
+      var chk = activeVals.indexOf(v) >= 0 ? ' checked' : '';
+      var esc = v.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+      return '<label style="display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:0.5px solid #f0f0f0">'
+        + '<input type="checkbox" value="'+esc+'"'+chk+' style="width:13px;height:13px;cursor:pointer;flex-shrink:0">'
+        + '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+esc+'">'+esc+'</span>'
+        + '</label>';
     }).join('');
 
-    th.innerHTML = '<div style="display:flex;flex-direction:column;gap:3px;min-width:80px">' +
-      '<span style="font-size:10px;font-weight:700;color:'+(isFiltered2?'var(--blue)':'var(--text3)')+';text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">' +
-        col.lbl+(isFiltered2?' &#9660;':'')+'</span>' +
-      '<div style="position:relative">' +
-        '<button id="'+dropId+'-btn" style="font-size:10px;padding:2px 6px;border:1px solid '+(isFiltered2?'var(--blue)':'var(--border)')+';border-radius:4px;background:'+(isFiltered2?'#eff4ff':'#fff')+';color:'+(isFiltered2?'var(--blue)':'var(--text)')+';cursor:pointer;width:100%;text-align:left;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis">'+btnLabel+'</button>' +
-        '<div id="'+dropId+'" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--blue);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.18);min-width:220px;max-width:300px;flex-direction:column">' +
-          // Header with search
-          '<div style="padding:8px 10px;border-bottom:1px solid #e8edf5;display:flex;gap:6px;align-items:center">' +
-            '<input id="'+dropId+'-search" type="text" placeholder="Search..." style="flex:1;font-size:11px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;outline:none" >' +
-          '</div>' +
-          // Select all row
-          '<div style="padding:5px 10px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px">' +
-            '<span style="font-size:11px;color:var(--blue);cursor:pointer;font-weight:600">Select All</span>' +
-            '<span style="color:var(--border)">|</span>' +
-            '<span style="font-size:11px;color:var(--text3);cursor:pointer">Clear</span>' +
-          '</div>' +
-          // Scrollable list
-          '<div id="'+dropId+'-list" style="max-height:200px;overflow-y:auto">' + checkboxHtml + '</div>' +
-          // Apply button
-          '<div style="padding:8px 10px;border-top:1px solid #e8edf5;display:flex;justify-content:flex-end;gap:8px">' +
-            '<button style="font-size:11px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer">Cancel</button>' +
-            '<button style="font-size:11px;padding:5px 14px;border:none;border-radius:6px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer">Apply</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
+    var dropId = 'rdd'+i;
+    th.innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:3px;min-width:70px">'
+      + '<span style="font-size:10px;font-weight:700;color:'+(isF2?'var(--blue)':'var(--text3)')+';text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">'
+        + col.lbl + (isF2?' ▼':'') + '</span>'
+      + '<button onclick="rdToggle('+i+')" style="font-size:10px;padding:2px 5px;border:1px solid '+(isF2?'var(--blue)':'var(--border)')+';border-radius:4px;background:'+(isF2?'#eff4ff':'#fff')+';color:'+(isF2?'var(--blue)':'inherit')+';cursor:pointer;text-align:left;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis">'
+        + btnTxt + '</button>'
+      + '</div>'
+      + '<div id="'+dropId+'" style="display:none;position:fixed;z-index:9999;flex-direction:column;background:#fff;border:2px solid var(--blue);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.2);min-width:220px;max-width:280px;overflow:hidden">'
+        + '<div style="padding:8px 10px;border-bottom:1px solid #e8edf5">'
+          + '<input id="'+dropId+'s" type="text" placeholder="Search..." oninput="rdSearch('+i+')" style="width:100%;font-size:11px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;outline:none;box-sizing:border-box">'
+        + '</div>'
+        + '<div style="padding:5px 10px;border-bottom:1px solid #f0f0f0;display:flex;gap:10px">'
+          + '<span onclick="rdSelAll('+i+')" style="font-size:11px;color:var(--blue);cursor:pointer;font-weight:600">Select All</span>'
+          + '<span style="color:#ccc">|</span>'
+          + '<span onclick="rdClrAll('+i+')" style="font-size:11px;color:#888;cursor:pointer">Clear</span>'
+        + '</div>'
+        + '<div id="'+dropId+'l" style="max-height:180px;overflow-y:auto">' + listHtml + '</div>'
+        + '<div style="padding:8px 10px;border-top:1px solid #e8edf5;display:flex;justify-content:flex-end;gap:8px">'
+          + '<button onclick="rdClose('+i+')" style="font-size:11px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer">Cancel</button>'
+          + '<button onclick="rdApply('+i+')" style="font-size:11px;padding:5px 14px;border:none;border-radius:6px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer">Apply</button>'
+        + '</div>'
+      + '</div>';
     thead.appendChild(th);
-
-    (function(dId, ck){
-      var btn = document.getElementById(dId+'-btn');
-      var drop = document.getElementById(dId);
-      if(!btn||!drop) return;
-      drop.style.display='none';
-      // Toggle open
-      btn.addEventListener('click', function(e){
-        e.stopPropagation();
-        document.querySelectorAll('.rd-dropdown-open').forEach(function(el){
-          el.style.display='none'; el.classList.remove('rd-dropdown-open');
-        });
-        var open=drop.style.display==='flex';
-        if(open){ drop.style.display='none'; drop.classList.remove('rd-dropdown-open'); }
-        else{
-          drop.style.display='flex'; drop.style.flexDirection='column';
-          drop.classList.add('rd-dropdown-open');
-          var rect=btn.getBoundingClientRect();
-          drop.style.top=(rect.bottom+4)+'px';
-          drop.style.left=rect.left+'px';
-          var si=document.getElementById(dId+'-search');
-          if(si) setTimeout(function(){si.focus();},50);
-        }
-      });
-      // Search input
-      var si=document.getElementById(dId+'-search');
-      if(si) si.addEventListener('input',function(){rdFilterSearch(dId);});
-      // Select All
-      var sa=drop.querySelector('.rd-sel-all');
-      if(sa) sa.addEventListener('click',function(){rdSelectAll(dId);});
-      // Clear
-      var ca=drop.querySelector('.rd-clr-all');
-      if(ca) ca.addEventListener('click',function(){rdClearAll(dId);});
-      // Cancel
-      var cb2=drop.querySelector('.rd-cancel-btn');
-      if(cb2) cb2.addEventListener('click',function(){rdCancelDrop(dId);});
-      // Apply
-      var ab=drop.querySelector('.rd-apply-btn');
-      if(ab) ab.addEventListener('click',function(){rdApplyDrop(dId,ck);});
-    })(dropId, col.key);
   });
 
-  // Build body
-  var tbody=document.getElementById('pendDetailBody');
-  tbody.innerHTML='';
-  if(rows.length===0){
-    tbody.innerHTML='<tr><td colspan="'+RD_COLS.length+'" style="text-align:center;padding:30px;color:var(--text3)">No shipments match the current filters.</td></tr>';
-    return;
-  }
-  rows.forEach(function(r,ri){
-    var tr=document.createElement('tr');
-    var rowBg=ri%2===0?'#ffffff':'#f8fafc';
-    RD_COLS.forEach(function(col,ci){
-      var td=document.createElement('td');
-      var freezeTd=col.freeze?'position:sticky;left:'+freezeOffsets[ci]+'px;z-index:1;background:'+rowBg+';box-shadow:2px 0 4px rgba(0,0,0,.10);':'';
-      td.style.cssText='font-size:10.5px;'+col.w+(col.type==='money'?';font-family:var(--mono)':'')+';'+freezeTd;
-      if(col.type==='money') td.style.color=col.key==='recInc'?'var(--green)':col.key==='recExp'?'var(--red)':col.key==='actProf'?'var(--text)':'inherit';
-      if(col.type==='money'&&col.key==='actProf') td.style.fontWeight='600';
-      var v=getCellVal(r,col);
-      td.textContent=v;
-      if(col.w.includes('max-width')) td.title=r[col.key]||'';
-      tr.appendChild(td);
+  // Build tbody
+  var tbody = document.getElementById('pendDetailBody');
+  tbody.innerHTML = '';
+  if(rows.length === 0){
+    tbody.innerHTML = '<tr><td colspan="'+RD_COLS.length+'" style="text-align:center;padding:30px;color:var(--text3)">No shipments match the current filters.</td></tr>';
+  } else {
+    rows.forEach(function(r, ri){
+      var tr = document.createElement('tr');
+      var rb = ri%2===0 ? '#ffffff' : '#f8fafc';
+      RD_COLS.forEach(function(col, ci){
+        var td = document.createElement('td');
+        var fz = col.freeze ? 'position:sticky;left:'+freezeOffsets[ci]+'px;z-index:1;background:'+rb+';box-shadow:2px 0 4px rgba(0,0,0,.10);' : '';
+        td.style.cssText = 'font-size:10.5px;padding:8px 10px;border-bottom:1px solid var(--border-l);' + col.w + (col.type==='money'?';font-family:var(--mono)':'') + ';' + fz;
+        if(col.type==='money'){
+          td.style.color = col.key==='recInc' ? 'var(--green)' : col.key==='recExp' ? 'var(--red)' : '';
+          if(col.key==='actProf') td.style.fontWeight='600';
+        }
+        td.textContent = getCellVal(r, col);
+        if(col.w.includes('max-width')) td.title = r[col.key]||'';
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
     });
-    tbody.appendChild(tr);
+  }
+
+  // Subtotal
+  var totInc=0,totExp=0,totProf=0,totCnt=0;
+  rows.forEach(function(r){ totInc+=parseFloat(r.recInc)||0; totExp+=parseFloat(r.recExp)||0; totProf+=parseFloat(r.actProf)||0; totCnt+=parseInt(r.totCont)||0; });
+  var foot=document.getElementById('repDetailFooter');
+  if(foot) foot.innerHTML=
+    '<td colspan="2" style="position:sticky;left:0;z-index:2;padding:6px 12px;font-size:11px;font-weight:700;color:var(--blue);background:#e8f0fe">Subtotal</td>'+
+    '<td colspan="4" style="background:#e8f0fe"></td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green);padding:6px 12px;background:#e8f0fe">$'+Math.round(totInc).toLocaleString()+'</td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--red);padding:6px 12px;background:#e8f0fe">$'+Math.round(totExp).toLocaleString()+'</td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;padding:6px 12px;background:#e8f0fe">$'+Math.round(totProf).toLocaleString()+'</td>'+
+    '<td colspan="4" style="background:#e8f0fe"></td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 12px;background:#e8f0fe">'+totCnt+'</td>'+
+    '<td colspan="8" style="background:#e8f0fe"></td>';
+}
+
+// Global col-key map for onclick handlers
+var _rdColKeys = {};
+
+function rdToggle(i){
+  var d=document.getElementById('rdd'+i);
+  if(!d) return;
+  document.querySelectorAll('[id^="rdd"]').forEach(function(el){
+    if(el!==d && el.style.display!=='none'){ el.style.display='none'; }
+  });
+  if(d.style.display==='flex'){ d.style.display='none'; return; }
+  d.style.display='flex'; d.style.flexDirection='column';
+  // Position below the button
+  var btn=d.previousElementSibling&&d.previousElementSibling.querySelector('button');
+  if(!btn) btn=d.closest('th')&&d.closest('th').querySelector('button');
+  if(btn){ var r=btn.getBoundingClientRect(); d.style.top=(r.bottom+2)+'px'; d.style.left=r.left+'px'; }
+  var si=document.getElementById('rdd'+i+'s'); if(si) setTimeout(function(){si.focus();},40);
+}
+
+function rdSearch(i){
+  var q=(document.getElementById('rdd'+i+'s')||{}).value||'';
+  var list=document.getElementById('rdd'+i+'l'); if(!list) return;
+  list.querySelectorAll('label').forEach(function(lb){
+    var t=lb.querySelector('span');
+    lb.style.display=(t&&t.textContent.toLowerCase().indexOf(q.toLowerCase())>=0)?'flex':'none';
   });
 }
+
+function rdSelAll(i){
+  var list=document.getElementById('rdd'+i+'l'); if(!list) return;
+  list.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+    if(cb.closest('label')&&cb.closest('label').style.display!=='none') cb.checked=true;
+  });
+}
+
+function rdClrAll(i){
+  var list=document.getElementById('rdd'+i+'l'); if(!list) return;
+  list.querySelectorAll('input[type=checkbox]').forEach(function(cb){ cb.checked=false; });
+}
+
+function rdClose(i){
+  var d=document.getElementById('rdd'+i); if(d) d.style.display='none';
+}
+
+function rdApply(i){
+  var colKey=_rdColKeys[i];
+  if(!colKey){ rdClose(i); return; }
+  var list=document.getElementById('rdd'+i+'l'); if(!list){ rdClose(i); return; }
+  var checked=[];
+  list.querySelectorAll('input[type=checkbox]:checked').forEach(function(cb){ checked.push(cb.value); });
+  _rdFilters[colKey] = checked.length>0 ? checked : 'all';
+  rdClose(i);
+  // Apply filters
+  var filtered=_repDetailRows.filter(function(r){
+    return Object.keys(_rdFilters).every(function(k){
+      var fv=_rdFilters[k]; if(!fv||fv==='all') return true;
+      var col=RD_COLS.find(function(x){return x.key===k;}); if(!col) return true;
+      var cv=getCellVal(r,col);
+      return Array.isArray(fv)?fv.indexOf(cv)>=0:cv===fv;
+    });
+  });
+  renderRepDetailTable(filtered);
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', function(e){
+  if(e.target.id==='pendDetailModal'){ closePendModal(); return; }
+  if(!e.target.closest('[id^="rdd"]') && !e.target.closest('th')){
+    document.querySelectorAll('[id^="rdd"]').forEach(function(el){ el.style.display='none'; });
+  }
+});
+
 
 
 
