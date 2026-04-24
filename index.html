@@ -1998,7 +1998,10 @@ function buildRows(mData,keys,repName,totalTgt,isGrand,isWeekly,visibleReps){
   const hasTgt=!isGrand&&(isWeekly?REP_WEEKLY_TARGETS[repName]:REP_TARGETS[repName])>0;
   let totF=0,totT=0,totTons=0,totRev=0,totGP=0;
   keys.forEach(k=>{const c=mData[k]||{};totF+=c.teuFCL||0;totT+=c.teuTank||0;totTons+=c.tons||0;totRev+=c.rev||0;totGP+=c.gp||0;});
-  const totVar=hasTgt&&totalTgt>0?(totGP-totalTgt)/Math.abs(totalTgt)*100:null;
+  // Grand Total variance uses totalTgt (sum of all rep targets); individual reps use hasTgt
+  const totVar = (isGrand && totalTgt>0)
+    ? (totGP-totalTgt)/Math.abs(totalTgt)*100
+    : (hasTgt && totalTgt>0 ? (totGP-totalTgt)/Math.abs(totalTgt)*100 : null);
   const rows=MROWS.filter(r=>!(r.sub&&!exp));
   const rc2=isGrand?'r-grand':'r-rep';
   const avBg=isGrand?'background:linear-gradient(135deg,#2563eb,#7c3aed)':`background:${rclr(repName)}`;
@@ -2682,7 +2685,27 @@ function renderTL(){
   // Show/hide Pivot|Monthly sub-toggle based on period
   var tlSub = document.getElementById('tl-subtoggle');
   if(tlSub) tlSub.style.display = period==='yearly' ? 'none' : 'flex';
-  if(period==='yearly'){ renderTLYearly(); return; }
+  if(period==='yearly'){
+    // Update KPI cards for yearly (current period)
+    var yrRange = getYearlyRange();
+    var kShpY=0,kTeuY=0,kRevY=0,kGPY=0,kContY=0;
+    var tlListY=[...new Set(TL_RAW.map(function(r){return r.tl;}))].filter(Boolean);
+    var tlLobY=(document.getElementById('lobF')||{}).value||'all';
+    tlListY.forEach(function(tl){
+      kShpY+=tlGetTotalFiltered(tl,yrRange.curPeriod,'shp',tlLobY,tlCargo);
+      kTeuY+=tlGetTotalFiltered(tl,yrRange.curPeriod,'teu',tlLobY,tlCargo);
+      kRevY+=tlGetTotalFiltered(tl,yrRange.curPeriod,'rev',tlLobY,tlCargo);
+      kGPY +=tlGetTotalFiltered(tl,yrRange.curPeriod,'gp', tlLobY,tlCargo);
+      kContY+=tlGetTotalFiltered(tl,yrRange.curPeriod,'cont',tlLobY,tlCargo);
+    });
+    setText('tl-k-shp',Math.round(kShpY).toLocaleString());
+    setText('tl-k-teu',fT(kTeuY));
+    setText('tl-k-rev','$'+Math.round(kRevY).toLocaleString());
+    setText('tl-k-gp', '$'+Math.round(kGPY).toLocaleString());
+    setText('tl-k-gppct',(kRevY>0?(kGPY/kRevY*100).toFixed(1):'0')+'%');
+    setText('tl-k-gpcon',kContY>0?'$'+Math.round(kGPY/kContY).toLocaleString():'--');
+    renderTLYearly(); return;
+  }
 
   // Use main topbar FROM/TO (date range shared -- only dates, not LOB/Rep)
   var from = (document.getElementById('fromM') || {}).value || 'April-2025';
@@ -2728,6 +2751,11 @@ function renderTL(){
     renderTLPivot(tradelanes, months, periodLbl);
   } else {
     renderTLMonthly(tradelanes, months, periodLbl);
+  }
+  // If chart view is active, re-render charts with updated data
+  if(typeof _tlShowingCharts!=='undefined'&&_tlShowingCharts){
+    var cw=document.getElementById('tl-chart-wrap');
+    if(cw&&cw.style.display!=='none') renderTLCharts();
   }
 }
 
@@ -3922,7 +3950,6 @@ function openPendDetail(operatorName, panel){
     });
   }
 
-  document.getElementById('pendDetailModal').classList.add('show');
   (function(){
     var tbl=document.getElementById('pendDetailTable');
     if(tbl) tbl.querySelector('thead tr').innerHTML=
@@ -3932,6 +3959,8 @@ function openPendDetail(operatorName, panel){
     if(dlBtn) dlBtn.style.display='';
     var fRow=document.getElementById('repDetailFilterRow');
     if(fRow) fRow.style.display='none';
+    var rdFoot=document.getElementById('repDetailFooter');
+    if(rdFoot) rdFoot.innerHTML='';
     if(typeof _isRepDetail!=='undefined') _isRepDetail=false;
     if(typeof _rdFilters!=='undefined') _rdFilters={};
   })();
@@ -3952,6 +3981,8 @@ function openFinPendDetail(){
     if(fRow) fRow.style.display='none';
     if(typeof _isRepDetail!=='undefined') _isRepDetail=false;
     if(typeof _rdFilters!=='undefined') _rdFilters={};
+    var rdFoot=document.getElementById('repDetailFooter');
+    if(rdFoot) rdFoot.innerHTML='';
   })();
   var f = getPendFilters();
   var lob = f.lob, months = f.months;
@@ -4404,12 +4435,14 @@ function renderRepDetailTable(rows){
     totProf+=parseFloat(r.actProf)||0; totCnt+=parseInt(r.totCont)||0;
   });
   var foot=document.getElementById('repDetailFooter');
-  if(foot) foot.innerHTML='<td colspan="9" style="padding:6px 12px;font-size:11px;font-weight:600;color:var(--text2)">Subtotal ('+rows.length+' rows)</td>'+
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:600;padding:6px 12px">'+totCnt+'</td>'+
-    '<td colspan="7" style="padding:6px 4px"></td>'+
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green);padding:6px 12px">$'+Math.round(totInc).toLocaleString()+'</td>'+
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);padding:6px 12px">$'+Math.round(totExp).toLocaleString()+'</td>'+
-    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 12px">$'+Math.round(totProf).toLocaleString()+'</td>';
+  if(foot) foot.innerHTML=
+    '<td colspan="5" style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--text2);background:var(--surface2)">Subtotal — '+rows.length+' rows</td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green);padding:6px 12px;background:var(--surface2)">$'+Math.round(totInc).toLocaleString()+'</td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--red);padding:6px 12px;background:var(--surface2)">$'+Math.round(totExp).toLocaleString()+'</td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;padding:6px 12px;background:var(--surface2)">$'+Math.round(totProf).toLocaleString()+'</td>'+
+    '<td colspan="6" style="padding:6px 4px;background:var(--surface2)"></td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 12px;background:var(--surface2)">'+totCnt+'</td>'+
+    '<td colspan="8" style="background:var(--surface2)"></td>';
   var tbl=document.getElementById('pendDetailTable');
   if(!tbl) return;
 
@@ -4652,13 +4685,25 @@ function getTLChartData(){
     if(months.indexOf(r.month)<0) return;
     if(lob!=='all'&&r.lob!==lob) return;
     if(tlCargo!=='all'&&r.cargo!==tlCargo) return;
-    contTypes.forEach(function(ct,ci){
-      var cnt = r[contKeys[ci]]||0;
-      tlGP[r.tl][ct]  += (r.gp||0)  * (cnt / Math.max(r.totCont||1,1));
-      tlTEU[r.tl][ct] += (r.teu||0) * (cnt / Math.max(r.totCont||1,1));
-      tlRev[r.tl][ct] += (r.rev||0) * (cnt / Math.max(r.totCont||1,1));
-      tlCont[r.tl][ct]+= cnt;
-    });
+    var totalCnt = r.totCont||0;
+    var contSum = contKeys.reduce(function(s,k){return s+(r[k]||0);},0);
+    if(totalCnt===0 && contSum===0){
+      // No container breakdown — attribute all to first container type bucket
+      tlGP[r.tl]['Other']  += r.gp||0;
+      tlTEU[r.tl]['Other'] += r.teu||0;
+      tlRev[r.tl]['Other'] += r.rev||0;
+      tlCont[r.tl]['Other']+= 1;
+    } else {
+      var denom = Math.max(totalCnt, contSum, 1);
+      contTypes.forEach(function(ct,ci){
+        var cnt = r[contKeys[ci]]||0;
+        if(cnt===0) return;
+        tlGP[r.tl][ct]  += (r.gp||0)  * (cnt/denom);
+        tlTEU[r.tl][ct] += (r.teu||0) * (cnt/denom);
+        tlRev[r.tl][ct] += (r.rev||0) * (cnt/denom);
+        tlCont[r.tl][ct]+= cnt;
+      });
+    }
   });
 
   // Sort tradelanes by total GP desc
