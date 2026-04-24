@@ -4554,7 +4554,7 @@ function renderRepDetailTable(rows){
       var vs=String(v);
       var chk = activeVals.indexOf(vs)>=0 ? 'checked' : '';
       var safe=vs.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-      return '<label class="rd-cb-row" style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:0.5px solid #f0f0f0;transition:background .1s>'+
+      return '<label class="rd-cb-row" style="display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;font-size:11px;border-bottom:0.5px solid #f0f0f0">'+
         '<input type="checkbox" value="'+safe+'" '+chk+' style="cursor:pointer;width:13px;height:13px;flex-shrink:0"> '+
         '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+safe+'">'+safe+'</span></label>';
     }).join('');
