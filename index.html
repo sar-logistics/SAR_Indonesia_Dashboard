@@ -4399,6 +4399,57 @@ function openRepDetail(repName){
   document.getElementById('pendDetailModal').classList.add('show');
 }
 
+// ── Rep Detail Filter Dropdown Helpers ──────────────────────────
+function rdFilterSearch(dropId){
+  var q=(document.getElementById(dropId+'-search')||{}).value||'';
+  var list=document.getElementById(dropId+'-list');
+  if(!list) return;
+  list.querySelectorAll('.rd-cb-row').forEach(function(row){
+    var sp=row.querySelector('span');
+    var txt=sp?sp.textContent:'';
+    row.style.display=txt.toLowerCase().indexOf(q.toLowerCase())>=0?'flex':'none';
+  });
+}
+
+function rdSelectAll(dropId){
+  var list=document.getElementById(dropId+'-list');
+  if(!list) return;
+  list.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+    if(cb.closest && cb.closest('.rd-cb-row') && cb.closest('.rd-cb-row').style.display!=='none') cb.checked=true;
+  });
+}
+
+function rdClearAll(dropId){
+  var list=document.getElementById(dropId+'-list');
+  if(!list) return;
+  list.querySelectorAll('input[type=checkbox]').forEach(function(cb){ cb.checked=false; });
+}
+
+function rdCancelDrop(dropId){
+  var drop=document.getElementById(dropId);
+  if(drop){ drop.style.display='none'; drop.classList.remove('rd-dropdown-open'); }
+}
+
+function rdApplyDrop(dropId, colKey){
+  var list=document.getElementById(dropId+'-list');
+  if(!list) return;
+  var checked=[];
+  list.querySelectorAll('input[type=checkbox]:checked').forEach(function(cb){ checked.push(cb.value); });
+  _rdFilters[colKey] = checked.length>0 ? checked : 'all';
+  var btn=document.getElementById(dropId+'-btn');
+  if(btn){
+    btn.textContent = checked.length>0 ? checked.length+' selected' : 'All';
+    btn.style.borderColor = checked.length>0 ? 'var(--blue)' : 'var(--border)';
+    btn.style.background  = checked.length>0 ? '#eff4ff' : '#fff';
+    btn.style.color       = checked.length>0 ? 'var(--blue)' : 'var(--text)';
+  }
+  rdCancelDrop(dropId);
+  applyRdFilters();
+}
+
+</script>
+</html>
+
 // Column definitions for rep detail table
 var RD_COLS = [
   {key:'shipId',   lbl:'Ship No.',         type:'text',  w:'white-space:nowrap', freeze:true},
@@ -4956,53 +5007,3 @@ function renderTLCharts(){
 
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
-// ── Rep Detail Filter Dropdown Helpers ──────────────────────────
-function rdFilterSearch(dropId){
-  var q=(document.getElementById(dropId+'-search')||{}).value||'';
-  var list=document.getElementById(dropId+'-list');
-  if(!list) return;
-  list.querySelectorAll('.rd-cb-row').forEach(function(row){
-    var sp=row.querySelector('span');
-    var txt=sp?sp.textContent:'';
-    row.style.display=txt.toLowerCase().indexOf(q.toLowerCase())>=0?'flex':'none';
-  });
-}
-
-function rdSelectAll(dropId){
-  var list=document.getElementById(dropId+'-list');
-  if(!list) return;
-  list.querySelectorAll('input[type=checkbox]').forEach(function(cb){
-    if(cb.closest && cb.closest('.rd-cb-row') && cb.closest('.rd-cb-row').style.display!=='none') cb.checked=true;
-  });
-}
-
-function rdClearAll(dropId){
-  var list=document.getElementById(dropId+'-list');
-  if(!list) return;
-  list.querySelectorAll('input[type=checkbox]').forEach(function(cb){ cb.checked=false; });
-}
-
-function rdCancelDrop(dropId){
-  var drop=document.getElementById(dropId);
-  if(drop){ drop.style.display='none'; drop.classList.remove('rd-dropdown-open'); }
-}
-
-function rdApplyDrop(dropId, colKey){
-  var list=document.getElementById(dropId+'-list');
-  if(!list) return;
-  var checked=[];
-  list.querySelectorAll('input[type=checkbox]:checked').forEach(function(cb){ checked.push(cb.value); });
-  _rdFilters[colKey] = checked.length>0 ? checked : 'all';
-  var btn=document.getElementById(dropId+'-btn');
-  if(btn){
-    btn.textContent = checked.length>0 ? checked.length+' selected' : 'All';
-    btn.style.borderColor = checked.length>0 ? 'var(--blue)' : 'var(--border)';
-    btn.style.background  = checked.length>0 ? '#eff4ff' : '#fff';
-    btn.style.color       = checked.length>0 ? 'var(--blue)' : 'var(--text)';
-  }
-  rdCancelDrop(dropId);
-  applyRdFilters();
-}
-
-</script>
-</html>
