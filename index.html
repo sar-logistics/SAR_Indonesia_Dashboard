@@ -552,6 +552,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           <div class="kpi ko"><div class="kpi-lbl">Total Revenue</div><div class="kpi-val" id="tl-k-rev">--</div><div class="kpi-sub">USD · Period</div></div>
           <div class="kpi kg"><div class="kpi-lbl">Total GP</div><div class="kpi-val" id="tl-k-gp">--</div><div class="kpi-sub">USD · Period</div></div>
           <div class="kpi kp"><div class="kpi-lbl">GP %</div><div class="kpi-val" id="tl-k-gppct">--</div><div class="kpi-sub">of revenue</div></div>
+          <div class="kpi kb"><div class="kpi-lbl">GP / Container</div><div class="kpi-val" id="tl-k-gpcon">--</div><div class="kpi-sub">USD per unit</div></div>
         </div>
 
         <!-- TL VIEW TOGGLE + CARGO FILTER (below KPI cards) -->
@@ -578,8 +579,16 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
               <span style="color:var(--border);font-size:13px">|</span>
               <span id="tl-tbl-sub" style="font-size:11px;color:var(--text3);font-weight:500">Pivot · USD</span>
             </div>
-            <div class="thead-meta" id="tl-tbl-meta">Indonesia -> All</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="thead-meta" id="tl-tbl-meta">Indonesia · All</div>
+              <button id="tlChartBtn" onclick="toggleTLCharts()" title="Toggle Charts"
+                style="padding:5px 12px;border-radius:7px;border:1.5px solid var(--blue);background:#eff4ff;color:var(--blue);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap">
+                <svg id="tlChartIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span id="tlChartLabel">Charts</span>
+              </button>
+            </div>
           </div>
+          <div id="tl-chart-wrap" style="display:none;flex-direction:column;gap:24px;padding:4px 0;overflow-y:auto;flex:1"></div>
           <div class="twrap" id="tl-twrap">
             <div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div>
           </div>
@@ -799,6 +808,7 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
           <th>Status</th>
         </tr></thead>
         <tbody id="pendDetailBody"></tbody>
+        <tfoot><tr id="repDetailFooter" style="background:var(--surface2);border-top:2px solid var(--border)"></tr></tfoot>
       </table>
     </div>
     <div class="pend-modal-foot">
@@ -1480,7 +1490,13 @@ async function fetchShipment(){
     const tl=g(tlC,i),cargo=g(cargoC,i)||'Freehand';
     if(tl&&mon){
       const mappedRep = REP_MAP[rawRep]||'Nomination Sales';
-      TL_RAW.push({tl,cargo,month:mon,teu,rev,gp,lob:mode||'all',rep:mappedRep});
+      var tCont=parseFloat(g(totContC,i))||0;
+      var tc20F=parseFloat(g(c20FC,i))||0, tc20R=parseFloat(g(c20RC,i))||0, tc20H=parseFloat(g(c20HC,i))||0;
+      var tc40F=parseFloat(g(c40FC,i))||0, tc40R=parseFloat(g(c40RC,i))||0, tc40H=parseFloat(g(c40HC,i))||0;
+      var tc45F=parseFloat(g(c45FC,i))||0, tcOth=parseFloat(g(otherC,i))||0;
+      TL_RAW.push({tl,cargo,month:mon,teu,rev,gp,lob:mode||'all',rep:mappedRep,
+        totCont:tCont,c20F:tc20F,c20R:tc20R,c20H:tc20H,
+        c40F:tc40F,c40R:tc40R,c40H:tc40H,c45F:tc45F,other:tcOth});
     }
     // Store ALL rows in SHIP_RAW (for custom date filter + rep detail view)
     const jobStatus=g(statusC,i), jobOp=g(opC,i);
@@ -2690,19 +2706,21 @@ function renderTL(){
   });
 
   // Update KPIs
-  var kShp=0, kTeu=0, kRev=0, kGP=0;
+  var kShp=0, kTeu=0, kRev=0, kGP=0, kCont=0;
   var tlLobVal = tlLobF; // same value, reuse
   tradelanes.forEach(function(tl){
     kShp += tlGetTotalFiltered(tl,months,'shp',tlLobVal,tlCargo);
     kTeu += tlGetTotalFiltered(tl,months,'teu',tlLobVal,tlCargo);
     kRev += tlGetTotalFiltered(tl,months,'rev',tlLobVal,tlCargo);
     kGP  += tlGetTotalFiltered(tl,months,'gp',tlLobVal,tlCargo);
+    kCont += tlGetTotalFiltered(tl,months,'cont',tlLobVal,tlCargo);
   });
   setText('tl-k-shp',   Math.round(kShp).toLocaleString());
   setText('tl-k-teu',   fT(kTeu));
   setText('tl-k-rev',   '$'+Math.round(kRev).toLocaleString());
   setText('tl-k-gp',    '$'+Math.round(kGP).toLocaleString());
   setText('tl-k-gppct', (kRev > 0 ? (kGP/kRev*100).toFixed(1) : '0') + '%');
+  setText('tl-k-gpcon', kCont > 0 ? '$'+Math.round(kGP/kCont).toLocaleString() : '--');
   setText('tl-tbl-meta','Indonesia · All · ' + periodLbl);
   setText('tl-tbl-sub', (tlView === 'pivot' ? 'Pivot' : 'Monthly') + ' · USD');
 
@@ -2733,18 +2751,19 @@ function tlGetTotal(tl, months, field){
 function tlGetTotalFiltered(tl, months, field, lob, cargo){
   var repF = (document.getElementById('repF')||{}).value||'all';
   var effRep = getEffectiveRepFilter(repF);
-  // Resolve to array for easy checking
   var repArr = Array.isArray(effRep) ? effRep : (effRep==='all' ? null : [effRep]);
-  var sum = 0;
+  var total = 0;
   TL_RAW.forEach(function(r){
     if(r.tl !== tl) return;
-    if(cargo !== 'all' && r.cargo !== cargo) return;
-    if(lob !== 'all' && r.lob !== lob) return;
-    if(repArr !== null && repArr.indexOf(r.rep) < 0) return;
     if(months.indexOf(r.month) < 0) return;
-    sum += (field === 'shp') ? 1 : (r[field] || 0);
+    if(lob !== 'all' && r.lob !== lob) return;
+    if(cargo !== 'all' && r.cargo !== cargo) return;
+    if(repArr && repArr.indexOf(r.rep) < 0) return;
+    if(field === 'shp')  { total += 1; return; }
+    if(field === 'cont') { total += r.totCont||0; return; }
+    total += r[field]||0;
   });
-  return sum;
+  return total;
 }
 
 function tlApplyLob(val, cell, field, lob){
@@ -4342,28 +4361,28 @@ function openRepDetail(repName){
 
 // Column definitions for rep detail table
 var RD_COLS = [
-  {key:'shipId',   lbl:'Ship No.',        type:'text',   w:'white-space:nowrap'},
-  {key:'bookDate', lbl:'Booking Date',    type:'date',   w:'white-space:nowrap'},
-  {key:'customer', lbl:'Customer',        type:'text',   w:'max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
-  {key:'shipper',  lbl:'Shipper',         type:'text',   w:'max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
-  {key:'consignee',lbl:'Consignee',       type:'text',   w:'max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
-  {key:'etd',      lbl:'Origin ETD',      type:'date',   w:'white-space:nowrap'},
-  {key:'eta',      lbl:'Dest. ETA',       type:'date',   w:'white-space:nowrap'},
-  {key:'rep',      lbl:'Sales Rep',       type:'text',   w:''},
-  {key:'operator', lbl:'Operator',        type:'text',   w:''},
-  {key:'lob',      lbl:'LOB',             type:'text',   w:''},
-  {key:'totCont',  lbl:'Total Cont.',     type:'num',    w:'text-align:right'},
-  {key:'other',    lbl:'Other',           type:'num',    w:'text-align:right'},
-  {key:'c20F',     lbl:'20F',             type:'num',    w:'text-align:right'},
-  {key:'c20R',     lbl:'20R',             type:'num',    w:'text-align:right'},
-  {key:'c20H',     lbl:'20H',             type:'num',    w:'text-align:right'},
-  {key:'c40F',     lbl:'40F',             type:'num',    w:'text-align:right'},
-  {key:'c40R',     lbl:'40R',             type:'num',    w:'text-align:right'},
-  {key:'c40H',     lbl:'40H',             type:'num',    w:'text-align:right'},
-  {key:'c45F',     lbl:'45F',             type:'num',    w:'text-align:right'},
-  {key:'recInc',   lbl:'Rec. Income ($)', type:'money',  w:'text-align:right'},
-  {key:'recExp',   lbl:'Rec. Expense ($)',type:'money',  w:'text-align:right'},
-  {key:'actProf',  lbl:'Actual Profit ($)',type:'money', w:'text-align:right'}
+  {key:'shipId',   lbl:'Ship No.',         type:'text',  w:'white-space:nowrap'},
+  {key:'bookDate', lbl:'Booking Date',     type:'date',  w:'white-space:nowrap'},
+  {key:'customer', lbl:'Customer',         type:'text',  w:'max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
+  {key:'shipper',  lbl:'Shipper',          type:'text',  w:'max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
+  {key:'consignee',lbl:'Consignee',        type:'text',  w:'max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
+  {key:'recInc',   lbl:'Rec. Income ($)',  type:'money', w:'text-align:right'},
+  {key:'recExp',   lbl:'Rec. Expense ($)', type:'money', w:'text-align:right'},
+  {key:'actProf',  lbl:'Actual Profit ($)',type:'money', w:'text-align:right'},
+  {key:'etd',      lbl:'Origin ETD',       type:'date',  w:'white-space:nowrap'},
+  {key:'eta',      lbl:'Dest. ETA',        type:'date',  w:'white-space:nowrap'},
+  {key:'rep',      lbl:'Sales Rep',        type:'text',  w:''},
+  {key:'operator', lbl:'Operator',         type:'text',  w:''},
+  {key:'lob',      lbl:'LOB',              type:'text',  w:''},
+  {key:'totCont',  lbl:'Total Cont.',      type:'num',   w:'text-align:right'},
+  {key:'other',    lbl:'Other',            type:'num',   w:'text-align:right'},
+  {key:'c20F',     lbl:'20F',              type:'num',   w:'text-align:right'},
+  {key:'c20R',     lbl:'20R',              type:'num',   w:'text-align:right'},
+  {key:'c20H',     lbl:'20H',              type:'num',   w:'text-align:right'},
+  {key:'c40F',     lbl:'40F',              type:'num',   w:'text-align:right'},
+  {key:'c40R',     lbl:'40R',              type:'num',   w:'text-align:right'},
+  {key:'c40H',     lbl:'40H',              type:'num',   w:'text-align:right'},
+  {key:'c45F',     lbl:'45F',              type:'num',   w:'text-align:right'}
 ];
 
 var _rdFilters = {}; // active column filters
@@ -4378,6 +4397,19 @@ function getCellVal(r, col){
 
 function renderRepDetailTable(rows){
   document.getElementById('pendModalCount').textContent=rows.length+' records';
+  // Update subtotal footer
+  var totInc=0,totExp=0,totProf=0,totCnt=0;
+  rows.forEach(function(r){
+    totInc+=parseFloat(r.recInc)||0; totExp+=parseFloat(r.recExp)||0;
+    totProf+=parseFloat(r.actProf)||0; totCnt+=parseInt(r.totCont)||0;
+  });
+  var foot=document.getElementById('repDetailFooter');
+  if(foot) foot.innerHTML='<td colspan="9" style="padding:6px 12px;font-size:11px;font-weight:600;color:var(--text2)">Subtotal ('+rows.length+' rows)</td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:600;padding:6px 12px">'+totCnt+'</td>'+
+    '<td colspan="7" style="padding:6px 4px"></td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green);padding:6px 12px">$'+Math.round(totInc).toLocaleString()+'</td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red);padding:6px 12px">$'+Math.round(totExp).toLocaleString()+'</td>'+
+    '<td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 12px">$'+Math.round(totProf).toLocaleString()+'</td>';
   var tbl=document.getElementById('pendDetailTable');
   if(!tbl) return;
 
@@ -4559,5 +4591,213 @@ function renderLeaderboard(){
   if(wrap) wrap.innerHTML=html;
 }
 
+
+// ================================================================
+// TRADELANE CHARTS
+// ================================================================
+var _tlShowingCharts = false;
+var _tlChartInstances = [];
+
+function toggleTLCharts(){
+  _tlShowingCharts = !_tlShowingCharts;
+  var btn = document.getElementById('tlChartLabel');
+  var icon = document.getElementById('tlChartIcon');
+  var twrap = document.getElementById('tl-twrap');
+  var cwrap = document.getElementById('tl-chart-wrap');
+  var subTog = document.getElementById('tl-subtoggle');
+  if(_tlShowingCharts){
+    if(btn) btn.textContent = 'Table View';
+    if(icon) icon.innerHTML = '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>';
+    if(twrap) twrap.style.display = 'none';
+    if(subTog) subTog.style.display = 'none';
+    if(cwrap){ cwrap.style.display = 'flex'; renderTLCharts(); }
+  } else {
+    if(btn) btn.textContent = 'Charts';
+    if(icon) icon.innerHTML = '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>';
+    if(twrap) twrap.style.display = '';
+    if(subTog && period!=='yearly') subTog.style.display = 'flex';
+    if(cwrap) cwrap.style.display = 'none';
+    _destroyTLCharts();
+  }
+}
+
+function _destroyTLCharts(){
+  _tlChartInstances.forEach(function(ch){ try{ ch.destroy(); }catch(e){} });
+  _tlChartInstances = [];
+}
+
+function getTLChartData(){
+  var lob = (document.getElementById('lobF')||{}).value||'all';
+  var months = [];
+  if(period==='monthly'||period==='weekly'){
+    var f=document.getElementById('fromM').value, t=document.getElementById('toM').value;
+    var fi=MONTHS.indexOf(f),ti=MONTHS.indexOf(t);
+    months = fi>=0&&ti>=0 ? MONTHS.slice(fi,ti+1) : MONTHS;
+  } else if(period==='yearly'){
+    months = getYearlyRange().curPeriod;
+  } else { months = MONTHS; }
+
+  var tradelanes = [...new Set(TL_RAW.map(function(r){return r.tl;}))].filter(Boolean);
+  var contTypes = ['20F','20R','20H','40F','40R','40H','45F','Other'];
+  var contKeys  = ['c20F','c20R','c20H','c40F','c40R','c40H','c45F','other'];
+
+  var tlGP={}, tlTEU={}, tlRev={}, tlCont={};
+  tradelanes.forEach(function(tl){
+    tlGP[tl]  = {}; tlTEU[tl] = {}; tlRev[tl] = {}; tlCont[tl] = {};
+    contTypes.forEach(function(ct){ tlGP[tl][ct]=0; tlTEU[tl][ct]=0; tlRev[tl][ct]=0; tlCont[tl][ct]=0; });
+  });
+
+  TL_RAW.forEach(function(r){
+    if(!tlGP[r.tl]) return;
+    if(months.indexOf(r.month)<0) return;
+    if(lob!=='all'&&r.lob!==lob) return;
+    if(tlCargo!=='all'&&r.cargo!==tlCargo) return;
+    contTypes.forEach(function(ct,ci){
+      var cnt = r[contKeys[ci]]||0;
+      tlGP[r.tl][ct]  += (r.gp||0)  * (cnt / Math.max(r.totCont||1,1));
+      tlTEU[r.tl][ct] += (r.teu||0) * (cnt / Math.max(r.totCont||1,1));
+      tlRev[r.tl][ct] += (r.rev||0) * (cnt / Math.max(r.totCont||1,1));
+      tlCont[r.tl][ct]+= cnt;
+    });
+  });
+
+  // Sort tradelanes by total GP desc
+  tradelanes.sort(function(a,b){
+    return Object.values(tlGP[b]).reduce(function(s,v){return s+v;},0) -
+           Object.values(tlGP[a]).reduce(function(s,v){return s+v;},0);
+  });
+
+  return {tradelanes, contTypes, tlGP, tlTEU, tlRev, tlCont};
+}
+
+function renderTLCharts(){
+  _destroyTLCharts();
+  var wrap = document.getElementById('tl-chart-wrap');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+
+  var d = getTLChartData();
+  var tl = d.tradelanes, ct = d.contTypes;
+  var colors = ['#378ADD','#1D9E75','#BA7517','#D4537E','#7F77DD','#E24B4A','#639922','#888780'];
+
+  function legendHTML(){
+    return '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">'+
+      ct.map(function(c,i){return '<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3)"><span style="width:10px;height:10px;border-radius:2px;background:'+colors[i]+';display:inline-block"></span>'+c+'</span>';}).join('')+
+      '</div>';
+  }
+
+  function chartCard(titleTxt, legendHtml, canvasId, heightPx){
+    var div = document.createElement('div');
+    div.style.cssText='background:var(--surface);border:1px solid var(--border-l);border-radius:10px;padding:16px';
+    div.innerHTML='<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">'+titleTxt+'</div>'+
+      legendHtml+
+      '<div style="position:relative;width:100%;height:'+heightPx+'px"><canvas id="'+canvasId+'" role="img" aria-label="'+titleTxt+'"></canvas></div>';
+    wrap.appendChild(div);
+    return div;
+  }
+
+  var h = Math.max(280, tl.length * 44 + 60);
+
+  // ── Chart 1: GP by Tradelane (horizontal stacked) ──
+  chartCard('GP ($) by tradelane · container mix', legendHTML(), 'tlc1', h);
+  var c1 = new Chart(document.getElementById('tlc1'),{
+    type:'bar',
+    data:{
+      labels: tl,
+      datasets: ct.map(function(ctName,i){
+        return { label:ctName, data:tl.map(function(t){return Math.round(d.tlGP[t][ctName]||0);}),
+          backgroundColor:colors[i], borderWidth:0 };
+      })
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': $'+Math.round(c.raw).toLocaleString();}}}},
+      scales:{
+        x:{stacked:true, ticks:{callback:function(v){return '$'+(v>=1000?Math.round(v/1000)+'k':v);},font:{size:10}}},
+        y:{stacked:true, ticks:{font:{size:10}}}
+      }
+    }
+  });
+  _tlChartInstances.push(c1);
+
+  // ── Chart 2: TEUs by Tradelane (horizontal stacked) ──
+  chartCard('TEUs by tradelane · container mix', legendHTML(), 'tlc2', h);
+  var c2 = new Chart(document.getElementById('tlc2'),{
+    type:'bar',
+    data:{
+      labels: tl,
+      datasets: ct.map(function(ctName,i){
+        return { label:ctName, data:tl.map(function(t){return parseFloat((d.tlTEU[t][ctName]||0).toFixed(1));}),
+          backgroundColor:colors[i], borderWidth:0 };
+      })
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+c.raw.toFixed(1)+' TEUs';}}}},
+      scales:{
+        x:{stacked:true, ticks:{font:{size:10}}},
+        y:{stacked:true, ticks:{font:{size:10}}}
+      }
+    }
+  });
+  _tlChartInstances.push(c2);
+
+  // ── Chart 3: GP% Heatmap ──
+  var heatDiv = document.createElement('div');
+  heatDiv.style.cssText='background:var(--surface);border:1px solid var(--border-l);border-radius:10px;padding:16px';
+  heatDiv.innerHTML='<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">GP % by tradelane × container type</div><div style="overflow-x:auto" id="tl-heatmap-wrap"></div>';
+  wrap.appendChild(heatDiv);
+
+  // Calculate GP% per tradelane × container
+  var gpPctData = {};
+  tl.forEach(function(t){
+    gpPctData[t] = {};
+    ct.forEach(function(ctName){
+      var gp = d.tlGP[t][ctName]||0, rev = d.tlRev[t][ctName]||0;
+      gpPctData[t][ctName] = rev>0 ? (gp/rev*100) : null;
+    });
+  });
+  var allVals = tl.map(function(t){return ct.map(function(c){return gpPctData[t][c];});}).flat().filter(function(v){return v!==null;});
+  var mn=Math.min.apply(null,allVals), mx=Math.max.apply(null,allVals);
+
+  function heatBg(v){
+    if(v===null) return {css:'var(--surface2)',txt:'var(--text3)'};
+    var t=(v-mn)/Math.max(mx-mn,0.01);
+    var r=Math.round(230-t*200), g=Math.round(230-t*120), b=Math.round(255);
+    var lum=0.299*r+0.587*g+0.114*b;
+    return {css:'rgb('+r+','+g+','+b+')', txt:lum<140?'#ffffff':'#0C447C'};
+  }
+
+  var htbl='<table style="border-collapse:collapse;font-size:11px;width:100%"><thead><tr>'+
+    '<th style="padding:6px 10px;text-align:left;color:var(--text3);font-weight:400;border-bottom:1px solid var(--border-l)">Tradelane</th>'+
+    ct.map(function(c){return '<th style="padding:6px 10px;text-align:center;color:var(--text3);font-weight:400;border-bottom:1px solid var(--border-l)">'+c+'</th>';}).join('')+
+    '</tr></thead><tbody>';
+  tl.forEach(function(t){
+    htbl+='<tr><td style="padding:6px 10px;color:var(--text);white-space:nowrap;font-size:10.5px">'+t+'</td>';
+    ct.forEach(function(ctName){
+      var v=gpPctData[t][ctName];
+      var hc=heatBg(v);
+      htbl+='<td style="padding:6px 10px;text-align:center;font-weight:500;background:'+hc.css+';color:'+hc.txt+';border:1px solid var(--bg)">'+
+        (v!==null?v.toFixed(1)+'%':'—')+'</td>';
+    });
+    htbl+='</tr>';
+  });
+  htbl+='</tbody></table>';
+  document.getElementById('tl-heatmap-wrap').innerHTML=htbl;
+
+  // Scale bar
+  var scaleDiv=document.createElement('div');
+  scaleDiv.style.cssText='display:flex;align-items:center;gap:8px;margin-top:10px;padding:0 16px 16px';
+  var scaleBar='<div style="display:flex;height:12px;width:120px;border-radius:3px;overflow:hidden">';
+  for(var si=0;si<20;si++){
+    var sv=mn+(mx-mn)*(si/19);
+    scaleBar+='<div style="flex:1;background:'+heatBg(sv).css+'"></div>';
+  }
+  scaleBar+='</div>';
+  scaleDiv.innerHTML='<span style="font-size:11px;color:var(--text3)">Low GP%</span>'+scaleBar+'<span style="font-size:11px;color:var(--text3)">High GP%</span>';
+  heatDiv.appendChild(scaleDiv);
+}
+
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </html>
