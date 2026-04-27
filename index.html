@@ -144,9 +144,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .flbl{font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
 .fsel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer;min-width:96px}
 .fsel:focus{border-color:var(--blue)}
-.mp-btn{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-family:var(--font);font-size:11.5px;color:var(--text);outline:none;cursor:pointer;min-width:80px;text-align:left;transition:border-color .15s}
-.mp-btn:hover{border-color:#adb5e0}
-.mp-btn.has-val{border-color:var(--border);color:var(--text)}
 
 /* CONTENT */
 .content{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;min-height:0}
@@ -445,13 +442,13 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       <div class="dr" id="drRow">
         <span class="flbl">FROM</span>
         <div style="position:relative;display:inline-block">
-          <button id="fromMBtn" onclick="toggleMonthPicker('fromM')" class="mp-btn">--</button>
-          <div id="fromMPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:220px"></div>
+          <button id="fromMBtn" onclick="toggleMonthPicker('fromM')" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;min-width:80px;text-align:left" id="fromMBtn">--</button>
+          <div id="fromMPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--blue);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:220px"></div>
         </div>
         <span class="flbl">TO</span>
         <div style="position:relative;display:inline-block">
-          <button id="toMBtn" onclick="toggleMonthPicker('toM')" class="mp-btn">--</button>
-          <div id="toMPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:220px"></div>
+          <button id="toMBtn" onclick="toggleMonthPicker('toM')" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;min-width:80px;text-align:left">--</button>
+          <div id="toMPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--blue);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:220px"></div>
         </div>
         <!-- Hidden selects to maintain compatibility with existing code -->
         <select id="fromM" onchange="onMonthSelectChange('fromM')" style="display:none"></select>
@@ -464,24 +461,51 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <span class="wk-lbl">TO</span>
         <input type="date" class="wk-date" id="customTo" onchange="render()" style="min-width:130px">
       </div>
-      <div class="wk-inline" id="wkInline">
-        <span class="wk-lbl">Week Ending</span>
-        <input type="date" class="wk-date" id="wkDatePick" onchange="render()">
+      <div class="wk-inline" id="wkInline" style="gap:6px">
+        <span class="wk-lbl">Week</span>
+        <select class="fsel" id="wkSelect" onchange="onWkSelectChange()" style="min-width:210px;font-size:11.5px">
+          <option value="">Loading weeks...</option>
+        </select>
+        <!-- Hidden date input kept for getLast5Weeks() compatibility -->
+        <input type="date" id="wkDatePick" style="display:none" onchange="render()">
       </div>
       <div class="fy-inline" id="fyInline" style="gap:6px;align-items:center">
         <span class="wk-lbl">FROM</span>
-        <div style="position:relative;display:inline-block">
-          <button id="yrFromBtn" onclick="toggleMonthPicker('yrFrom')" class="mp-btn">--</button>
-          <div id="yrFromPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:220px"></div>
-        </div>
+        <select class="wk-n" id="yrFrom" onchange="render()" style="min-width:90px">
+          <option value="January-2025">Jan-25</option>
+          <option value="February-2025">Feb-25</option>
+          <option value="March-2025">Mar-25</option>
+          <option value="April-2025">Apr-25</option>
+          <option value="May-2025">May-25</option>
+          <option value="June-2025">Jun-25</option>
+          <option value="July-2025">Jul-25</option>
+          <option value="August-2025">Aug-25</option>
+          <option value="September-2025">Sep-25</option>
+          <option value="October-2025">Oct-25</option>
+          <option value="November-2025">Nov-25</option>
+          <option value="December-2025">Dec-25</option>
+          <option value="January-2026" selected>Jan-26</option>
+          <option value="February-2026">Feb-26</option>
+          <option value="March-2026">Mar-26</option>
+        </select>
         <span class="wk-lbl">TO</span>
-        <div style="position:relative;display:inline-block">
-          <button id="yrToBtn" onclick="toggleMonthPicker('yrTo')" class="mp-btn">--</button>
-          <div id="yrToPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:220px"></div>
-        </div>
-        <!-- Hidden selects to maintain compatibility -->
-        <select id="yrFrom" onchange="onMonthSelectChange('yrFrom');render()" style="display:none"></select>
-        <select id="yrTo"   onchange="onMonthSelectChange('yrTo');render()"   style="display:none"></select>
+        <select class="wk-n" id="yrTo" onchange="render()" style="min-width:90px">
+          <option value="January-2025" selected>Jan-25</option>
+          <option value="February-2025">Feb-25</option>
+          <option value="March-2025">Mar-25</option>
+          <option value="April-2025">Apr-25</option>
+          <option value="May-2025">May-25</option>
+          <option value="June-2025">Jun-25</option>
+          <option value="July-2025">Jul-25</option>
+          <option value="August-2025">Aug-25</option>
+          <option value="September-2025">Sep-25</option>
+          <option value="October-2025">Oct-25</option>
+          <option value="November-2025">Nov-25</option>
+          <option value="December-2025">Dec-25</option>
+          <option value="January-2026">Jan-26</option>
+          <option value="February-2026">Feb-26</option>
+          <option value="March-2026" selected>Mar-26</option>
+        </select>
       </div>
       <div class="tb-div"></div>
       <span class="flbl">LOB</span>
@@ -1026,8 +1050,6 @@ async function fetchMappings(email){
       }
     });
     salesRepName = SALES_MAP[(email||'').toLowerCase().trim()] || null;
-    console.log('Sales map loaded:', Object.keys(SALES_MAP).length, 'entries');
-    console.log('Self sales rep:', salesRepName);
   }catch(e){ 
     if(e.message&&e.message.includes('parse range')){
       console.log('Sales Mapping sheet not created yet');
@@ -1050,8 +1072,6 @@ async function fetchMappings(email){
       }
     });
     opsRepName=OPS_MAP[(email||'').toLowerCase().trim()]||null;
-    console.log('Ops map loaded:',Object.keys(OPS_MAP).length,'entries | Self ops rep:',opsRepName);
-    console.log('Ops rep name:',opsRepName);
   }catch(e){ console.warn('Ops mapping error:',e); }
 }
 
@@ -1473,12 +1493,8 @@ async function loadData(){
     if(yrFromEl&&yrToEl&&MONTHS.length){
       var yr_opts=MONTHS.map(function(m){return '<option value="'+m+'">'+(MS[m]||m)+'</option>';}).join('');
       yrFromEl.innerHTML=yr_opts; yrToEl.innerHTML=yr_opts;
-      // Default: all available months
+      // Default: last 12 months or all available
       yrFromEl.value=MONTHS[0]; yrToEl.value=MONTHS[MONTHS.length-1];
-      // Update picker button labels
-      var yrFBtn=document.getElementById('yrFromBtn'),yrTBtn=document.getElementById('yrToBtn');
-      if(yrFBtn) yrFBtn.textContent=MS[MONTHS[0]]||MONTHS[0];
-      if(yrTBtn) yrTBtn.textContent=MS[MONTHS[MONTHS.length-1]]||MONTHS[MONTHS.length-1];
     }
     buildWeekEndSelector();
     document.getElementById('rts').textContent='Updated '+new Date().toLocaleTimeString();
@@ -1654,7 +1670,6 @@ async function fetchRoleMappings(){
       const mapped = g(mapC,i)||g(rawC,i);
       if(email && mapped) SALES_MAP[email.toLowerCase().trim()] = mapped;
     }
-    console.log('Sales map loaded:', Object.keys(SALES_MAP).length, 'entries');
   }catch(e){ console.warn('Sales Mapping sheet not found yet:', e.message); }
 
   try{
@@ -1667,7 +1682,6 @@ async function fetchRoleMappings(){
       const mapped = g(opB,i)||g(opA,i);
       if(email && mapped) OPS_MAP[email.toLowerCase().trim()] = mapped;
     }
-    console.log('Ops map loaded:', Object.keys(OPS_MAP).length, 'entries');
   }catch(e){ console.warn('Operations Mapping sheet not found yet:', e.message); }
 
   // Resolve current user's rep names
@@ -1675,7 +1689,6 @@ async function fetchRoleMappings(){
     const email = currentUser.email.toLowerCase();
     selfSalesRep = SALES_MAP[email] || null;
     selfOpsRep   = OPS_MAP[email]   || null;
-    console.log('Self sales rep:', selfSalesRep, '| Self ops rep:', selfOpsRep);
   }
 
   // Build team scope for Zonal Manager, Ops Manager
@@ -1803,8 +1816,39 @@ function shortFmt(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'s
 function buildWeekEndSelector(){
   const allWks=Object.keys(WKINFO).sort((a,b)=>WKINFO[b].sortKey-WKINFO[a].sortKey);
   const dp=document.getElementById('wkDatePick');
-  if(!dp.value&&allWks.length>0)dp.value=WKINFO[allWks[0]].end;
+  const sel=document.getElementById('wkSelect');
+
+  // Assign sequential display numbers (1 = oldest, N = newest)
+  const sortedAsc=allWks.slice().reverse(); // oldest first
+  const wkDisplayNum={};
+  sortedAsc.forEach(function(k,i){ wkDisplayNum[k]=i+1; });
+
+  if(sel){
+    // Build options: newest first so user sees most recent at top
+    var opts='';
+    allWks.forEach(function(k){
+      const info=WKINFO[k];
+      const num=wkDisplayNum[k];
+      opts+='<option value="'+info.end+'">Week '+num+' ('+info.start+' – '+info.end+')</option>';
+    });
+    sel.innerHTML=opts;
+    // Default: most recent week (first option)
+    if(allWks.length>0){
+      sel.value=WKINFO[allWks[0]].end;
+      if(dp) dp.value=sel.value;
+    }
+  } else {
+    // Fallback: just set hidden date input
+    if(!dp.value&&allWks.length>0) dp.value=WKINFO[allWks[0]].end;
+  }
 }
+function onWkSelectChange(){
+  var sel=document.getElementById('wkSelect');
+  var dp=document.getElementById('wkDatePick');
+  if(sel&&dp) dp.value=sel.value;
+  render();
+}
+
 function getLast5Weeks(){
   const dp=document.getElementById('wkDatePick');
   let endDate=dp&&dp.value?new Date(dp.value):new Date();
@@ -2123,18 +2167,16 @@ function setPeriod(p,el){
   if(p==='weekly'){
     wkInline.classList.add('show');
     const dp=document.getElementById('wkDatePick');
-    if(!dp.value){const today=new Date();const day=today.getDay();const daysToSat=day===6?0:(6-day);const sat=new Date(today);sat.setDate(today.getDate()+daysToSat);dp.value=sat.toISOString().split('T')[0];}
+    const wkSel=document.getElementById('wkSelect');
+    // If weeks already loaded, keep select in sync; otherwise fall back
+    if(wkSel&&wkSel.options.length>1){
+      if(!wkSel.value) wkSel.selectedIndex=0;
+      if(dp) dp.value=wkSel.value;
+    } else if(!dp.value){
+      const today=new Date();const day=today.getDay();const daysToSat=day===6?0:(6-day);const sat=new Date(today);sat.setDate(today.getDate()+daysToSat);dp.value=sat.toISOString().split('T')[0];
+    }
   } else if(p==='yearly'){
     fyInline.classList.add('show');
-    // Populate yrFrom/yrTo with MONTHS range (same as monthly fromM/toM)
-    if(MONTHS.length){
-      var yf=document.getElementById('yrFrom'),yt=document.getElementById('yrTo');
-      if(yf&&(!yf.value||MONTHS.indexOf(yf.value)<0)) yf.value=MONTHS[0];
-      if(yt&&(!yt.value||MONTHS.indexOf(yt.value)<0)) yt.value=MONTHS[MONTHS.length-1];
-      var yfb=document.getElementById('yrFromBtn'),ytb=document.getElementById('yrToBtn');
-      if(yfb&&yf) yfb.textContent=MS[yf.value]||yf.value;
-      if(ytb&&yt) ytb.textContent=MS[yt.value]||yt.value;
-    }
   } else if(p==='custom'){
     if(customRow) customRow.classList.add('show');
     const cf=document.getElementById('customFrom'),ct=document.getElementById('customTo');
@@ -2216,15 +2258,6 @@ function restorePanelFilters(name){
   var toEl   = document.getElementById('toM');
   if(fromEl) fromEl.value = saved.from || 'April-2025';
   if(toEl)   toEl.value   = saved.to   || 'March-2026';
-  // Sync picker button labels
-  var fBtn=document.getElementById('fromMBtn'),tBtn=document.getElementById('toMBtn');
-  if(fBtn&&fromEl) fBtn.textContent=MS[fromEl.value]||fromEl.value;
-  if(tBtn&&toEl)   tBtn.textContent=MS[toEl.value]||toEl.value;
-  // Yearly pickers
-  var yrFEl=document.getElementById('yrFrom'),yrTEl=document.getElementById('yrTo');
-  var yrFBtn=document.getElementById('yrFromBtn'),yrTBtn=document.getElementById('yrToBtn');
-  if(yrFBtn&&yrFEl&&yrFEl.value) yrFBtn.textContent=MS[yrFEl.value]||yrFEl.value;
-  if(yrTBtn&&yrTEl&&yrTEl.value) yrTBtn.textContent=MS[yrTEl.value]||yrTEl.value;
 
   // ── 4. Always hide ALL filter rows first ────────────────
   var drRow      = document.getElementById('drRow');
@@ -5080,9 +5113,9 @@ function buildMonthPickerHTML(pickerId, selectedVal){
   var html='<div style="padding:12px">';
   // Year navigation
   html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-  html+='<button onclick="mpNav(this,event)" data-id="'+pickerId+'" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(prevYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(prevYr?'‹':'')+'</button>';
+  html+='<button onclick="mpNav(this)" data-id="'+pickerId+'" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(prevYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(prevYr?'‹':'')+'</button>';
   html+='<span style="font-size:13px;font-weight:700;color:var(--text)">'+curYear+'</span>';
-  html+='<button onclick="mpNav(this,event)" data-id="'+pickerId+'" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(nextYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(nextYr?'›':'')+'</button>';
+  html+='<button onclick="mpNav(this)" data-id="'+pickerId+'" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(nextYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(nextYr?'›':'')+'</button>';
   html+='</div>';
   // Month grid
   html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">';
@@ -5093,7 +5126,7 @@ function buildMonthPickerHTML(pickerId, selectedVal){
     var bg=isSel?'var(--blue)':inData?'#eff4ff':'#f5f5f5';
     var col=isSel?'#fff':inData?'var(--blue)':'#aaa';
     var cursor=inData?'pointer':'default';
-    var onclick=inData?'mpPick(this,event)':'';
+    var onclick=inData?'mpPick(this)':'';
     html+='<button onclick="'+onclick+'" data-id="'+pickerId+'" data-val="'+mVal+'" style="padding:7px 4px;border:none;border-radius:6px;background:'+bg+';color:'+col+';font-size:11.5px;font-weight:'+(isSel?'700':'500')+';cursor:'+cursor+'">'+SHORT[mi]+'</button>';
   }
   html+='</div></div>';
@@ -5117,8 +5150,7 @@ function toggleMonthPicker(id){
   picker.style.left=rect.left+'px';
 }
 
-function mpNav(btn, e){
-  if(e){ e.stopPropagation(); }
+function mpNav(btn){
   var id=btn.dataset.id, dir=parseInt(btn.dataset.dir);
   var years={};
   MONTHS.forEach(function(m){ var yr=parseInt(m.split('-')[1]); if(yr) years[yr]=true; });
@@ -5132,8 +5164,7 @@ function mpNav(btn, e){
   if(picker) picker.innerHTML=buildMonthPickerHTML(id, sel?sel.value:'');
 }
 
-function mpPick(btn, e){
-  if(e) e.stopPropagation();
+function mpPick(btn){
   mpSelect(btn.dataset.id, btn.dataset.val);
 }
 
@@ -5141,7 +5172,7 @@ function mpSelect(id, val){
   var sel=document.getElementById(id);
   var btn=document.getElementById(id+'Btn');
   if(sel){ sel.value=val; }
-  if(btn){ btn.textContent=MS[val]||val; btn.style.borderColor=''; btn.style.color=''; }
+  if(btn){ btn.textContent=MS[val]||val; btn.style.borderColor='var(--blue)'; btn.style.color='var(--blue)'; }
   var picker=document.getElementById(id+'Picker');
   if(picker) picker.style.display='none';
   render();
@@ -5155,20 +5186,18 @@ function onMonthSelectChange(id){
 
 function updateMonthPickerButtons(){
   // Called after MONTHS is built to update button labels
-  var pairs=[
-    {sel:'fromM',  btn:'fromMBtn',  def:0},
-    {sel:'toM',    btn:'toMBtn',    def:-1},
-    {sel:'yrFrom', btn:'yrFromBtn', def:0},
-    {sel:'yrTo',   btn:'yrToBtn',   def:-1}
-  ];
-  pairs.forEach(function(p){
-    var selEl=document.getElementById(p.sel);
-    var btnEl=document.getElementById(p.btn);
-    if(!selEl||!btnEl||!MONTHS.length) return;
-    var defVal=MONTHS[p.def<0?MONTHS.length+p.def:p.def];
-    if(!selEl.value||MONTHS.indexOf(selEl.value)<0) selEl.value=defVal;
-    btnEl.textContent=MS[selEl.value]||selEl.value;
-  });
+  var fromSel=document.getElementById('fromM');
+  var toSel=document.getElementById('toM');
+  var fromBtn=document.getElementById('fromMBtn');
+  var toBtn=document.getElementById('toMBtn');
+  if(fromSel&&fromBtn&&MONTHS.length){
+    if(!fromSel.value||MONTHS.indexOf(fromSel.value)<0) fromSel.value=MONTHS[0];
+    fromBtn.textContent=MS[fromSel.value]||fromSel.value;
+  }
+  if(toSel&&toBtn&&MONTHS.length){
+    if(!toSel.value||MONTHS.indexOf(toSel.value)<0) toSel.value=MONTHS[MONTHS.length-1];
+    toBtn.textContent=MS[toSel.value]||toSel.value;
+  }
 }
 
 // Close pickers on outside click
