@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
 <title>SAR Indonesia · Sales Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
@@ -463,11 +464,12 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
       </div>
       <div class="wk-inline" id="wkInline" style="gap:6px">
         <span class="wk-lbl">Week</span>
-        <select class="fsel" id="wkSelect" onchange="onWkSelectChange()" style="min-width:210px;font-size:11.5px">
-          <option value="">Loading weeks...</option>
-        </select>
+        <div style="position:relative;display:inline-block">
+          <button id="wkBtn" onclick="toggleWeekPicker(event)" class="mp-btn" style="min-width:100px">--</button>
+          <div id="wkPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:260px"></div>
+        </div>
         <!-- Hidden date input kept for getLast5Weeks() compatibility -->
-        <input type="date" id="wkDatePick" style="display:none" onchange="render()">
+        <input type="date" id="wkDatePick" style="display:none">
       </div>
       <div class="fy-inline" id="fyInline" style="gap:6px;align-items:center">
         <span class="wk-lbl">FROM</span>
@@ -1050,6 +1052,8 @@ async function fetchMappings(email){
       }
     });
     salesRepName = SALES_MAP[(email||'').toLowerCase().trim()] || null;
+    console.log('Sales map loaded:', Object.keys(SALES_MAP).length, 'entries');
+    console.log('Self sales rep:', salesRepName);
   }catch(e){ 
     if(e.message&&e.message.includes('parse range')){
       console.log('Sales Mapping sheet not created yet');
@@ -1072,6 +1076,8 @@ async function fetchMappings(email){
       }
     });
     opsRepName=OPS_MAP[(email||'').toLowerCase().trim()]||null;
+    console.log('Ops map loaded:',Object.keys(OPS_MAP).length,'entries | Self ops rep:',opsRepName);
+    console.log('Ops rep name:',opsRepName);
   }catch(e){ console.warn('Ops mapping error:',e); }
 }
 
@@ -1670,6 +1676,7 @@ async function fetchRoleMappings(){
       const mapped = g(mapC,i)||g(rawC,i);
       if(email && mapped) SALES_MAP[email.toLowerCase().trim()] = mapped;
     }
+    console.log('Sales map loaded:', Object.keys(SALES_MAP).length, 'entries');
   }catch(e){ console.warn('Sales Mapping sheet not found yet:', e.message); }
 
   try{
@@ -1682,6 +1689,7 @@ async function fetchRoleMappings(){
       const mapped = g(opB,i)||g(opA,i);
       if(email && mapped) OPS_MAP[email.toLowerCase().trim()] = mapped;
     }
+    console.log('Ops map loaded:', Object.keys(OPS_MAP).length, 'entries');
   }catch(e){ console.warn('Operations Mapping sheet not found yet:', e.message); }
 
   // Resolve current user's rep names
@@ -1689,6 +1697,7 @@ async function fetchRoleMappings(){
     const email = currentUser.email.toLowerCase();
     selfSalesRep = SALES_MAP[email] || null;
     selfOpsRep   = OPS_MAP[email]   || null;
+    console.log('Self sales rep:', selfSalesRep, '| Self ops rep:', selfOpsRep);
   }
 
   // Build team scope for Zonal Manager, Ops Manager
@@ -1814,41 +1823,23 @@ function fmtDate(d){return d.toISOString().split('T')[0];}
 function shortFmt(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});}
 
 function buildWeekEndSelector(){
-  const allWks=Object.keys(WKINFO).sort((a,b)=>WKINFO[b].sortKey-WKINFO[a].sortKey);
-  const dp=document.getElementById('wkDatePick');
-  const sel=document.getElementById('wkSelect');
-
-  // Assign sequential display numbers (1 = oldest, N = newest)
-  const sortedAsc=allWks.slice().reverse(); // oldest first
-  const wkDisplayNum={};
-  sortedAsc.forEach(function(k,i){ wkDisplayNum[k]=i+1; });
-
-  if(sel){
-    // Build options: newest first so user sees most recent at top
-    var opts='';
-    allWks.forEach(function(k){
-      const info=WKINFO[k];
-      const num=wkDisplayNum[k];
-      opts+='<option value="'+info.end+'">Week '+num+' ('+info.start+' – '+info.end+')</option>';
-    });
-    sel.innerHTML=opts;
-    // Default: most recent week (first option)
-    if(allWks.length>0){
-      sel.value=WKINFO[allWks[0]].end;
-      if(dp) dp.value=sel.value;
-    }
-  } else {
-    // Fallback: just set hidden date input
-    if(!dp.value&&allWks.length>0) dp.value=WKINFO[allWks[0]].end;
+  var allWks=Object.keys(WKINFO).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;});
+  var dp=document.getElementById('wkDatePick');
+  var btn=document.getElementById('wkBtn');
+  if(allWks.length>0){
+    var latest=allWks[0];
+    if(!dp.value) dp.value=WKINFO[latest].end;
+    // Set initial year for picker to the latest week's year
+    _wpCurrentYear=WKINFO[latest].sortKey/100|0; // floor div
+    // Update button label
+    if(btn){ btn.textContent=wkBtnLabel(latest); }
   }
 }
-function onWkSelectChange(){
-  var sel=document.getElementById('wkSelect');
-  var dp=document.getElementById('wkDatePick');
-  if(sel&&dp) dp.value=sel.value;
-  render();
+function wkBtnLabel(key){
+  if(!WKINFO[key]) return '--';
+  var parts=key.split('-'); // "2026-14"
+  return 'W'+parseInt(parts[1])+' · '+parts[0];
 }
-
 function getLast5Weeks(){
   const dp=document.getElementById('wkDatePick');
   let endDate=dp&&dp.value?new Date(dp.value):new Date();
@@ -2167,13 +2158,12 @@ function setPeriod(p,el){
   if(p==='weekly'){
     wkInline.classList.add('show');
     const dp=document.getElementById('wkDatePick');
-    const wkSel=document.getElementById('wkSelect');
-    // If weeks already loaded, keep select in sync; otherwise fall back
-    if(wkSel&&wkSel.options.length>1){
-      if(!wkSel.value) wkSel.selectedIndex=0;
-      if(dp) dp.value=wkSel.value;
-    } else if(!dp.value){
-      const today=new Date();const day=today.getDay();const daysToSat=day===6?0:(6-day);const sat=new Date(today);sat.setDate(today.getDate()+daysToSat);dp.value=sat.toISOString().split('T')[0];
+    if(!dp.value){const today=new Date();const day=today.getDay();const daysToSat=day===6?0:(6-day);const sat=new Date(today);sat.setDate(today.getDate()+daysToSat);dp.value=sat.toISOString().split('T')[0];}
+    // Sync wkBtn label with current selection
+    if(dp.value&&Object.keys(WKINFO).length>0){
+      var matchKey=Object.keys(WKINFO).find(function(k){return WKINFO[k].end===dp.value;});
+      var wkBtn=document.getElementById('wkBtn');
+      if(wkBtn&&matchKey) wkBtn.textContent=wkBtnLabel(matchKey);
     }
   } else if(p==='yearly'){
     fyInline.classList.add('show');
@@ -5090,7 +5080,8 @@ function renderTLCharts(){
 // ================================================================
 // MONTH-YEAR CALENDAR PICKER
 // ================================================================
-var _mpCurrentYear = {}; // track year shown per picker
+var _mpCurrentYear = {};
+var _wpCurrentYear = null; // week picker year // track year shown per picker
 
 function buildMonthPickerHTML(pickerId, selectedVal){
   var MONTH_NAMES=['January','February','March','April','May','June',
@@ -5113,9 +5104,9 @@ function buildMonthPickerHTML(pickerId, selectedVal){
   var html='<div style="padding:12px">';
   // Year navigation
   html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-  html+='<button onclick="mpNav(this)" data-id="'+pickerId+'" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(prevYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(prevYr?'‹':'')+'</button>';
+  html+='<button onclick="mpNav(this,event)" data-id="'+pickerId+'" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(prevYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(prevYr?'‹':'')+'</button>';
   html+='<span style="font-size:13px;font-weight:700;color:var(--text)">'+curYear+'</span>';
-  html+='<button onclick="mpNav(this)" data-id="'+pickerId+'" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(nextYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(nextYr?'›':'')+'</button>';
+  html+='<button onclick="mpNav(this,event)" data-id="'+pickerId+'" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(nextYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(nextYr?'›':'')+'</button>';
   html+='</div>';
   // Month grid
   html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">';
@@ -5126,7 +5117,7 @@ function buildMonthPickerHTML(pickerId, selectedVal){
     var bg=isSel?'var(--blue)':inData?'#eff4ff':'#f5f5f5';
     var col=isSel?'#fff':inData?'var(--blue)':'#aaa';
     var cursor=inData?'pointer':'default';
-    var onclick=inData?'mpPick(this)':'';
+    var onclick=inData?'mpPick(this,event)':'';
     html+='<button onclick="'+onclick+'" data-id="'+pickerId+'" data-val="'+mVal+'" style="padding:7px 4px;border:none;border-radius:6px;background:'+bg+';color:'+col+';font-size:11.5px;font-weight:'+(isSel?'700':'500')+';cursor:'+cursor+'">'+SHORT[mi]+'</button>';
   }
   html+='</div></div>';
@@ -5150,7 +5141,8 @@ function toggleMonthPicker(id){
   picker.style.left=rect.left+'px';
 }
 
-function mpNav(btn){
+function mpNav(btn,e){
+  if(e){e.stopPropagation();e.preventDefault();}
   var id=btn.dataset.id, dir=parseInt(btn.dataset.dir);
   var years={};
   MONTHS.forEach(function(m){ var yr=parseInt(m.split('-')[1]); if(yr) years[yr]=true; });
@@ -5164,7 +5156,8 @@ function mpNav(btn){
   if(picker) picker.innerHTML=buildMonthPickerHTML(id, sel?sel.value:'');
 }
 
-function mpPick(btn){
+function mpPick(btn,e){
+  if(e){e.stopPropagation();}
   mpSelect(btn.dataset.id, btn.dataset.val);
 }
 
@@ -5200,9 +5193,139 @@ function updateMonthPickerButtons(){
   }
 }
 
+
+// ─────────────────────────────────────────
+// WEEK PICKER (floating panel, like month picker)
+// ─────────────────────────────────────────
+function toggleWeekPicker(e){
+  if(e){e.stopPropagation();}
+  var btn=document.getElementById('wkBtn');
+  var picker=document.getElementById('wkPicker');
+  if(!btn||!picker) return;
+  // Close all other pickers
+  document.querySelectorAll('[id$="Picker"]').forEach(function(el){
+    if(el!==picker&&el.style.display!=='none') el.style.display='none';
+  });
+  if(picker.style.display==='block'){ picker.style.display='none'; return; }
+  // Determine current year to show
+  var dp=document.getElementById('wkDatePick');
+  if(!_wpCurrentYear){
+    // derive from current selection or latest week
+    var allWks=Object.keys(WKINFO).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;});
+    _wpCurrentYear=allWks.length>0?(WKINFO[allWks[0]].sortKey/100|0):new Date().getFullYear();
+  }
+  picker.innerHTML=buildWeekPickerHTML(_wpCurrentYear, dp?dp.value:'');
+  picker.style.display='block';
+  var rect=btn.getBoundingClientRect();
+  picker.style.top=(rect.bottom+4)+'px';
+  picker.style.left=rect.left+'px';
+}
+
+function buildWeekPickerHTML(year, selectedEndDate){
+  // Get all years that have week data
+  var years={};
+  Object.keys(WKINFO).forEach(function(k){ var y=parseInt(k.split('-')[0]); years[y]=true; });
+  var yearList=Object.keys(years).map(Number).sort();
+  if(yearList.length===0) yearList=[new Date().getFullYear()];
+  if(yearList.indexOf(year)<0) year=yearList[yearList.length-1];
+  _wpCurrentYear=year;
+
+  var prevYr=yearList.indexOf(year)>0?yearList[yearList.indexOf(year)-1]:null;
+  var nextYr=yearList.indexOf(year)<yearList.length-1?yearList[yearList.indexOf(year)+1]:null;
+
+  // Which weeks in this year have data?
+  var weeksWithData={};
+  Object.keys(WKINFO).forEach(function(k){
+    var parts=k.split('-');
+    if(parseInt(parts[0])===year) weeksWithData[parseInt(parts[1])]=k;
+  });
+
+  // Total weeks in this year (ISO: 52 or 53)
+  var totalWeeks=weeksInYear(year);
+
+  // Which week is currently selected?
+  var selKey=null;
+  if(selectedEndDate){
+    Object.keys(WKINFO).forEach(function(k){
+      if(WKINFO[k].end===selectedEndDate) selKey=k;
+    });
+  }
+  var selWeekNum=selKey&&selKey.split('-')[0]==year?parseInt(selKey.split('-')[1]):null;
+
+  var html='<div style="padding:12px;min-width:260px">';
+  // Year nav header
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  html+='<button onmousedown="wkNavYear(this,event)" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(prevYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(prevYr?'‹':'')+'</button>';
+  html+='<span style="font-size:13px;font-weight:700;color:var(--text)">'+year+'</span>';
+  html+='<button onmousedown="wkNavYear(this,event)" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(nextYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(nextYr?'›':'')+'</button>';
+  html+='</div>';
+  // Week grid — 4 columns
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">';
+  for(var w=1;w<=totalWeeks;w++){
+    var hasData=!!weeksWithData[w];
+    var isSel=w===selWeekNum;
+    var bg=isSel?'var(--blue)':hasData?'#eff4ff':'#f5f5f5';
+    var col=isSel?'#fff':hasData?'var(--blue)':'#bbb';
+    var cursor=hasData?'pointer':'default';
+    var onclick=hasData?'onmousedown="wkPickWeek(this,event)" data-key="'+weeksWithData[w]+'"':'';
+    html+='<button '+onclick+' style="padding:6px 2px;border:none;border-radius:6px;background:'+bg+';color:'+col+';font-size:11px;font-weight:'+(isSel?'700':'500')+';cursor:'+cursor+'">W'+w+'</button>';
+  }
+  html+='</div>';
+  // Show selected week date range
+  if(selKey&&WKINFO[selKey]){
+    html+='<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border-l);font-size:10.5px;color:var(--text3);text-align:center">';
+    html+=WKINFO[selKey].start+' – '+WKINFO[selKey].end;
+    html+='</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function weeksInYear(year){
+  // ISO weeks: a year has 53 weeks if Jan 1 or Dec 31 is Thursday
+  var d=new Date(year,0,1); var day=d.getDay()||7;
+  if(day===4) return 53;
+  d=new Date(year,11,31); day=d.getDay()||7;
+  if(day===4) return 53;
+  return 52;
+}
+
+function wkNavYear(btn,e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  var dir=parseInt(btn.dataset.dir);
+  var years={};
+  Object.keys(WKINFO).forEach(function(k){ var y=parseInt(k.split('-')[0]); years[y]=true; });
+  var yearList=Object.keys(years).map(Number).sort();
+  var cur=_wpCurrentYear||yearList[yearList.length-1];
+  var i=yearList.indexOf(cur)+dir;
+  if(i<0||i>=yearList.length) return;
+  _wpCurrentYear=yearList[i];
+  var dp=document.getElementById('wkDatePick');
+  var picker=document.getElementById('wkPicker');
+  if(picker) picker.innerHTML=buildWeekPickerHTML(_wpCurrentYear, dp?dp.value:'');
+}
+
+function wkPickWeek(btn,e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  var key=btn.dataset.key;
+  if(!key||!WKINFO[key]) return;
+  var dp=document.getElementById('wkDatePick');
+  var wkBtn=document.getElementById('wkBtn');
+  if(dp) dp.value=WKINFO[key].end;
+  if(wkBtn) wkBtn.textContent=wkBtnLabel(key);
+  var picker=document.getElementById('wkPicker');
+  if(picker) picker.style.display='none';
+  render();
+}
 // Close pickers on outside click
 document.addEventListener('click', function(e){
-  if(!e.target.closest||(!e.target.closest('[id$="Picker"]')&&!e.target.closest('button[id$="Btn"]'))){
+  var insidePicker = e.target.closest && (
+    e.target.closest('[id$="Picker"]') ||
+    e.target.closest('#wkBtn') ||
+    e.target.closest('button[id$="Btn"]') ||
+    e.target.closest('.mp-btn')
+  );
+  if(!insidePicker){
     document.querySelectorAll('[id$="Picker"]').forEach(function(el){ el.style.display='none'; });
   }
 });
