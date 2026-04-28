@@ -111,7 +111,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .hbtn{background:none;border:none;cursor:pointer;padding:5px;color:var(--text2);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .hbtn:hover{background:var(--bg)}
 .brand{display:flex;align-items:center;gap:8px}
-.b-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.b-icon{width:24px;height:24px;border-radius:5px;background:linear-gradient(135deg,#1e40af,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
 .b-name{font-weight:700;font-size:12.5px;line-height:1.2}
 .b-sub{font-size:9.5px;color:var(--text3)}
 .tb1-right{margin-left:auto;display:flex;align-items:center;gap:8px}
@@ -473,42 +473,19 @@ td.m-var.neg{color:var(--red)!important;font-weight:700}
         <input type="date" id="wkDatePick" style="display:none">
       </div>
       <div class="fy-inline" id="fyInline" style="gap:6px;align-items:center">
-        <span class="wk-lbl">FROM</span>
-        <select class="wk-n" id="yrFrom" onchange="render()" style="min-width:90px">
-          <option value="January-2025">Jan-25</option>
-          <option value="February-2025">Feb-25</option>
-          <option value="March-2025">Mar-25</option>
-          <option value="April-2025">Apr-25</option>
-          <option value="May-2025">May-25</option>
-          <option value="June-2025">Jun-25</option>
-          <option value="July-2025">Jul-25</option>
-          <option value="August-2025">Aug-25</option>
-          <option value="September-2025">Sep-25</option>
-          <option value="October-2025">Oct-25</option>
-          <option value="November-2025">Nov-25</option>
-          <option value="December-2025">Dec-25</option>
-          <option value="January-2026" selected>Jan-26</option>
-          <option value="February-2026">Feb-26</option>
-          <option value="March-2026">Mar-26</option>
-        </select>
-        <span class="wk-lbl">TO</span>
-        <select class="wk-n" id="yrTo" onchange="render()" style="min-width:90px">
-          <option value="January-2025" selected>Jan-25</option>
-          <option value="February-2025">Feb-25</option>
-          <option value="March-2025">Mar-25</option>
-          <option value="April-2025">Apr-25</option>
-          <option value="May-2025">May-25</option>
-          <option value="June-2025">Jun-25</option>
-          <option value="July-2025">Jul-25</option>
-          <option value="August-2025">Aug-25</option>
-          <option value="September-2025">Sep-25</option>
-          <option value="October-2025">Oct-25</option>
-          <option value="November-2025">Nov-25</option>
-          <option value="December-2025">Dec-25</option>
-          <option value="January-2026">Jan-26</option>
-          <option value="February-2026">Feb-26</option>
-          <option value="March-2026" selected>Mar-26</option>
-        </select>
+        <span class="flbl">FROM</span>
+        <div style="position:relative;display:inline-block">
+          <button id="yrFromBtn" onclick="toggleMonthPicker('yrFrom')" class="mp-btn" style="min-width:80px">--</button>
+          <div id="yrFromPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:220px"></div>
+        </div>
+        <span class="flbl">TO</span>
+        <div style="position:relative;display:inline-block">
+          <button id="yrToBtn" onclick="toggleMonthPicker('yrTo')" class="mp-btn" style="min-width:80px">--</button>
+          <div id="yrToPicker" style="display:none;position:fixed;z-index:9999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0;min-width:220px"></div>
+        </div>
+        <!-- Hidden selects keep compatibility with getYearlyRange() -->
+        <select id="yrFrom" onchange="onMonthSelectChange('yrFrom');render()" style="display:none"></select>
+        <select id="yrTo"   onchange="onMonthSelectChange('yrTo');render()"   style="display:none"></select>
       </div>
       <div class="tb-div"></div>
       <span class="flbl">LOB</span>
@@ -1305,6 +1282,7 @@ function buildSelectors(forceRebuild){
   f.value=MONTHS[0]||'April-2025'; t.value=MONTHS[MONTHS.length-1]||'March-2026';
   // Rep filter -- full-access roles see All Reps; others see only their scope
   const rs=document.getElementById('repF');
+  rs.innerHTML = ''; // always clear first to prevent duplicates on rebuild
   if(isFullAccess()){
     // Admin / Regional Manager / Finance: All Reps + every rep
     const allOpt=document.createElement('option');
@@ -1496,8 +1474,10 @@ async function loadData(){
     if(yrFromEl&&yrToEl&&MONTHS.length){
       var yr_opts=MONTHS.map(function(m){return '<option value="'+m+'">'+(MS[m]||m)+'</option>';}).join('');
       yrFromEl.innerHTML=yr_opts; yrToEl.innerHTML=yr_opts;
-      // Default: last 12 months or all available
       yrFromEl.value=MONTHS[0]; yrToEl.value=MONTHS[MONTHS.length-1];
+      var yrFBtn=document.getElementById('yrFromBtn'),yrTBtn=document.getElementById('yrToBtn');
+      if(yrFBtn) yrFBtn.textContent=MS[MONTHS[0]]||MONTHS[0];
+      if(yrTBtn) yrTBtn.textContent=MS[MONTHS[MONTHS.length-1]]||MONTHS[MONTHS.length-1];
     }
     buildWeekEndSelector();
     document.getElementById('rts').textContent='Updated '+new Date().toLocaleTimeString();
@@ -1829,8 +1809,6 @@ function render(){
     var finPanel=document.getElementById('p-finance');
     if(finPanel && finPanel.style.display==='flex' && typeof renderFin==='function'){ renderFin(); return; }
   }catch(e){}
-  // If leaderboard is active, re-render leaderboard (don't switch to table)
-  if(typeof _showingLeaderboard!=='undefined'&&_showingLeaderboard){ renderLeaderboard(); return; }
   if(period==='yearly'){ renderYearly(); return; }
   const lob=document.getElementById('lobF').value;
   const repF=document.getElementById('repF').value;
@@ -2139,7 +2117,21 @@ function setPeriod(p,el){
     if(cf&&ct&&!cf.value){const d=new Date();ct.value=d.toISOString().split('T')[0];d.setDate(d.getDate()-30);cf.value=d.toISOString().split('T')[0];}
   } else {
     drRow.style.display='flex';
-    if(p==='monthly'){ var fEl=document.getElementById('fromM'),tEl=document.getElementById('toM'); if(fEl&&MONTHS.length){fEl.value=MONTHS[0];tEl.value=MONTHS[MONTHS.length-1];} }
+    if(p==='monthly'){
+      var fEl=document.getElementById('fromM'),tEl=document.getElementById('toM');
+      if(fEl&&MONTHS.length){
+        // Restore saved panel filter values; only default to MONTHS[0] if no saved value
+        var savedFrom=panelFilters['sales']&&panelFilters['sales'].from;
+        var savedTo=panelFilters['sales']&&panelFilters['sales'].to;
+        var useFrom=savedFrom&&MONTHS.indexOf(savedFrom)>=0?savedFrom:MONTHS[0];
+        var useTo=savedTo&&MONTHS.indexOf(savedTo)>=0?savedTo:MONTHS[MONTHS.length-1];
+        fEl.value=useFrom; tEl.value=useTo;
+        // Sync picker buttons
+        var fBtn=document.getElementById('fromMBtn'),tBtn=document.getElementById('toMBtn');
+        if(fBtn) fBtn.textContent=MS[useFrom]||useFrom;
+        if(tBtn) tBtn.textContent=MS[useTo]||useTo;
+      }
+    }
   }
   if(Object.keys(DATA).length>0||Object.keys(WKDATA).length>0)render();
 }
@@ -4734,6 +4726,8 @@ function toggleLeaderboard(){
   var btn = document.getElementById('lbBtnLabel');
   var icon = document.getElementById('lbIcon');
   if(_showingLeaderboard){
+    // Save current filter state before entering leaderboard so we can restore it
+    saveCurrentPanelFilters();
     btn.textContent = 'Table View';
     // Switch icon to table view icon
     icon.innerHTML = '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>';
@@ -4741,36 +4735,49 @@ function toggleLeaderboard(){
   } else {
     btn.textContent = 'Leaderboard';
     icon.innerHTML = '<rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/>';
-    render(); // restore normal table
+    // Restore saved filter state so FROM/TO reflect what user had before leaderboard
+    restorePanelFilters(currentPanel);
+    render();
   }
 }
 
 function renderLeaderboard(){
   var lob = document.getElementById('lobF').value;
-  // Always use full FY for leaderboard
-  // FY = Apr of start year to Mar of next year; use all available months for current FY
-  var now=new Date(); var curYr=now.getFullYear(); var curMo=now.getMonth(); // 0-indexed
-  var fyStartYr = curMo>=3 ? curYr : curYr-1; // Apr=month 3
-  var fyMonths = MONTHS.filter(function(m){
-    var p=m.split('-'); var mn=p[0]; var yr=parseInt(p[1]);
-    var MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
-    var mi=MONTH_NAMES.indexOf(mn);
-    return (yr===fyStartYr && mi>=3) || (yr===fyStartYr+1 && mi<=2);
-  });
-  if(fyMonths.length===0) fyMonths=MONTHS; // fallback
-  // Leaderboard always shows all reps (creates healthy competition)
-  var data = applyFilters(lob,'all',fyMonths);
+  // Use active period's months so leaderboard responds to period/date filters
+  var lbMonths;
+  if(period==='weekly'){
+    // For weekly: use the 5 displayed weeks' months
+    var wks=getLast5Weeks();
+    var mSet={};
+    wks.forEach(function(wk){ if(WKINFO[wk]) mSet[WKINFO[wk].end.substring(0,7)]=true; });
+    lbMonths=MONTHS.filter(function(m){ var d=new Date(m.split('-')[1]+'-'+((['January','February','March','April','May','June','July','August','September','October','November','December'].indexOf(m.split('-')[0])+1+'').padStart(2,'0'))+'-01'); return mSet[d.getFullYear()+'-'+(d.getMonth()+1+'').padStart(2,'0')]; });
+    if(!lbMonths.length) lbMonths=MONTHS;
+  } else if(period==='yearly'){
+    var yr=getYearlyRange();
+    lbMonths=yr.curPeriod||MONTHS;
+  } else if(period==='custom'){
+    // custom: use all months (no good way to subset)
+    lbMonths=MONTHS;
+  } else {
+    // monthly: use fromM → toM range
+    var from=document.getElementById('fromM').value;
+    var to=document.getElementById('toM').value;
+    lbMonths=getMonths(from,to);
+  }
+  if(!lbMonths||!lbMonths.length) lbMonths=MONTHS;
+  var data = applyFilters(lob,'all',lbMonths);
+  // All reps always shown (creates healthy competition)
   var repList = Object.keys(data);
 
   // Calculate totals per rep
   var repStats = repList.map(function(rep){
     var gp=0,rev=0,teu=0,shp=0;
-    fyMonths.forEach(function(m){
+    lbMonths.forEach(function(m){
       var d=data[rep]&&data[rep][m]?data[rep][m]:{};
       gp+=d.gp||0;rev+=d.rev||0;teu+=(d.teuFCL||0)+(d.teuTank||0);
       if(d.rev||d.gp) shp++;
     });
-    var tgt=(REP_TARGETS[rep]||0)*fyMonths.length;
+    var tgt=(REP_TARGETS[rep]||0)*lbMonths.length;
     var ach=tgt>0?((gp-tgt)/tgt*100):null;
     return {rep,gp,rev,teu,tgt,ach};
   });
@@ -4782,7 +4789,8 @@ function renderLeaderboard(){
 
   var maxGP = repStats.length>0?repStats[0].gp:1;
 
-  var fyLbl=MONTHS.length>0?(function(){var p=MONTHS[MONTHS.length-1].split('-');return 'FY '+(parseInt(p[1])-1)+'-'+p[1].slice(2);})():'FY'; setText('tbl-sub','Leaderboard · '+fyLbl);
+  var lbPeriodLbl=period==='monthly'?(function(){var f=document.getElementById('fromM'),t=document.getElementById('toM');return (MS[f&&f.value]||'')+' – '+(MS[t&&t.value]||'');}()):period==='yearly'?'Yearly':period==='weekly'?'Weekly':'Custom';
+  setText('tbl-sub','Leaderboard · '+lbPeriodLbl);
   setText('tbl-meta','Ranked by Gross Profit');
 
   var MEDAL=['🥇','🥈','🥉'];
@@ -4797,8 +4805,8 @@ function renderLeaderboard(){
     var achTxt=s.ach!==null?(s.ach>=0?'+':'')+s.ach.toFixed(1)+'%':'—';
     var achColor=s.ach===null?'var(--text3)':s.ach>=0?'var(--green)':'var(--red)';
     var hitTarget=s.tgt>0&&s.gp>=s.tgt;
-    var bg='#fff';
-    var borderColor='var(--border)';
+    var bg=rank===1?'#fffbeb':rank===2?'#f8faff':rank===3?'#fff8f0':'#fff';
+    var borderColor=rank===1?'#f59e0b':rank===2?'var(--blue)':rank===3?'#ea580c':'var(--border)';
     var ini2=s.rep.split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
     html+='<div style="background:'+bg+';border:1.5px solid '+borderColor+';border-radius:12px;padding:14px 18px">';
     html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
@@ -4807,8 +4815,7 @@ function renderLeaderboard(){
     html+='<div style="flex:1"><div style="font-weight:700;font-size:14px">'+s.rep+'</div>';
     html+='<div style="font-size:11px;color:var(--text3);margin-top:1px">'+s.teu.toFixed(1)+' TEUs · Ach: <span style="color:'+achColor+';font-weight:600">'+achTxt+'</span></div></div>';
     html+='<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:var(--green)">$'+Math.round(s.gp).toLocaleString()+'</div>';
-    var tgtLine=s.tgt>0?(hitTarget?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ Hit · Tgt: $'+Math.round(s.tgt).toLocaleString()+'</div>':'<div style="font-size:10px;color:var(--red);font-weight:500">Tgt: $'+Math.round(s.tgt).toLocaleString()+' · '+achTxt+'</div>'):'<div style="font-size:10px;color:var(--text3)">No target set</div>';
-    html+=tgtLine+'</div></div>';
+    html+=(hitTarget?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ Target Hit</div>':'<div style="font-size:10px;color:var(--red)">Target: $'+Math.round(s.tgt).toLocaleString()+'</div>')+'</div></div>';
     // Progress bar
     html+='<div style="position:relative;height:8px;background:#e5e7eb;border-radius:4px;overflow:visible">';
     html+='<div style="height:100%;width:'+Math.min(100,pct).toFixed(1)+'%;background:'+(hitTarget?'var(--green)':'var(--blue)')+';border-radius:4px;transition:width .4s"></div>';
@@ -5142,138 +5149,82 @@ function onMonthSelectChange(id){
 }
 
 function updateMonthPickerButtons(){
-  // Called after MONTHS is built to update button labels
-  var fromSel=document.getElementById('fromM');
-  var toSel=document.getElementById('toM');
-  var fromBtn=document.getElementById('fromMBtn');
-  var toBtn=document.getElementById('toMBtn');
-  if(fromSel&&fromBtn&&MONTHS.length){
-    if(!fromSel.value||MONTHS.indexOf(fromSel.value)<0) fromSel.value=MONTHS[0];
-    fromBtn.textContent=MS[fromSel.value]||fromSel.value;
-  }
-  if(toSel&&toBtn&&MONTHS.length){
-    if(!toSel.value||MONTHS.indexOf(toSel.value)<0) toSel.value=MONTHS[MONTHS.length-1];
-    toBtn.textContent=MS[toSel.value]||toSel.value;
-  }
+  var pairs=[
+    {sel:'fromM',  btn:'fromMBtn',  def:0},
+    {sel:'toM',    btn:'toMBtn',    def:-1},
+    {sel:'yrFrom', btn:'yrFromBtn', def:0},
+    {sel:'yrTo',   btn:'yrToBtn',   def:-1}
+  ];
+  pairs.forEach(function(p){
+    var selEl=document.getElementById(p.sel);
+    var btnEl=document.getElementById(p.btn);
+    if(!selEl||!btnEl||!MONTHS.length) return;
+    var defVal=MONTHS[p.def<0?MONTHS.length+p.def:p.def];
+    if(!selEl.value||MONTHS.indexOf(selEl.value)<0) selEl.value=defVal;
+    btnEl.textContent=MS[selEl.value]||selEl.value;
+  });
 }
 
 
 var _wpCurrentYear = null;
-
-function wkBtnLabel(key){
-  if(!WKINFO[key]) return '--';
-  var parts=key.split('-');
-  return 'W'+parseInt(parts[1])+' · '+parts[0];
-}
-
+function wkBtnLabel(key){ if(!WKINFO[key])return '--'; var p=key.split('-'); return 'W'+parseInt(p[1])+' · '+p[0]; }
 function buildWeekEndSelector(){
-  var allWks=Object.keys(WKINFO).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;});
-  var dp=document.getElementById('wkDatePick');
-  var btn=document.getElementById('wkBtn');
-  if(allWks.length>0){
-    var latest=allWks[0];
-    if(!dp||!dp.value){if(dp)dp.value=WKINFO[latest].end;}
-    _wpCurrentYear=parseInt(latest.split('-')[0]);
-    if(btn)btn.textContent=wkBtnLabel(latest);
-  }
+  var aw=Object.keys(WKINFO).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;});
+  var dp=document.getElementById('wkDatePick'),btn=document.getElementById('wkBtn');
+  if(aw.length>0){ var l=aw[0]; if(!dp||!dp.value){if(dp)dp.value=WKINFO[l].end;} _wpCurrentYear=parseInt(l.split('-')[0]); if(btn)btn.textContent=wkBtnLabel(l); }
 }
-
 function getLast5Weeks(){
-  var dp=document.getElementById('wkDatePick');
-  var endDate=dp&&dp.value?new Date(dp.value):new Date();
-  var eligible=Object.keys(WKINFO).filter(function(k){return new Date(WKINFO[k].end)<=endDate;}).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;});
-  return eligible.slice(0,5).reverse();
+  var dp=document.getElementById('wkDatePick'); var ed=dp&&dp.value?new Date(dp.value):new Date();
+  return Object.keys(WKINFO).filter(function(k){return new Date(WKINFO[k].end)<=ed;}).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;}).slice(0,5).reverse();
 }
-
 function toggleWeekPicker(e){
   if(e)e.stopPropagation();
-  var btn=document.getElementById('wkBtn');
-  var picker=document.getElementById('wkPicker');
+  var btn=document.getElementById('wkBtn'),picker=document.getElementById('wkPicker');
   if(!btn||!picker)return;
   document.querySelectorAll('[id$="Picker"]').forEach(function(el){if(el!==picker)el.style.display='none';});
   if(picker.style.display==='block'){picker.style.display='none';return;}
   var dp=document.getElementById('wkDatePick');
-  if(!_wpCurrentYear){
-    var allWks=Object.keys(WKINFO).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;});
-    _wpCurrentYear=allWks.length>0?parseInt(allWks[0].split('-')[0]):new Date().getFullYear();
-  }
+  if(!_wpCurrentYear){ var aw=Object.keys(WKINFO).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;}); _wpCurrentYear=aw.length>0?parseInt(aw[0].split('-')[0]):new Date().getFullYear(); }
   picker.innerHTML=buildWeekPickerHTML(_wpCurrentYear,dp?dp.value:'');
   picker.style.display='block';
-  var rect=btn.getBoundingClientRect();
-  picker.style.top=(rect.bottom+4)+'px';
-  picker.style.left=rect.left+'px';
+  var rect=btn.getBoundingClientRect(); picker.style.top=(rect.bottom+4)+'px'; picker.style.left=rect.left+'px';
 }
-
-function buildWeekPickerHTML(year,selectedEndDate){
-  var years={};
-  Object.keys(WKINFO).forEach(function(k){years[parseInt(k.split('-')[0])]=true;});
-  var yearList=Object.keys(years).map(Number).sort();
-  if(!yearList.length)yearList=[new Date().getFullYear()];
-  if(yearList.indexOf(year)<0)year=yearList[yearList.length-1];
-  _wpCurrentYear=year;
-  var prevYr=yearList.indexOf(year)>0?yearList[yearList.indexOf(year)-1]:null;
-  var nextYr=yearList.indexOf(year)<yearList.length-1?yearList[yearList.indexOf(year)+1]:null;
-  var weeksWithData={};
-  Object.keys(WKINFO).forEach(function(k){if(parseInt(k.split('-')[0])===year)weeksWithData[parseInt(k.split('-')[1])]=k;});
-  var totalWks=weeksInYear(year);
-  var selKey=null;
-  if(selectedEndDate)Object.keys(WKINFO).forEach(function(k){if(WKINFO[k].end===selectedEndDate)selKey=k;});
-  var selWk=selKey&&selKey.split('-')[0]==year?parseInt(selKey.split('-')[1]):null;
-  var html='<div style="padding:12px;min-width:260px">';
-  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-  html+='<button onmousedown="wkNavYear(this,event)" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(prevYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(prevYr?'&#8249;':'')+'</button>';
-  html+='<span style="font-size:13px;font-weight:700;color:var(--text)">'+year+'</span>';
-  html+='<button onmousedown="wkNavYear(this,event)" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(nextYr?'var(--blue)':'#ccc')+';padding:0 6px">'+(nextYr?'&#8250;':'')+'</button>';
-  html+='</div>';
-  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">';
-  for(var w=1;w<=totalWks;w++){
-    var hasData=!!weeksWithData[w];
-    var isSel=w===selWk;
-    var bg=isSel?'var(--blue)':hasData?'#eff4ff':'#f5f5f5';
-    var col=isSel?'#fff':hasData?'var(--blue)':'#bbb';
-    var md=hasData?'onmousedown="wkPickWeek(this,event)" data-key="'+weeksWithData[w]+'"':'';
-    html+='<button '+md+' style="padding:6px 2px;border:none;border-radius:6px;background:'+bg+';color:'+col+';font-size:11px;font-weight:'+(isSel?700:500)+';cursor:'+(hasData?'pointer':'default')+'">W'+w+'</button>';
+function buildWeekPickerHTML(year,selEnd){
+  var yrs={}; Object.keys(WKINFO).forEach(function(k){yrs[parseInt(k.split('-')[0])]=true;});
+  var yl=Object.keys(yrs).map(Number).sort(); if(!yl.length)yl=[new Date().getFullYear()];
+  if(yl.indexOf(year)<0)year=yl[yl.length-1]; _wpCurrentYear=year;
+  var pY=yl.indexOf(year)>0?yl[yl.indexOf(year)-1]:null, nY=yl.indexOf(year)<yl.length-1?yl[yl.indexOf(year)+1]:null;
+  var wd={}; Object.keys(WKINFO).forEach(function(k){if(parseInt(k.split('-')[0])===year)wd[parseInt(k.split('-')[1])]=k;});
+  var tw=weeksInYear(year), sk=null;
+  if(selEnd)Object.keys(WKINFO).forEach(function(k){if(WKINFO[k].end===selEnd)sk=k;});
+  var sw=sk&&sk.split('-')[0]==year?parseInt(sk.split('-')[1]):null;
+  var h='<div style="padding:12px;min-width:260px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  h+='<button onmousedown="wkNavYear(this,event)" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(pY?'var(--blue)':'#ccc')+';padding:0 6px">'+(pY?'&#8249;':'')+'</button>';
+  h+='<span style="font-size:13px;font-weight:700;color:var(--text)">'+year+'</span>';
+  h+='<button onmousedown="wkNavYear(this,event)" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+(nY?'var(--blue)':'#ccc')+';padding:0 6px">'+(nY?'&#8250;':'')+'</button>';
+  h+='</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">';
+  for(var w=1;w<=tw;w++){
+    var hd=!!wd[w],is=w===sw,bg=is?'var(--blue)':hd?'#eff4ff':'#f5f5f5',col=is?'#fff':hd?'var(--blue)':'#bbb';
+    var md=hd?'onmousedown="wkPickWeek(this,event)" data-key="'+wd[w]+'"':'';
+    h+='<button '+md+' style="padding:6px 2px;border:none;border-radius:6px;background:'+bg+';color:'+col+';font-size:11px;font-weight:'+(is?700:500)+';cursor:'+(hd?'pointer':'default')+'">W'+w+'</button>';
   }
-  html+='</div>';
-  if(selKey&&WKINFO[selKey])html+='<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border-l);font-size:10.5px;color:var(--text3);text-align:center">'+WKINFO[selKey].start+' – '+WKINFO[selKey].end+'</div>';
-  html+='</div>';
-  return html;
+  h+='</div>';
+  if(sk&&WKINFO[sk])h+='<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border-l);font-size:10.5px;color:var(--text3);text-align:center">'+WKINFO[sk].start+' – '+WKINFO[sk].end+'</div>';
+  return h+'</div>';
 }
-
-function weeksInYear(year){
-  var d=new Date(year,0,1);var day=d.getDay()||7;
-  if(day===4)return 53;
-  d=new Date(year,11,31);day=d.getDay()||7;
-  if(day===4)return 53;
-  return 52;
-}
-
-function wkNavYear(btn,e){
-  if(e){e.preventDefault();e.stopPropagation();}
-  var dir=parseInt(btn.dataset.dir);
-  var years={};
-  Object.keys(WKINFO).forEach(function(k){years[parseInt(k.split('-')[0])]=true;});
-  var yearList=Object.keys(years).map(Number).sort();
-  var cur=_wpCurrentYear||yearList[yearList.length-1];
-  var i=yearList.indexOf(cur)+dir;
-  if(i<0||i>=yearList.length)return;
-  _wpCurrentYear=yearList[i];
-  var dp=document.getElementById('wkDatePick');
-  var picker=document.getElementById('wkPicker');
+function weeksInYear(y){ var d=new Date(y,0,1),day=d.getDay()||7; if(day===4)return 53; d=new Date(y,11,31);day=d.getDay()||7; return day===4?53:52; }
+function wkNavYear(btn,e){ if(e){e.preventDefault();e.stopPropagation();} var dir=parseInt(btn.dataset.dir),yrs={};
+  Object.keys(WKINFO).forEach(function(k){yrs[parseInt(k.split('-')[0])]=true;}); var yl=Object.keys(yrs).map(Number).sort();
+  var cur=_wpCurrentYear||yl[yl.length-1],i=yl.indexOf(cur)+dir; if(i<0||i>=yl.length)return;
+  _wpCurrentYear=yl[i]; var dp=document.getElementById('wkDatePick'),picker=document.getElementById('wkPicker');
   if(picker)picker.innerHTML=buildWeekPickerHTML(_wpCurrentYear,dp?dp.value:'');
 }
-
-function wkPickWeek(btn,e){
-  if(e){e.preventDefault();e.stopPropagation();}
-  var key=btn.dataset.key;
-  if(!key||!WKINFO[key])return;
-  var dp=document.getElementById('wkDatePick');
-  var wkBtn=document.getElementById('wkBtn');
-  if(dp)dp.value=WKINFO[key].end;
-  if(wkBtn)wkBtn.textContent=wkBtnLabel(key);
-  var picker=document.getElementById('wkPicker');
-  if(picker)picker.style.display='none';
-  render();
+function wkPickWeek(btn,e){ if(e){e.preventDefault();e.stopPropagation();}
+  var key=btn.dataset.key; if(!key||!WKINFO[key])return;
+  var dp=document.getElementById('wkDatePick'),wb=document.getElementById('wkBtn');
+  if(dp)dp.value=WKINFO[key].end; if(wb)wb.textContent=wkBtnLabel(key);
+  var picker=document.getElementById('wkPicker'); if(picker)picker.style.display='none'; render();
 }
 
 // Close pickers on outside click
