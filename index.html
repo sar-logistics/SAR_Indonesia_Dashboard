@@ -13,7 +13,6 @@
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -905,22 +904,13 @@ let currentUser      = null;
 let currentRole      = null;
 let allowedReps      = [];      // legacy - kept for compat
 let oauthToken       = null;
-let _tokenClient     = null;
-const OAUTH_CLIENT_ID = '6494429949-pog7l1it4krau4lir9j374j25a6qvb52.apps.googleusercontent.com';
-const SHEETS_SCOPE    = 'https://www.googleapis.com/auth/spreadsheets.readonly';
-function requestOAuthToken(callback){
-  function doRequest(){
-    if(!_tokenClient){
-      _tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: OAUTH_CLIENT_ID, scope: SHEETS_SCOPE, prompt: '',
-        callback: function(resp){ if(resp&&resp.access_token) oauthToken=resp.access_token; if(callback)callback(); }
-      });
-    }
-    try{ _tokenClient.requestAccessToken({prompt:''}); } catch(e){ if(callback)callback(); }
-  }
-  if(typeof google!=='undefined'&&google.accounts) doRequest();
-  else setTimeout(function(){ if(typeof google!=='undefined'&&google.accounts) doRequest(); else if(callback)callback(); }, 500);
-}
+
+// Persist OAuth token across page refreshes (same tab session)
+function saveToken(t){ try{ if(t) sessionStorage.setItem('sarOAuthToken',t); }catch(e){} }
+function loadToken(){ try{ return sessionStorage.getItem('sarOAuthToken'); }catch(e){ return null; } }
+function clearToken(){ try{ sessionStorage.removeItem('sarOAuthToken'); }catch(e){} }
+// Restore on load
+oauthToken = loadToken();
 let currentUserUID   = null;    // Firestore doc ID
 let teamRepNames     = null;    // null=all, []=none, ['Aris',...]= specific reps (Sales Perf + TL)
 let teamOpsNames     = null;    // null=all, []=none, ['Eka Pratiwi',...]= specific ops (Ops Pendency)
@@ -930,13 +920,6 @@ let selfOpsRep       = null;    // mapped ops rep name from Ops Mapping sheet
 // ???????????????????????????????????????????????
 // AUTH FLOW
 // ???????????????????????????????????????????????
-// Handle redirect result FIRST (captures OAuth token after redirect sign-in)
-auth.getRedirectResult().then(async function(result){
-  if(result && result.credential){
-    oauthToken = result.credential.accessToken;
-  }
-}).catch(function(e){ console.warn('getRedirectResult error:', e); });
-
 auth.onAuthStateChanged(async user => {
   if(!user){
     // Show login screen
@@ -962,12 +945,15 @@ async function signInWithGoogle(){
   provider.setCustomParameters({prompt:'select_account'});
   try{
     document.getElementById('loginErr').style.display='none';
-    // Use redirect (avoids Cross-Origin-Opener-Policy popup errors)
-    await auth.signInWithRedirect(provider);
-    // Page will reload after redirect; oauthToken captured in getRedirectResult above
+    const result = await auth.signInWithPopup(provider);
+    // Get OAuth token for Sheets API
+    oauthToken = result.credential.accessToken;
+    saveToken(oauthToken); // persist for page refresh
   }catch(e){
     const err = document.getElementById('loginErr');
-    err.textContent = 'Sign-in failed: '+e.message;
+    err.textContent = e.code==='auth/popup-closed-by-user'
+      ? 'Sign-in cancelled. Please try again.'
+      : 'Sign-in failed: '+e.message;
     err.style.display='block';
   }
 }
@@ -1028,7 +1014,6 @@ async function loadUserProfile(user){
 
   buildSelectors();      // Build dropdowns FIRST
   applyNavVisibility();  // THEN set nav (may auto-navigate to ops panel)
-  if(!oauthToken){ await new Promise(function(resolve){ requestOAuthToken(resolve); }); }
   await loadData();
 }
 
@@ -1128,7 +1113,7 @@ function showAccessDenied(email){
 
 function doSignOut(){
   auth.signOut().then(()=>{
-    currentUser=null;currentRole=null;allowedReps=[];oauthToken=null;
+    currentUser=null;currentRole=null;allowedReps=[];oauthToken=null; clearToken();
     currentUserUID=null;teamRepNames=null;teamOpsNames=null;selfSalesRep=null;selfOpsRep=null;
     DATA={};GDATA={};WKDATA={};WKINFO={};TL_RAW=[];TL_DATA={};tlInited=false;PEND_RAW=[];opsInited=false;finInited=false;SHIP_RAW=[];SALES_MAP={};OPS_MAP={};SHIP_RAW=[];
     location.reload();
@@ -1303,7 +1288,7 @@ function buildSelectors(forceRebuild){
   f.value=MONTHS[0]||'April-2025'; t.value=MONTHS[MONTHS.length-1]||'March-2026';
   // Rep filter -- full-access roles see All Reps; others see only their scope
   const rs=document.getElementById('repF');
-  rs.innerHTML = ''; // clear to prevent duplicates
+  rs.innerHTML='';
   if(isFullAccess()){
     // Admin / Regional Manager / Finance: All Reps + every rep
     const allOpt=document.createElement('option');
@@ -1440,7 +1425,7 @@ function getEffectiveOpsFilter(repF){
 }
 
 // ???????????????????????????????????????????????
-// SHEETS API -- uses OAuth token if available, else API key fallback
+// SHEETS API -- uses OAuth token (from popup login or sessionStorage), falls back to API key
 // ???????????????????????????????????????????????
 async function apiFetch(url){
   if(oauthToken){
@@ -1448,20 +1433,58 @@ async function apiFetch(url){
       const r=await fetch(url,{headers:{'Authorization':'Bearer '+oauthToken}});
       const j=await r.json();
       if(!j.error) return j;
-      oauthToken=null;
-      await new Promise(function(res){ requestOAuthToken(res); });
-      if(oauthToken){
-        const r2=await fetch(url,{headers:{'Authorization':'Bearer '+oauthToken}});
-        const j2=await r2.json();
-        if(!j2.error) return j2;
-      }
+      // Token expired — clear it and fall through to re-login prompt
+      console.warn('OAuth token expired, clearing...');
+      oauthToken=null; clearToken();
     }catch(e){console.warn('OAuth fetch error',e);}
   }
+  // API key fallback (works if sheet has been shared with the API key's project,
+  // or if the user needs to re-login for a fresh token)
   const sep=url.includes('?')?'&':'?';
   const r=await fetch(url+sep+'key=AIzaSyCQ4oi4_KoZdh1J1Xvenr-vXoF8YDgPF-8');
   const j=await r.json();
-  if(j.error) throw new Error(j.error.message);
+  if(j.error){
+    // API key also failed — token expired and sheet is private
+    // Show a gentle re-auth prompt rather than crashing
+    if(j.error.code===403||j.error.code===401){
+      showReauthPrompt();
+      throw new Error('Session expired. Please sign in again to reload data.');
+    }
+    throw new Error(j.error.message);
+  }
   return j;
+}
+
+function showReauthPrompt(){
+  var eb=document.getElementById('ebar');
+  if(!eb||eb.dataset.reauth) return;
+  eb.dataset.reauth='1';
+  var d=document.createElement('div');
+  d.style.cssText='background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 14px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:10px';
+  d.innerHTML='<span>&#9888; Your session token has expired. Data may be stale.</span>';
+  var btn=document.createElement('button');
+  btn.textContent='Re-authenticate';
+  btn.style.cssText='background:#f59e0b;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11.5px;cursor:pointer;font-weight:600';
+  btn.onclick=reSignIn;
+  var xbtn=document.createElement('button');
+  xbtn.textContent='×';
+  xbtn.style.cssText='background:none;border:none;cursor:pointer;font-size:16px;color:#92400e;padding:0 4px';
+  xbtn.onclick=function(){eb.innerHTML='';delete eb.dataset.reauth;};
+  d.appendChild(btn);d.appendChild(xbtn);
+  eb.appendChild(d);
+}
+
+async function reSignIn(){
+  var eb=document.getElementById('ebar');
+  if(eb){eb.innerHTML='';delete eb.dataset.reauth;}
+  const provider=new firebase.auth.GoogleAuthProvider();
+  provider.addScope('https://www.googleapis.com/auth/spreadsheets.readonly');
+  try{
+    const result=await auth.signInWithPopup(provider);
+    oauthToken=result.credential.accessToken;
+    saveToken(oauthToken);
+    loadData();
+  }catch(e){ console.warn('Re-auth failed:',e); }
 }
 function batchUrl(sheet,cols){
   // UNFORMATTED_VALUE returns raw numbers (290.531...) not display strings ('$291')
@@ -1500,8 +1523,6 @@ async function loadData(){
       yrFromEl.innerHTML=yr_opts; yrToEl.innerHTML=yr_opts;
       // Default: last 12 months or all available
       yrFromEl.value=MONTHS[0]; yrToEl.value=MONTHS[MONTHS.length-1];
-      var yrFB=document.getElementById('yrFromBtn'),yrTB=document.getElementById('yrToBtn');
-      if(yrFB)yrFB.textContent=MS[MONTHS[0]]||MONTHS[0]; if(yrTB)yrTB.textContent=MS[MONTHS[MONTHS.length-1]]||MONTHS[MONTHS.length-1];
     }
     buildWeekEndSelector();
     document.getElementById('rts').textContent='Updated '+new Date().toLocaleTimeString();
@@ -1833,8 +1854,7 @@ function render(){
     var finPanel=document.getElementById('p-finance');
     if(finPanel && finPanel.style.display==='flex' && typeof renderFin==='function'){ renderFin(); return; }
   }catch(e){}
-  // Leaderboard intercept — stays active when filters change
-  if(typeof _showingLeaderboard!=='undefined' && _showingLeaderboard){ renderLeaderboard(); return; }
+  if(typeof _showingLeaderboard!=='undefined'&&_showingLeaderboard){ renderLeaderboard(); return; }
   if(period==='yearly'){ renderYearly(); return; }
   const lob=document.getElementById('lobF').value;
   const repF=document.getElementById('repF').value;
@@ -2143,16 +2163,7 @@ function setPeriod(p,el){
     if(cf&&ct&&!cf.value){const d=new Date();ct.value=d.toISOString().split('T')[0];d.setDate(d.getDate()-30);cf.value=d.toISOString().split('T')[0];}
   } else {
     drRow.style.display='flex';
-    if(p==='monthly'){
-      var fEl=document.getElementById('fromM'),tEl=document.getElementById('toM');
-      if(fEl&&MONTHS.length){
-        var sv=panelFilters['sales']&&panelFilters['sales'].from; var st=panelFilters['sales']&&panelFilters['sales'].to;
-        var uf=sv&&MONTHS.indexOf(sv)>=0?sv:MONTHS[0]; var ut=st&&MONTHS.indexOf(st)>=0?st:MONTHS[MONTHS.length-1];
-        fEl.value=uf; tEl.value=ut;
-        var fb=document.getElementById('fromMBtn'),tb=document.getElementById('toMBtn');
-        if(fb)fb.textContent=MS[uf]||uf; if(tb)tb.textContent=MS[ut]||ut;
-      }
-    }
+    if(p==='monthly'){var fEl=document.getElementById('fromM'),tEl=document.getElementById('toM');if(fEl&&MONTHS.length){var sv=panelFilters['sales']&&panelFilters['sales'].from,st=panelFilters['sales']&&panelFilters['sales'].to;var uf=sv&&MONTHS.indexOf(sv)>=0?sv:MONTHS[0],ut=st&&MONTHS.indexOf(st)>=0?st:MONTHS[MONTHS.length-1];fEl.value=uf;tEl.value=ut;var fb=document.getElementById('fromMBtn'),tb=document.getElementById('toMBtn');if(fb)fb.textContent=MS[uf]||uf;if(tb)tb.textContent=MS[ut]||ut;}}
   }
   if(Object.keys(DATA).length>0||Object.keys(WKDATA).length>0)render();
 }
@@ -4762,32 +4773,25 @@ function toggleLeaderboard(){
 
 function renderLeaderboard(){
   var lob = document.getElementById('lobF').value;
-  var repF = document.getElementById('repF').value;
-
-  // Use active period months so leaderboard responds to all filters
-  var lbMonths;
-  if(period === 'monthly'){
-    var lbFrom = document.getElementById('fromM').value;
-    var lbTo   = document.getElementById('toM').value;
-    lbMonths = getMonths(lbFrom, lbTo);
-  } else if(period === 'yearly'){
-    var lbYr = getYearlyRange();
-    lbMonths = lbYr.curPeriod || MONTHS;
-  } else if(period === 'weekly'){
-    // Use all months that overlap the displayed 5 weeks
-    lbMonths = MONTHS;
-  } else {
-    lbMonths = MONTHS;
-  }
-  if(!lbMonths || !lbMonths.length) lbMonths = MONTHS;
-
-  // All reps always shown on leaderboard (competitive ranking)
-  var data = applyFilters(lob, 'all', lbMonths);
-  var repList = Object.keys(data);
-
-  // Update KPI cards to match current leaderboard view
-  var kpiData = applyFilters(lob, repF, lbMonths);
-  updateKPIs(kpiData, lbMonths);
+  // Always use full FY for leaderboard
+  // FY = Apr of start year to Mar of next year; use all available months for current FY
+  var now=new Date(); var curYr=now.getFullYear(); var curMo=now.getMonth(); // 0-indexed
+  var fyStartYr = curMo>=3 ? curYr : curYr-1; // Apr=month 3
+  var fyMonths = MONTHS.filter(function(m){
+    var p=m.split('-'); var mn=p[0]; var yr=parseInt(p[1]);
+    var MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var mi=MONTH_NAMES.indexOf(mn);
+    return (yr===fyStartYr && mi>=3) || (yr===fyStartYr+1 && mi<=2);
+  });
+  if(fyMonths.length===0) fyMonths=MONTHS; // fallback
+  var repF2=document.getElementById('repF').value;
+  var lbMonths=fyMonths;
+  if(period==='monthly'){var lf=document.getElementById('fromM').value,lt=document.getElementById('toM').value;lbMonths=getMonths(lf,lt);}
+  else if(period==='yearly'){var lbYr=getYearlyRange();lbMonths=lbYr.curPeriod||MONTHS;}
+  if(!lbMonths||!lbMonths.length)lbMonths=MONTHS;
+  var data=applyFilters(lob,'all',lbMonths);
+  var kpiData=applyFilters(lob,repF2,lbMonths); updateKPIs(kpiData,lbMonths);
+  var repList=Object.keys(data);
 
   // Calculate totals per rep
   var repStats = repList.map(function(rep){
@@ -4809,12 +4813,7 @@ function renderLeaderboard(){
 
   var maxGP = repStats.length>0?repStats[0].gp:1;
 
-  var lbLbl = period==='monthly'
-    ? (function(){ var f=document.getElementById('fromM'),t=document.getElementById('toM'); return (MS[f&&f.value]||'')+' – '+(MS[t&&t.value]||''); })()
-    : period==='yearly' ? 'Yearly'
-    : period==='weekly' ? 'Weekly (5 wks)'
-    : 'Custom';
-  setText('tbl-sub', 'Leaderboard · ' + lbLbl);
+  var lbLbl=period==='monthly'?(function(){var f=document.getElementById('fromM'),t=document.getElementById('toM');return(MS[f&&f.value]||'')+' – '+(MS[t&&t.value]||'');}()):period==='yearly'?'Yearly':period==='weekly'?'Weekly':'Custom'; setText('tbl-sub','Leaderboard · '+lbLbl);
   setText('tbl-meta','Ranked by Gross Profit');
 
   var MEDAL=['🥇','🥈','🥉'];
@@ -4839,13 +4838,9 @@ function renderLeaderboard(){
     html+='<div style="flex:1"><div style="font-weight:700;font-size:14px">'+s.rep+'</div>';
     html+='<div style="font-size:11px;color:var(--text3);margin-top:1px">'+s.teu.toFixed(1)+' TEUs · Ach: <span style="color:'+achColor+';font-weight:600">'+achTxt+'</span></div></div>';
     html+='<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:var(--green)">$'+Math.round(s.gp).toLocaleString()+'</div>';
-    var tgtStr = s.tgt>0 ? ('$'+Math.round(s.tgt).toLocaleString()) : '—';
-    var tgtHtml = s.tgt>0
-      ? (hitTarget
-          ? '<div style="font-size:10px;color:var(--green);font-weight:600">✓ Hit · Tgt: '+tgtStr+'</div>'
-          : '<div style="font-size:10px;color:var(--red);font-weight:500">Tgt: '+tgtStr+' · Var: '+achTxt+'</div>')
-      : '<div style="font-size:10px;color:var(--text3)">No target</div>';
-    html+=tgtHtml+'</div></div>';
+    var tgtStr2=s.tgt>0?('$'+Math.round(s.tgt).toLocaleString()):'--';
+    var tgtH=s.tgt>0?(hitTarget?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ Hit · Tgt: '+tgtStr2+'</div>':'<div style="font-size:10px;color:var(--red);font-weight:500">Tgt: '+tgtStr2+' · '+achTxt+'</div>'):'';
+    html+=tgtH+'</div></div>';
     // Progress bar
     html+='<div style="position:relative;height:8px;background:#e5e7eb;border-radius:4px;overflow:visible">';
     html+='<div style="height:100%;width:'+Math.min(100,pct).toFixed(1)+'%;background:'+(hitTarget?'var(--green)':'var(--blue)')+';border-radius:4px;transition:width .4s"></div>';
@@ -5179,159 +5174,82 @@ function onMonthSelectChange(id){
 }
 
 function updateMonthPickerButtons(){
-  var pairs=[{sel:'fromM',btn:'fromMBtn',def:0},{sel:'toM',btn:'toMBtn',def:-1},{sel:'yrFrom',btn:'yrFromBtn',def:0},{sel:'yrTo',btn:'yrToBtn',def:-1}];
-  pairs.forEach(function(p){var se=document.getElementById(p.sel),be=document.getElementById(p.btn);if(!se||!be||!MONTHS.length)return;var dv=MONTHS[p.def<0?MONTHS.length+p.def:p.def];if(!se.value||MONTHS.indexOf(se.value)<0)se.value=dv;be.textContent=MS[se.value]||se.value;});
+  [{sel:'fromM',btn:'fromMBtn',def:0},{sel:'toM',btn:'toMBtn',def:-1},{sel:'yrFrom',btn:'yrFromBtn',def:0},{sel:'yrTo',btn:'yrToBtn',def:-1}].forEach(function(p){var se=document.getElementById(p.sel),be=document.getElementById(p.btn);if(!se||!be||!MONTHS.length)return;var dv=MONTHS[p.def<0?MONTHS.length+p.def:p.def];if(!se.value||MONTHS.indexOf(se.value)<0)se.value=dv;be.textContent=MS[se.value]||se.value;});
 }
 
 
-var _wpCurrentYear = null;
-
-function wkBtnLabel(key){
-  if(!WKINFO[key]) return '--';
-  var p = key.split('-');
-  return 'W' + parseInt(p[1]) + ' \u00b7 ' + p[0];
-}
-
+var _wpCurrentYear=null;
+function wkBtnLabel(key){if(!WKINFO[key])return'--';var p=key.split('-');return'W'+parseInt(p[1])+' \u00b7 '+p[0];}
 function buildWeekEndSelector(){
-  var allWks = Object.keys(WKINFO).sort(function(a,b){ return WKINFO[b].sortKey - WKINFO[a].sortKey; });
-  var dp = document.getElementById('wkDatePick');
-  var btn = document.getElementById('wkBtn');
-  if(allWks.length > 0){
-    var latest = allWks[0];
-    if(dp && !dp.value) dp.value = WKINFO[latest].end;
-    _wpCurrentYear = parseInt(latest.split('-')[0]);
-    if(btn) btn.textContent = wkBtnLabel(latest);
-  }
+  var aw=Object.keys(WKINFO).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;});
+  var dp=document.getElementById('wkDatePick'),btn=document.getElementById('wkBtn');
+  if(aw.length>0){var l=aw[0];if(dp&&!dp.value)dp.value=WKINFO[l].end;_wpCurrentYear=parseInt(l.split('-')[0]);if(btn)btn.textContent=wkBtnLabel(l);}
 }
-
 function getLast5Weeks(){
-  var dp = document.getElementById('wkDatePick');
-  var endDate = dp && dp.value ? new Date(dp.value) : new Date();
-  return Object.keys(WKINFO)
-    .filter(function(k){ return new Date(WKINFO[k].end) <= endDate; })
-    .sort(function(a,b){ return WKINFO[b].sortKey - WKINFO[a].sortKey; })
-    .slice(0, 5).reverse();
+  var dp=document.getElementById('wkDatePick');
+  var ed=dp&&dp.value?new Date(dp.value):new Date();
+  return Object.keys(WKINFO).filter(function(k){return new Date(WKINFO[k].end)<=ed;}).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;}).slice(0,5).reverse();
 }
-
 function toggleWeekPicker(e){
-  if(e) e.stopPropagation();
-  var btn = document.getElementById('wkBtn');
-  var picker = document.getElementById('wkPicker');
-  if(!btn || !picker) return;
-  document.querySelectorAll('[id$="Picker"]').forEach(function(el){
-    if(el !== picker) el.style.display = 'none';
-  });
-  if(picker.style.display === 'block'){ picker.style.display = 'none'; return; }
-  var dp = document.getElementById('wkDatePick');
-  if(!_wpCurrentYear){
-    var aw = Object.keys(WKINFO).sort(function(a,b){ return WKINFO[b].sortKey - WKINFO[a].sortKey; });
-    _wpCurrentYear = aw.length > 0 ? parseInt(aw[0].split('-')[0]) : new Date().getFullYear();
+  if(e)e.stopPropagation();
+  var btn=document.getElementById('wkBtn'),picker=document.getElementById('wkPicker');
+  if(!btn||!picker)return;
+  document.querySelectorAll('[id$="Picker"]').forEach(function(el){if(el!==picker)el.style.display='none';});
+  if(picker.style.display==='block'){picker.style.display='none';return;}
+  var dp=document.getElementById('wkDatePick');
+  if(!_wpCurrentYear){var aw=Object.keys(WKINFO).sort(function(a,b){return WKINFO[b].sortKey-WKINFO[a].sortKey;});_wpCurrentYear=aw.length>0?parseInt(aw[0].split('-')[0]):new Date().getFullYear();}
+  picker.innerHTML=buildWeekPickerHTML(_wpCurrentYear,dp?dp.value:'');
+  picker.style.display='block';
+  var r=btn.getBoundingClientRect();picker.style.top=(r.bottom+4)+'px';picker.style.left=r.left+'px';
+}
+function weeksInYear(y){var d=new Date(y,0,1),day=d.getDay()||7;if(day===4)return 53;d=new Date(y,11,31);day=d.getDay()||7;return day===4?53:52;}
+function buildWeekPickerHTML(year,selEnd){
+  var yrs={};Object.keys(WKINFO).forEach(function(k){yrs[parseInt(k.split('-')[0])]=true;});
+  var yl=Object.keys(yrs).map(Number).sort();if(!yl.length)yl=[new Date().getFullYear()];
+  if(yl.indexOf(year)<0)year=yl[yl.length-1];_wpCurrentYear=year;
+  var pY=yl.indexOf(year)>0?yl[yl.indexOf(year)-1]:null,nY=yl.indexOf(year)<yl.length-1?yl[yl.indexOf(year)+1]:null;
+  var wd={};Object.keys(WKINFO).forEach(function(k){if(parseInt(k.split('-')[0])===year)wd[parseInt(k.split('-')[1])]=k;});
+  var tw=weeksInYear(year),sk=null;
+  if(selEnd)Object.keys(WKINFO).forEach(function(k){if(WKINFO[k].end===selEnd)sk=k;});
+  var sw=sk&&sk.split('-')[0]==year?parseInt(sk.split('-')[1]):null;
+  var h='<div style="padding:12px;min-width:260px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  var pc=pY?'var(--blue)':'#ccc',nc=nY?'var(--blue)':'#ccc';
+  h+='<button onmousedown="wkNavYear(this,event)" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+pc+';padding:0 6px">'+(pY?'&#8249;':'')+'</button>';
+  h+='<span style="font-size:13px;font-weight:700;color:var(--text)">'+year+'</span>';
+  h+='<button onmousedown="wkNavYear(this,event)" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:'+nc+';padding:0 6px">'+(nY?'&#8250;':'')+'</button>';
+  h+='</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">';
+  for(var w=1;w<=tw;w++){
+    var hd=!!wd[w],is=w===sw;
+    var bg=is?'var(--blue)':(hd?'#eff4ff':'#f5f5f5');
+    var col=is?'#fff':(hd?'var(--blue)':'#bbb');
+    var md=hd?('onmousedown="wkPickWeek(this,event)" data-key="'+wd[w]+'"'):'';
+    h+='<button '+md+' style="padding:6px 2px;border:none;border-radius:6px;background:'+bg+';color:'+col+';font-size:11px;font-weight:'+(is?700:500)+';cursor:'+(hd?'pointer':'default')+'">W'+w+'</button>';
   }
-  picker.innerHTML = buildWeekPickerHTML(_wpCurrentYear, dp ? dp.value : '');
-  picker.style.display = 'block';
-  var rect = btn.getBoundingClientRect();
-  picker.style.top = (rect.bottom + 4) + 'px';
-  picker.style.left = rect.left + 'px';
+  h+='</div>';
+  if(sk&&WKINFO[sk])h+='<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border-l);font-size:10.5px;color:var(--text3);text-align:center">'+WKINFO[sk].start+' \u2013 '+WKINFO[sk].end+'</div>';
+  return h+'</div>';
 }
-
-function weeksInYear(y){
-  var d = new Date(y, 0, 1), day = d.getDay() || 7;
-  if(day === 4) return 53;
-  d = new Date(y, 11, 31); day = d.getDay() || 7;
-  return day === 4 ? 53 : 52;
+function wkNavYear(btn,e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  var dir=parseInt(btn.dataset.dir),yrs={};
+  Object.keys(WKINFO).forEach(function(k){yrs[parseInt(k.split('-')[0])]=true;});
+  var yl=Object.keys(yrs).map(Number).sort(),cur=_wpCurrentYear||yl[yl.length-1],i=yl.indexOf(cur)+dir;
+  if(i<0||i>=yl.length)return;_wpCurrentYear=yl[i];
+  var dp=document.getElementById('wkDatePick'),picker=document.getElementById('wkPicker');
+  if(picker)picker.innerHTML=buildWeekPickerHTML(_wpCurrentYear,dp?dp.value:'');
 }
-
-function buildWeekPickerHTML(year, selectedEndDate){
-  var yrs = {};
-  Object.keys(WKINFO).forEach(function(k){ yrs[parseInt(k.split('-')[0])] = true; });
-  var yl = Object.keys(yrs).map(Number).sort();
-  if(!yl.length) yl = [new Date().getFullYear()];
-  if(yl.indexOf(year) < 0) year = yl[yl.length - 1];
-  _wpCurrentYear = year;
-
-  var prevYr = yl.indexOf(year) > 0 ? yl[yl.indexOf(year) - 1] : null;
-  var nextYr = yl.indexOf(year) < yl.length - 1 ? yl[yl.indexOf(year) + 1] : null;
-
-  var weeksWithData = {};
-  Object.keys(WKINFO).forEach(function(k){
-    if(parseInt(k.split('-')[0]) === year) weeksWithData[parseInt(k.split('-')[1])] = k;
-  });
-
-  var totalWks = weeksInYear(year);
-  var selKey = null;
-  if(selectedEndDate){
-    Object.keys(WKINFO).forEach(function(k){
-      if(WKINFO[k].end === selectedEndDate) selKey = k;
-    });
-  }
-  var selWkNum = selKey && selKey.split('-')[0] == year ? parseInt(selKey.split('-')[1]) : null;
-
-  var html = '<div style="padding:12px;min-width:260px">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-  var pCol = prevYr ? 'var(--blue)' : '#ccc';
-  var nCol = nextYr ? 'var(--blue)' : '#ccc';
-  html += '<button onmousedown="wkNavYear(this,event)" data-dir="-1" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + pCol + ';padding:0 6px">' + (prevYr ? '&#8249;' : '') + '</button>';
-  html += '<span style="font-size:13px;font-weight:700;color:var(--text)">' + year + '</span>';
-  html += '<button onmousedown="wkNavYear(this,event)" data-dir="1" style="background:none;border:none;font-size:18px;cursor:pointer;color:' + nCol + ';padding:0 6px">' + (nextYr ? '&#8250;' : '') + '</button>';
-  html += '</div>';
-  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">';
-  for(var w = 1; w <= totalWks; w++){
-    var hasData = !!weeksWithData[w];
-    var isSel = w === selWkNum;
-    var bg = isSel ? 'var(--blue)' : (hasData ? '#eff4ff' : '#f5f5f5');
-    var col = isSel ? '#fff' : (hasData ? 'var(--blue)' : '#bbb');
-    var fw = isSel ? '700' : '500';
-    var cur = hasData ? 'pointer' : 'default';
-    var md = hasData ? ('onmousedown="wkPickWeek(this,event)" data-key="' + weeksWithData[w] + '"') : '';
-    html += '<button ' + md + ' style="padding:6px 2px;border:none;border-radius:6px;background:' + bg + ';color:' + col + ';font-size:11px;font-weight:' + fw + ';cursor:' + cur + '">W' + w + '</button>';
-  }
-  html += '</div>';
-  if(selKey && WKINFO[selKey]){
-    html += '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border-l);font-size:10.5px;color:var(--text3);text-align:center">' + WKINFO[selKey].start + ' \u2013 ' + WKINFO[selKey].end + '</div>';
-  }
-  html += '</div>';
-  return html;
+function wkPickWeek(btn,e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  var key=btn.dataset.key;if(!key||!WKINFO[key])return;
+  var dp=document.getElementById('wkDatePick'),wb=document.getElementById('wkBtn');
+  if(dp)dp.value=WKINFO[key].end;if(wb)wb.textContent=wkBtnLabel(key);
+  var picker=document.getElementById('wkPicker');if(picker)picker.style.display='none';render();
 }
-
-function wkNavYear(btn, e){
-  if(e){ e.preventDefault(); e.stopPropagation(); }
-  var dir = parseInt(btn.dataset.dir);
-  var yrs = {};
-  Object.keys(WKINFO).forEach(function(k){ yrs[parseInt(k.split('-')[0])] = true; });
-  var yl = Object.keys(yrs).map(Number).sort();
-  var cur = _wpCurrentYear || yl[yl.length - 1];
-  var i = yl.indexOf(cur) + dir;
-  if(i < 0 || i >= yl.length) return;
-  _wpCurrentYear = yl[i];
-  var dp = document.getElementById('wkDatePick');
-  var picker = document.getElementById('wkPicker');
-  if(picker) picker.innerHTML = buildWeekPickerHTML(_wpCurrentYear, dp ? dp.value : '');
-}
-
-function wkPickWeek(btn, e){
-  if(e){ e.preventDefault(); e.stopPropagation(); }
-  var key = btn.dataset.key;
-  if(!key || !WKINFO[key]) return;
-  var dp = document.getElementById('wkDatePick');
-  var wkBtn = document.getElementById('wkBtn');
-  if(dp) dp.value = WKINFO[key].end;
-  if(wkBtn) wkBtn.textContent = wkBtnLabel(key);
-  var picker = document.getElementById('wkPicker');
-  if(picker) picker.style.display = 'none';
-  render();
-}
-
 // Close pickers on outside click
 document.addEventListener('click', function(e){
-  var inside = e.target.closest && (
-    e.target.closest('[id$="Picker"]') ||
-    e.target.closest('[id$="Btn"]') ||
-    e.target.closest('#wkBtn') ||
-    e.target.closest('.mp-btn')
-  );
-  if(!inside){
-    document.querySelectorAll('[id$="Picker"]').forEach(function(el){ el.style.display='none'; });
-  }
+  var inside=e.target.closest&&(e.target.closest('[id$="Picker"]')||e.target.closest('[id$="Btn"]')||e.target.closest('#wkBtn')||e.target.closest('.mp-btn'));
+  if(!inside) document.querySelectorAll('[id$="Picker"]').forEach(function(el){el.style.display='none';});
 });
 
 </script>
